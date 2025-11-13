@@ -20,6 +20,7 @@ export namespace GLFW
 		::glfwDestroyWindow,
 		::glfwTerminate,
 		::glfwInit,
+		::glfwGetRequiredInstanceExtensions,
 		::GLFWwindow
 		;
 
@@ -32,5 +33,20 @@ export namespace GLFW
 
 export namespace Vulkan
 {
+	using
+		::VkApplicationInfo,
+		::VkInstance,
+		::VkInstanceCreateInfo,
+		::VkStructureType,
+		::VkResult,
+		::vkCreateInstance,
+		::vkDestroyInstance
+		;
 
+	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;
+	
+	constexpr auto MakeVersion(int major, int minor, int patch) -> uint32_t
+	{
+		return VK_MAKE_VERSION(major, minor,  patch);
+	}
 }

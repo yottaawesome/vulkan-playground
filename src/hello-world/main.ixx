@@ -17,6 +17,34 @@ struct HelloTriangleApplication
 
 private:
 	GLFW::GLFWwindow* window = nullptr;
+    Vulkan::VkInstance instance;
+
+    void CreateInstance()
+    {
+		Vulkan::VkApplicationInfo appInfo{
+			.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pApplicationName = "Hello Triangle",
+			.applicationVersion = Vulkan::MakeVersion(1, 0, 0),
+			.pEngineName = "No Engine",
+			.engineVersion = Vulkan::MakeVersion(1, 0, 0),
+			.apiVersion = Vulkan::ApiVersion1
+        };
+
+
+        std::uint32_t extensionCount = 0;
+        const char** extensions =
+            GLFW::glfwGetRequiredInstanceExtensions(&extensionCount);
+        Vulkan::VkInstanceCreateInfo createInfo{
+            .sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pApplicationInfo = &appInfo,
+			.enabledExtensionCount = extensionCount,
+			.ppEnabledExtensionNames = extensions
+        };
+        Vulkan::VkResult result = 
+            Vulkan::vkCreateInstance(&createInfo, nullptr, &instance);
+        if (result != Vulkan::VkResult::VK_SUCCESS) 
+            throw std::runtime_error("Failed to create instance!");
+    }
 
     void InitWindow()
     {
@@ -28,7 +56,7 @@ private:
 
     void InitVulkan() 
     {
-
+        CreateInstance();
     }
 
     void MainLoop() 
@@ -41,6 +69,7 @@ private:
 
     void Cleanup() 
     {
+		Vulkan::vkDestroyInstance(instance, nullptr);
 		GLFW::glfwDestroyWindow(window);
 		GLFW::glfwTerminate();
     }

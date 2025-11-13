@@ -132,6 +132,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.ixx" />
+    <ClCompile Include="vulkan.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

@@ -40,14 +40,29 @@ export namespace Vulkan
 		::VkStructureType,
 		::VkResult,
 		::VkExtensionProperties,
+		::VkLayerProperties,
+		::VkBool32,
+		::VkDebugUtilsMessageSeverityFlagBitsEXT,
+		::VkDebugUtilsMessageTypeFlagsEXT,
+		::VkDebugUtilsMessageTypeFlagBitsEXT,
+		::VkDebugUtilsMessengerCallbackDataEXT,
+		::VkDebugUtilsMessageSeverityFlagBitsEXT,
+		::VkDebugUtilsMessengerEXT,
+		::VkDebugUtilsMessengerCreateInfoEXT,
+		::VkAllocationCallbacks,
+		::PFN_vkCreateDebugUtilsMessengerEXT,
+		::PFN_vkDestroyDebugUtilsMessengerEXT,
+		::vkGetInstanceProcAddr,
 		::vkCreateInstance,
 		// https://docs.vulkan.org/refpages/latest/refpages/source/vkEnumerateInstanceExtensionProperties.html
 		::vkEnumerateInstanceExtensionProperties,
-		::vkDestroyInstance
+		::vkDestroyInstance,
+		::vkEnumerateInstanceLayerProperties
 		;
-
 	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;
-	
+	constexpr auto DebugUtilExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+	constexpr auto VkFalse = VK_FALSE;
+
 	constexpr auto MakeVersion(int major, int minor, int patch) -> uint32_t
 	{
 		return VK_MAKE_VERSION(major, minor,  patch);

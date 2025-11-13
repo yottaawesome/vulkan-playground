@@ -39,7 +39,10 @@ export namespace Vulkan
 		::VkInstanceCreateInfo,
 		::VkStructureType,
 		::VkResult,
+		::VkExtensionProperties,
 		::vkCreateInstance,
+		// https://docs.vulkan.org/refpages/latest/refpages/source/vkEnumerateInstanceExtensionProperties.html
+		::vkEnumerateInstanceExtensionProperties,
 		::vkDestroyInstance
 		;
 

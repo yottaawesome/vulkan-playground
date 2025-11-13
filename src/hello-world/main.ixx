@@ -19,6 +19,31 @@ private:
 	GLFW::GLFWwindow* window = nullptr;
     Vulkan::VkInstance instance;
 
+    void EnumerateExtensions()
+    {
+		std::uint32_t extensionsCount = 0;
+        auto result = 
+            Vulkan::vkEnumerateInstanceExtensionProperties(
+                nullptr, 
+                &extensionsCount, 
+                nullptr
+            );
+		if (result != Vulkan::VkResult::VK_SUCCESS) 
+			throw std::runtime_error("Failed to enumerate extensions count.");
+
+		std::vector<Vulkan::VkExtensionProperties> extensions(extensionsCount);
+        result = Vulkan::vkEnumerateInstanceExtensionProperties(
+            nullptr,
+            &extensionsCount,
+            extensions.data()
+        );
+        if (result != Vulkan::VkResult::VK_SUCCESS)
+            throw std::runtime_error("Failed to enumerate extensions.");
+
+        for (const auto& extension : extensions)
+            std::println("Extension: {}", extension.extensionName);
+    }
+
     void CreateInstance()
     {
 		Vulkan::VkApplicationInfo appInfo{
@@ -29,7 +54,6 @@ private:
 			.engineVersion = Vulkan::MakeVersion(1, 0, 0),
 			.apiVersion = Vulkan::ApiVersion1
         };
-
 
         std::uint32_t extensionCount = 0;
         const char** extensions =

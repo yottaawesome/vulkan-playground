@@ -1,0 +1,9 @@
+{
+  "name": "hello-world",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "vulkan",
+    "glfw3",
+    "glm"
+  ]
+}

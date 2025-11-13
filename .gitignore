@@ -416,4 +416,4 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
-/src/vulkan-playground/hello-world/vcpkg_installed/x64-windows
+vcpkg_installed/

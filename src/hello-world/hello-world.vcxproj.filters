@@ -21,7 +21,7 @@
     <ClCompile Include="vulkan.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="helloworld-hellotriangleapplication.ixx">
+    <ClCompile Include="helloworld-application.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

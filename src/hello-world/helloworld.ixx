@@ -6,7 +6,7 @@ export import :hellotriangleapplication;
 extern "C" auto main() -> int
 try 
 {
-    HelloTriangle::HelloTriangleApplication app;
+    HelloTriangle::Application app;
     app.Run();
     return 0;
 }

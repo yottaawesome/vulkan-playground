@@ -15,6 +15,35 @@ export namespace Build
 
 export namespace HelloTriangle
 {
+    struct QueueFamilyIndices 
+    {
+        std::optional<std::uint32_t> graphicsFamily;
+        auto IsComplete(this const auto& self) -> bool { return self.graphicsFamily.has_value(); }
+    };
+
+    auto FindQueueFamilies(Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
+    {
+		std::uint32_t queueFamilyCount = 0;
+		Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+		std::vector<Vulkan::VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        QueueFamilyIndices indices{};
+        for (const auto& queueFamily : queueFamilies)
+        {
+            if (queueFamily.queueFlags & Vulkan::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
+                indices = { .graphicsFamily = i };
+            if (indices.IsComplete()) {
+                break;
+            }
+            i++;
+        }
+
+		return indices;
+    }
+
     // Extension -- needs to be loaded manually
     auto CreateDebugUtilsMessengerEXT(
         Vulkan::VkInstance instance,
@@ -25,7 +54,7 @@ export namespace HelloTriangle
     {
         auto fn = reinterpret_cast<Vulkan::PFN_vkCreateDebugUtilsMessengerEXT>(
             Vulkan::vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT")
-            );
+        );
         return fn
             ? fn(instance, pCreateInfo, pAllocator, pDebugMessenger)
             : Vulkan::VkResult::VK_ERROR_EXTENSION_NOT_PRESENT;
@@ -38,14 +67,14 @@ export namespace HelloTriangle
         const Vulkan::VkAllocationCallbacks* pAllocator
     )
     {
-        auto func = reinterpret_cast<Vulkan::PFN_vkDestroyDebugUtilsMessengerEXT>(
+        auto fn = reinterpret_cast<Vulkan::PFN_vkDestroyDebugUtilsMessengerEXT>(
             Vulkan::vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
-            );
-        if (func)
-            func(instance, debugMessenger, pAllocator);
+        );
+        if (fn)
+            fn(instance, debugMessenger, pAllocator);
     }
 
-    struct HelloTriangleApplication
+    struct Application
     {
         constexpr static int Width = 800;
         constexpr static int Height = 600;
@@ -68,6 +97,40 @@ export namespace HelloTriangle
         GLFW::GLFWwindow* window = nullptr;
         Vulkan::VkInstance instance;
         Vulkan::VkDebugUtilsMessengerEXT debugMessenger;
+		// Destroyed automatically when the instance is destroyed.
+        Vulkan::VkPhysicalDevice physicalDevice = nullptr;
+
+        auto IsDeviceSuitable(this const auto& self, Vulkan::VkPhysicalDevice device) -> bool
+        {
+            QueueFamilyIndices indices = FindQueueFamilies(device);
+
+            return indices.graphicsFamily.has_value();
+
+			/*Vulkan::VkPhysicalDeviceProperties deviceProperties;
+			Vulkan::vkGetPhysicalDeviceProperties(device, &deviceProperties);
+            Vulkan::VkPhysicalDeviceFeatures deviceFeatures;
+			Vulkan::vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+            return 
+                deviceProperties.deviceType == Vulkan::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+				and deviceFeatures.geometryShader;*/
+        }
+
+		auto PickPhysicalDevice(this auto& self) -> Vulkan::VkPhysicalDevice
+        {
+            std::uint32_t deviceCount = 0;
+            Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, nullptr);
+            if (deviceCount == 0)
+				throw std::runtime_error("Failed to find GPUs with Vulkan support.");
+
+            std::vector<Vulkan::VkPhysicalDevice> devices(deviceCount);
+            Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, devices.data());
+            
+            for (const auto& device : devices)
+                if (self.IsDeviceSuitable(device))
+                    return (self.physicalDevice = device, device);
+			throw std::runtime_error("Failed to find a suitable GPU.");
+        }
 
         auto CheckValidationLayerSupport(this const auto& self) -> bool
         {
@@ -198,6 +261,7 @@ export namespace HelloTriangle
         {
             self.CreateInstance();
             self.SetupDebugMessenger();
+			self.PickPhysicalDevice();
         }
 
         void PopulateDebugMessengerCreateInfo(this auto& self, Vulkan::VkDebugUtilsMessengerCreateInfoEXT& createInfo)

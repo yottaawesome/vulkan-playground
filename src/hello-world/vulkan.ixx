@@ -52,6 +52,18 @@ export namespace Vulkan
 		::VkAllocationCallbacks,
 		::PFN_vkCreateDebugUtilsMessengerEXT,
 		::PFN_vkDestroyDebugUtilsMessengerEXT,
+		::VkPhysicalDevice,
+		::VkPhysicalDeviceFeatures,
+		::VkPhysicalDeviceProperties,
+		::VkPhysicalDeviceProperties2, // supersedes VkPhysicalDeviceProperties in Vulkan 1.1
+		::VkPhysicalDeviceType,
+		::VkQueueFamilyProperties,
+		::VkQueueFlagBits,
+		::vkGetPhysicalDeviceQueueFamilyProperties,
+		::vkGetPhysicalDeviceProperties,
+		::vkGetPhysicalDeviceProperties2, // supersedes vkGetPhysicalDeviceProperties in Vulkan 1.1
+		::vkGetPhysicalDeviceFeatures,
+		::vkEnumeratePhysicalDevices,
 		::vkGetInstanceProcAddr,
 		::vkCreateInstance,
 		// https://docs.vulkan.org/refpages/latest/refpages/source/vkEnumerateInstanceExtensionProperties.html
@@ -62,6 +74,7 @@ export namespace Vulkan
 	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;
 	constexpr auto DebugUtilExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 	constexpr auto VkFalse = VK_FALSE;
+	constexpr auto VkNullHandle = VK_NULL_HANDLE;
 
 	constexpr auto MakeVersion(int major, int minor, int patch) -> uint32_t
 	{

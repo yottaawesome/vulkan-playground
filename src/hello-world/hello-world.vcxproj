@@ -131,7 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="helloworld-hellotriangleapplication.ixx" />
+    <ClCompile Include="helloworld-application.ixx" />
     <ClCompile Include="helloworld.ixx" />
     <ClCompile Include="vulkan.ixx" />
   </ItemGroup>

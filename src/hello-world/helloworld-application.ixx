@@ -13,9 +13,12 @@ export namespace Build
     constexpr bool IsRelease = not IsDebug;
 }
 
+//
+//
+// Various helper functions and structures for the Hello Triangle application
 export namespace HelloTriangle
 {
-    struct QueueFamilyIndices 
+    struct QueueFamilyIndices
     {
         std::optional<std::uint32_t> graphicsFamily;
         auto IsComplete(this const auto& self) -> bool { return self.graphicsFamily.has_value(); }
@@ -23,10 +26,10 @@ export namespace HelloTriangle
 
     auto FindQueueFamilies(Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
     {
-		std::uint32_t queueFamilyCount = 0;
-		Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        std::uint32_t queueFamilyCount = 0;
+        Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
-		std::vector<Vulkan::VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        std::vector<Vulkan::VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
@@ -35,13 +38,12 @@ export namespace HelloTriangle
         {
             if (queueFamily.queueFlags & Vulkan::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
                 indices = { .graphicsFamily = i };
-            if (indices.IsComplete()) {
+            if (indices.IsComplete())
                 break;
-            }
             i++;
         }
 
-		return indices;
+        return indices;
     }
 
     // Extension -- needs to be loaded manually
@@ -70,10 +72,15 @@ export namespace HelloTriangle
         auto fn = reinterpret_cast<Vulkan::PFN_vkDestroyDebugUtilsMessengerEXT>(
             Vulkan::vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
         );
-        if (fn)
-            fn(instance, debugMessenger, pAllocator);
+        fn ? fn(instance, debugMessenger, pAllocator) : void();
     }
+}
 
+//
+//
+// Main application class for the Hello Triangle application
+export namespace HelloTriangle
+{
     struct Application
     {
         constexpr static int Width = 800;
@@ -99,6 +106,9 @@ export namespace HelloTriangle
         Vulkan::VkDebugUtilsMessengerEXT debugMessenger;
 		// Destroyed automatically when the instance is destroyed.
         Vulkan::VkPhysicalDevice physicalDevice = nullptr;
+        Vulkan::VkDevice device;
+		// Implicitly destroyed when the device is destroyed.
+		Vulkan::VkQueue graphicsQueue;
 
         auto IsDeviceSuitable(this const auto& self, Vulkan::VkPhysicalDevice device) -> bool
         {
@@ -110,7 +120,6 @@ export namespace HelloTriangle
 			Vulkan::vkGetPhysicalDeviceProperties(device, &deviceProperties);
             Vulkan::VkPhysicalDeviceFeatures deviceFeatures;
 			Vulkan::vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
             return 
                 deviceProperties.deviceType == Vulkan::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 				and deviceFeatures.geometryShader;*/
@@ -262,6 +271,51 @@ export namespace HelloTriangle
             self.CreateInstance();
             self.SetupDebugMessenger();
 			self.PickPhysicalDevice();
+			self.CreateLogicalDevice();
+        }
+
+        void CreateLogicalDevice(this auto& self) 
+        {
+            QueueFamilyIndices indices = FindQueueFamilies(self.physicalDevice);
+
+            Vulkan::VkDeviceQueueCreateInfo queueCreateInfo{
+                .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = indices.graphicsFamily.value(),
+                .queueCount = 1
+            };
+
+            float queuePriority = 1.0f;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+
+            Vulkan::VkPhysicalDeviceFeatures deviceFeatures{};
+            Vulkan::VkDeviceCreateInfo createInfo{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                .queueCreateInfoCount = 1,
+                .pQueueCreateInfos = &queueCreateInfo,
+                .enabledExtensionCount = 0,
+                .pEnabledFeatures = &deviceFeatures
+            };
+            if (EnableValidationLayers) 
+            {
+                createInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
+                createInfo.ppEnabledLayerNames = ValidationLayers.data();
+            }
+
+            auto result = Vulkan::vkCreateDevice(
+                self.physicalDevice,
+                &createInfo,
+                nullptr,
+                &self.device
+			);
+            if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to create logical device.");
+
+            Vulkan::vkGetDeviceQueue(
+                self.device, 
+                indices.graphicsFamily.value(), 
+                0, 
+                &self.graphicsQueue
+            );
         }
 
         void PopulateDebugMessengerCreateInfo(this auto& self, Vulkan::VkDebugUtilsMessengerCreateInfoEXT& createInfo)
@@ -309,6 +363,7 @@ export namespace HelloTriangle
 
         void Cleanup(this auto& self)
         {
+			Vulkan::vkDestroyDevice(self.device, nullptr);
             if (EnableValidationLayers)
                 DestroyDebugUtilsMessengerEXT(self.instance, self.debugMessenger, nullptr);
             Vulkan::vkDestroyInstance(self.instance, nullptr);

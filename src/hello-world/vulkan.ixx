@@ -64,6 +64,7 @@ export namespace Vulkan
 		::VkDeviceQueueCreateInfo,
 		::VkDeviceCreateInfo,
 		::VkQueue,
+		::VkSurfaceKHR,
 		::vkGetDeviceQueue,
 		::vkDestroyDevice,
 		::vkCreateDevice,

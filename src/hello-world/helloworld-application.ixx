@@ -110,37 +110,6 @@ export namespace HelloTriangle
 		// Implicitly destroyed when the device is destroyed.
 		Vulkan::VkQueue graphicsQueue;
 
-		auto IsDeviceSuitable(this const auto& self, Vulkan::VkPhysicalDevice device) -> bool
-		{
-			QueueFamilyIndices indices = FindQueueFamilies(device);
-
-			return indices.graphicsFamily.has_value();
-
-			/*Vulkan::VkPhysicalDeviceProperties deviceProperties;
-			Vulkan::vkGetPhysicalDeviceProperties(device, &deviceProperties);
-			Vulkan::VkPhysicalDeviceFeatures deviceFeatures;
-			Vulkan::vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-			return 
-				deviceProperties.deviceType == Vulkan::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-				and deviceFeatures.geometryShader;*/
-		}
-
-		auto PickPhysicalDevice(this auto& self) -> Vulkan::VkPhysicalDevice
-		{
-			std::uint32_t deviceCount = 0;
-			Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, nullptr);
-			if (deviceCount == 0)
-				throw std::runtime_error("Failed to find GPUs with Vulkan support.");
-
-			std::vector<Vulkan::VkPhysicalDevice> devices(deviceCount);
-			Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, devices.data());
-			
-			for (const auto& device : devices)
-				if (self.IsDeviceSuitable(device))
-					return (self.physicalDevice = device, device);
-			throw std::runtime_error("Failed to find a suitable GPU.");
-		}
-
 		auto CheckValidationLayerSupport(this const auto& self) -> bool
 		{
 			std::uint32_t layerCount = 0;
@@ -178,44 +147,15 @@ export namespace HelloTriangle
 				}
 			);
 		}
-
-		void EnumerateExtensions(this const auto& self)
+		
+		void Cleanup(this auto& self)
 		{
-			std::uint32_t extensionsCount = 0;
-			auto result =
-				Vulkan::vkEnumerateInstanceExtensionProperties(
-					nullptr,
-					&extensionsCount,
-					nullptr
-				);
-			if (result != Vulkan::VkResult::VK_SUCCESS)
-				throw std::runtime_error("Failed to enumerate extensions count.");
-
-			std::vector<Vulkan::VkExtensionProperties> extensions(extensionsCount);
-			result = Vulkan::vkEnumerateInstanceExtensionProperties(
-				nullptr,
-				&extensionsCount,
-				extensions.data()
-			);
-			if (result != Vulkan::VkResult::VK_SUCCESS)
-				throw std::runtime_error("Failed to enumerate extensions.");
-
-			for (const auto& extension : extensions)
-				std::println("Extension: {}", extension.extensionName);
-		}
-
-		auto GetRequiredExtensions(this const auto& self) -> std::vector<const char*>
-		{
-			std::uint32_t glfwExtensionCount = 0;
-			const char** glfwExtensions =
-				GLFW::glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-			std::vector<const char*> extensions(
-				glfwExtensions,
-				glfwExtensions + glfwExtensionCount
-			);
+			Vulkan::vkDestroyDevice(self.device, nullptr);
 			if (EnableValidationLayers)
-				extensions.push_back(Vulkan::DebugUtilExtensionName);
-			return extensions;
+				DestroyDebugUtilsMessengerEXT(self.instance, self.debugMessenger, nullptr);
+			Vulkan::vkDestroyInstance(self.instance, nullptr);
+			GLFW::glfwDestroyWindow(self.window);
+			GLFW::glfwTerminate();
 		}
 
 		void CreateInstance(this auto& self)
@@ -257,24 +197,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create instance!");
 		}
 
-		void InitWindow(this auto& self)
-		{
-			GLFW::glfwInit();
-			GLFW::glfwWindowHint(GLFW::ClientApi, GLFW::NoApi);
-			GLFW::glfwWindowHint(GLFW::Resizable, false);
-			self.window =
-				GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
-		}
-
-		void InitVulkan(this auto& self)
-		{
-			self.CreateInstance();
-			self.SetupDebugMessenger();
-			self.PickPhysicalDevice();
-			self.CreateLogicalDevice();
-		}
-
-		void CreateLogicalDevice(this auto& self) 
+		void CreateLogicalDevice(this auto& self)
 		{
 			QueueFamilyIndices indices = FindQueueFamilies(self.physicalDevice);
 
@@ -295,7 +218,7 @@ export namespace HelloTriangle
 				.enabledExtensionCount = 0,
 				.pEnabledFeatures = &deviceFeatures
 			};
-			if (EnableValidationLayers) 
+			if (EnableValidationLayers)
 			{
 				createInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
 				createInfo.ppEnabledLayerNames = ValidationLayers.data();
@@ -311,11 +234,122 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create logical device.");
 
 			Vulkan::vkGetDeviceQueue(
-				self.device, 
-				indices.graphicsFamily.value(), 
-				0, 
+				self.device,
+				indices.graphicsFamily.value(),
+				0,
 				&self.graphicsQueue
 			);
+		}
+
+		// stdcall on Windows, but this is ignored on x64.
+		static auto DebugCallback(
+			Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			Vulkan::VkDebugUtilsMessageTypeFlagsEXT messageType,
+			const Vulkan::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			void* pUserData
+		) -> Vulkan::VkBool32
+		{
+			if (messageSeverity >= Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+			{
+				std::println("Validation layer: {}", pCallbackData->pMessage);
+			}
+
+			return false;
+		}
+
+		void EnumerateExtensions(this const auto& self)
+		{
+			std::uint32_t extensionsCount = 0;
+			auto result =
+				Vulkan::vkEnumerateInstanceExtensionProperties(
+					nullptr,
+					&extensionsCount,
+					nullptr
+				);
+			if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to enumerate extensions count.");
+
+			std::vector<Vulkan::VkExtensionProperties> extensions(extensionsCount);
+			result = Vulkan::vkEnumerateInstanceExtensionProperties(
+				nullptr,
+				&extensionsCount,
+				extensions.data()
+			);
+			if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to enumerate extensions.");
+
+			for (const auto& extension : extensions)
+				std::println("Extension: {}", extension.extensionName);
+		}
+
+		auto GetRequiredExtensions(this const auto& self) -> std::vector<const char*>
+		{
+			std::uint32_t glfwExtensionCount = 0;
+			const char** glfwExtensions =
+				GLFW::glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+			std::vector<const char*> extensions(
+				glfwExtensions,
+				glfwExtensions + glfwExtensionCount
+			);
+			if (EnableValidationLayers)
+				extensions.push_back(Vulkan::DebugUtilExtensionName);
+			return extensions;
+		}
+
+		void InitVulkan(this auto& self)
+		{
+			self.CreateInstance();
+			self.SetupDebugMessenger();
+			self.PickPhysicalDevice();
+			self.CreateLogicalDevice();
+		}
+
+		void InitWindow(this auto& self)
+		{
+			GLFW::glfwInit();
+			GLFW::glfwWindowHint(GLFW::ClientApi, GLFW::NoApi);
+			GLFW::glfwWindowHint(GLFW::Resizable, false);
+			self.window =
+				GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
+		}
+
+		auto IsDeviceSuitable(this const auto& self, Vulkan::VkPhysicalDevice device) -> bool
+		{
+			QueueFamilyIndices indices = FindQueueFamilies(device);
+
+			return indices.graphicsFamily.has_value();
+
+			/*Vulkan::VkPhysicalDeviceProperties deviceProperties;
+			Vulkan::vkGetPhysicalDeviceProperties(device, &deviceProperties);
+			Vulkan::VkPhysicalDeviceFeatures deviceFeatures;
+			Vulkan::vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+			return
+				deviceProperties.deviceType == Vulkan::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+				and deviceFeatures.geometryShader;*/
+		}
+
+		void MainLoop(this auto& self)
+		{
+			while (not GLFW::glfwWindowShouldClose(self.window))
+			{
+				GLFW::glfwPollEvents();
+			}
+		}
+
+		auto PickPhysicalDevice(this auto& self) -> Vulkan::VkPhysicalDevice
+		{
+			std::uint32_t deviceCount = 0;
+			Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, nullptr);
+			if (deviceCount == 0)
+				throw std::runtime_error("Failed to find GPUs with Vulkan support.");
+
+			std::vector<Vulkan::VkPhysicalDevice> devices(deviceCount);
+			Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, devices.data());
+
+			for (const auto& device : devices)
+				if (self.IsDeviceSuitable(device))
+					return (self.physicalDevice = device, device);
+			throw std::runtime_error("Failed to find a suitable GPU.");
 		}
 
 		void PopulateDebugMessengerCreateInfo(this auto& self, Vulkan::VkDebugUtilsMessengerCreateInfoEXT& createInfo)
@@ -351,40 +385,6 @@ export namespace HelloTriangle
 			);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to set up debug messenger");
-		}
-
-		void MainLoop(this auto& self)
-		{
-			while (not GLFW::glfwWindowShouldClose(self.window))
-			{
-				GLFW::glfwPollEvents();
-			}
-		}
-
-		void Cleanup(this auto& self)
-		{
-			Vulkan::vkDestroyDevice(self.device, nullptr);
-			if (EnableValidationLayers)
-				DestroyDebugUtilsMessengerEXT(self.instance, self.debugMessenger, nullptr);
-			Vulkan::vkDestroyInstance(self.instance, nullptr);
-			GLFW::glfwDestroyWindow(self.window);
-			GLFW::glfwTerminate();
-		}
-
-		// stdcall on Windows, but this is ignored on x64.
-		static auto DebugCallback(
-			Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			Vulkan::VkDebugUtilsMessageTypeFlagsEXT messageType,
-			const Vulkan::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData
-		) -> Vulkan::VkBool32
-		{
-			if (messageSeverity >= Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-			{
-				std::println("Validation layer: {}", pCallbackData->pMessage);
-			}
-
-			return false;
 		}
 	};
 }

@@ -75,7 +75,6 @@ export namespace Vulkan
 		::VkQueueFlagBits,
 		::VkDevice,
 		::VkDeviceQueueCreateInfo,
-		::VkDeviceQueueCreateInfo,
 		::VkDeviceCreateInfo,
 		::VkQueue,
 		::VkSurfaceKHR,

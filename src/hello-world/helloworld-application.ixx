@@ -93,6 +93,7 @@ export namespace HelloTriangle
 		// Implicitly destroyed when the device is destroyed.
 		Vulkan::VkQueue graphicsQueue;
 		Vulkan::VkSurfaceKHR surface;
+		Vulkan::VkQueue presentQueue;
 
 		auto CheckValidationLayerSupport(this const auto& self) -> bool
 		{
@@ -186,22 +187,36 @@ export namespace HelloTriangle
 		{
 			QueueFamilyIndices indices = self.FindQueueFamilies(self.physicalDevice);
 
+			std::vector<Vulkan::VkDeviceQueueCreateInfo> queueCreateInfos;
+			std::set<std::uint32_t> uniqueQueueFamilies{ 
+				indices.GraphicsFamily.value(), 
+				indices.PresentFamily.value() 
+			};
+			float queuePriority = 1.0f;
+			for (std::uint32_t queueFamily : uniqueQueueFamilies) 
+			{
+				Vulkan::VkDeviceQueueCreateInfo queueCreateInfo{};
+				queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				queueCreateInfo.queueFamilyIndex = queueFamily;
+				queueCreateInfo.queueCount = 1;
+				queueCreateInfo.pQueuePriorities = &queuePriority;
+				queueCreateInfos.push_back(queueCreateInfo);
+			}
+
 			Vulkan::VkDeviceQueueCreateInfo queueCreateInfo{
 				.sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.queueFamilyIndex = indices.GraphicsFamily.value(),
 				.queueCount = 1
 			};
-
-			float queuePriority = 1.0f;
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 
 			Vulkan::VkPhysicalDeviceFeatures deviceFeatures{};
 			Vulkan::VkDeviceCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.queueCreateInfoCount = 1,
-				.pQueueCreateInfos = &queueCreateInfo,
+				.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+				.pQueueCreateInfos = queueCreateInfos.data(),
 				.enabledExtensionCount = 0,
-				.pEnabledFeatures = &deviceFeatures
+				.pEnabledFeatures = &deviceFeatures,
 			};
 			if (EnableValidationLayers)
 			{
@@ -223,6 +238,12 @@ export namespace HelloTriangle
 				indices.GraphicsFamily.value(),
 				0,
 				&self.graphicsQueue
+			);
+			Vulkan::vkGetDeviceQueue(
+				self.device, 
+				indices.PresentFamily.value(), 
+				0, 
+				&self.presentQueue
 			);
 		}
 

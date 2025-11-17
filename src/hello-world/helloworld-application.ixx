@@ -20,31 +20,14 @@ export namespace HelloTriangle
 {
 	struct QueueFamilyIndices
 	{
-		std::optional<std::uint32_t> graphicsFamily;
-		auto IsComplete(this const auto& self) -> bool { return self.graphicsFamily.has_value(); }
-	};
-
-	auto FindQueueFamilies(Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
-	{
-		std::uint32_t queueFamilyCount = 0;
-		Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-		std::vector<Vulkan::VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-		int i = 0;
-		QueueFamilyIndices indices{};
-		for (const auto& queueFamily : queueFamilies)
-		{
-			if (queueFamily.queueFlags & Vulkan::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
-				indices = { .graphicsFamily = i };
-			if (indices.IsComplete())
-				break;
-			i++;
+		std::optional<std::uint32_t> GraphicsFamily;
+		std::optional<std::uint32_t> PresentFamily;
+		auto IsComplete(this const auto& self) noexcept -> bool 
+		{ 
+			return self.GraphicsFamily.has_value()
+				and self.PresentFamily.has_value(); 
 		}
-
-		return indices;
-	}
+	};
 
 	// Extension -- needs to be loaded manually
 	auto CreateDebugUtilsMessengerEXT(
@@ -109,6 +92,7 @@ export namespace HelloTriangle
 		Vulkan::VkDevice device;
 		// Implicitly destroyed when the device is destroyed.
 		Vulkan::VkQueue graphicsQueue;
+		Vulkan::VkSurfaceKHR surface;
 
 		auto CheckValidationLayerSupport(this const auto& self) -> bool
 		{
@@ -153,6 +137,7 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyDevice(self.device, nullptr);
 			if (EnableValidationLayers)
 				DestroyDebugUtilsMessengerEXT(self.instance, self.debugMessenger, nullptr);
+			Vulkan::vkDestroySurfaceKHR(self.instance, self.surface, nullptr);
 			Vulkan::vkDestroyInstance(self.instance, nullptr);
 			GLFW::glfwDestroyWindow(self.window);
 			GLFW::glfwTerminate();
@@ -199,11 +184,11 @@ export namespace HelloTriangle
 
 		void CreateLogicalDevice(this auto& self)
 		{
-			QueueFamilyIndices indices = FindQueueFamilies(self.physicalDevice);
+			QueueFamilyIndices indices = self.FindQueueFamilies(self.physicalDevice);
 
 			Vulkan::VkDeviceQueueCreateInfo queueCreateInfo{
 				.sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-				.queueFamilyIndex = indices.graphicsFamily.value(),
+				.queueFamilyIndex = indices.GraphicsFamily.value(),
 				.queueCount = 1
 			};
 
@@ -235,10 +220,28 @@ export namespace HelloTriangle
 
 			Vulkan::vkGetDeviceQueue(
 				self.device,
-				indices.graphicsFamily.value(),
+				indices.GraphicsFamily.value(),
 				0,
 				&self.graphicsQueue
 			);
+		}
+
+		void CreateSurface(this auto& self)
+		{
+			Vulkan::VkWin32SurfaceCreateInfoKHR createInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+				.hinstance = Win32::GetModuleHandleW(nullptr),
+				.hwnd = GLFW::glfwGetWin32Window(self.window),
+			};
+
+			auto result = Vulkan::vkCreateWin32SurfaceKHR(
+				self.instance,
+				&createInfo,
+				nullptr,
+				&self.surface
+			);
+			if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to create window surface.");
 		}
 
 		// stdcall on Windows, but this is ignored on x64.
@@ -282,6 +285,47 @@ export namespace HelloTriangle
 				std::println("Extension: {}", extension.extensionName);
 		}
 
+		auto FindQueueFamilies(this auto& self, Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
+		{
+			std::uint32_t queueFamilyCount = 0;
+			Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(
+				device, 
+				&queueFamilyCount, 
+				nullptr
+			);
+
+			std::vector<Vulkan::VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+			Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(
+				device, 
+				&queueFamilyCount, 
+				queueFamilies.data()
+			);
+
+			int i = 0;
+			QueueFamilyIndices indices{};
+			for (const auto& queueFamily : queueFamilies)
+			{
+				if (queueFamily.queueFlags & Vulkan::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
+					indices = { .GraphicsFamily = i };
+
+				VkBool32 presentSupport = false;
+				Vulkan::vkGetPhysicalDeviceSurfaceSupportKHR(
+					device, 
+					i, 
+					self.surface, 
+					&presentSupport
+				);
+				if (presentSupport)
+					indices.PresentFamily = i;
+
+				if (indices.IsComplete())
+					break;
+				i++;
+			}
+
+			return indices;
+		}
+
 		auto GetRequiredExtensions(this const auto& self) -> std::vector<const char*>
 		{
 			std::uint32_t glfwExtensionCount = 0;
@@ -300,6 +344,7 @@ export namespace HelloTriangle
 		{
 			self.CreateInstance();
 			self.SetupDebugMessenger();
+			self.CreateSurface();
 			self.PickPhysicalDevice();
 			self.CreateLogicalDevice();
 		}
@@ -313,11 +358,14 @@ export namespace HelloTriangle
 				GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
 		}
 
-		auto IsDeviceSuitable(this const auto& self, Vulkan::VkPhysicalDevice device) -> bool
+		auto IsDeviceSuitable(
+			this const auto& self, 
+			Vulkan::VkPhysicalDevice device
+		) -> bool
 		{
-			QueueFamilyIndices indices = FindQueueFamilies(device);
+			QueueFamilyIndices indices = self.FindQueueFamilies(device);
 
-			return indices.graphicsFamily.has_value();
+			return indices.GraphicsFamily.has_value();
 
 			/*Vulkan::VkPhysicalDeviceProperties deviceProperties;
 			Vulkan::vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -352,7 +400,10 @@ export namespace HelloTriangle
 			throw std::runtime_error("Failed to find a suitable GPU.");
 		}
 
-		void PopulateDebugMessengerCreateInfo(this auto& self, Vulkan::VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+		void PopulateDebugMessengerCreateInfo(
+			this auto& self, 
+			Vulkan::VkDebugUtilsMessengerCreateInfoEXT& createInfo
+		)
 		{
 			createInfo = Vulkan::VkDebugUtilsMessengerCreateInfoEXT{
 				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,

@@ -108,6 +108,7 @@ export namespace HelloTriangle
 		std::vector<Vulkan::VkImage> swapChainImages;
 		Vulkan::VkFormat swapChainImageFormat;
 		Vulkan::VkExtent2D swapChainExtent;
+		std::vector<Vulkan::VkImageView> swapChainImageViews;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -232,6 +233,8 @@ export namespace HelloTriangle
 
 		void Cleanup(this auto& self)
 		{
+			for (auto imageView : self.swapChainImageViews)
+				Vulkan::vkDestroyImageView(self.device, imageView, nullptr);
 			Vulkan::vkDestroySwapchainKHR(self.device, self.swapChain, nullptr);
 			Vulkan::vkDestroyDevice(self.device, nullptr);
 			if (EnableValidationLayers)
@@ -240,6 +243,41 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyInstance(self.instance, nullptr);
 			GLFW::glfwDestroyWindow(self.window);
 			GLFW::glfwTerminate();
+		}
+
+		void CreateImageViews(this auto& self)
+		{
+			self.swapChainImageViews.resize(self.swapChainImages.size());
+			for (size_t i = 0; i < self.swapChainImages.size(); i++)
+			{
+				Vulkan::VkImageViewCreateInfo createInfo{
+					.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					.image = self.swapChainImages[i],
+					.viewType = Vulkan::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
+					.format = self.swapChainImageFormat,
+					.components{
+						.r = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+						.g = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+						.b = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+						.a = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY
+					},
+					.subresourceRange{
+						.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = 1,
+						.baseArrayLayer = 0,
+						.layerCount = 1
+					}
+				};
+				auto result = Vulkan::vkCreateImageView(
+					self.device,
+					&createInfo,
+					nullptr,
+					&self.swapChainImageViews[i]
+				);
+				if (result != Vulkan::VkResult::VK_SUCCESS)
+					throw std::runtime_error("Failed to create image views.");
+			}
 		}
 
 		void CreateInstance(this auto& self)
@@ -546,6 +584,7 @@ export namespace HelloTriangle
 			self.PickPhysicalDevice();
 			self.CreateLogicalDevice();
 			self.CreateSwapChain();
+			self.CreateImageViews();
 		}
 
 		void InitWindow(this auto& self)

@@ -245,6 +245,10 @@ export namespace HelloTriangle
 			GLFW::glfwTerminate();
 		}
 
+		void CreateGraphicsPipeline(this auto& self)
+		{
+		}
+
 		void CreateImageViews(this auto& self)
 		{
 			self.swapChainImageViews.resize(self.swapChainImages.size());
@@ -585,6 +589,7 @@ export namespace HelloTriangle
 			self.CreateLogicalDevice();
 			self.CreateSwapChain();
 			self.CreateImageViews();
+			self.CreateGraphicsPipeline();
 		}
 
 		void InitWindow(this auto& self)

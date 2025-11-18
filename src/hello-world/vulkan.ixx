@@ -35,6 +35,7 @@ export namespace GLFW
 		::glfwGetRequiredInstanceExtensions,
 		::glfwCreateWindowSurface,
 		::glfwGetWin32Window,
+		::glfwGetFramebufferSize,
 		::GLFWwindow
 		;
 
@@ -79,6 +80,25 @@ export namespace Vulkan
 		::VkQueue,
 		::VkSurfaceKHR,
 		::VkWin32SurfaceCreateInfoKHR,
+		::VkSurfaceCapabilitiesKHR,
+		::VkSurfaceFormatKHR,
+		::VkPresentModeKHR,
+		::VkFormat,
+		::VkExtent2D,
+		::VkSwapchainCreateInfoKHR,
+		::VkColorSpaceKHR,
+		::VkImageUsageFlagBits,
+		::VkSharingMode,
+		::VkCompositeAlphaFlagBitsKHR,
+		::VkSwapchainKHR,
+		::VkImage,
+		::vkGetSwapchainImagesKHR,
+		::vkDestroySwapchainKHR,
+		::vkCreateSwapchainKHR,
+		::vkGetPhysicalDeviceSurfacePresentModesKHR,
+		::vkGetPhysicalDeviceSurfaceFormatsKHR,
+		::vkGetPhysicalDeviceSurfaceCapabilitiesKHR, // KHR stands for Khronos Extension
+		::vkEnumerateDeviceExtensionProperties,
 		::vkGetPhysicalDeviceSurfaceSupportKHR,
 		::vkDestroySurfaceKHR,
 		::vkCreateWin32SurfaceKHR,
@@ -99,8 +119,10 @@ export namespace Vulkan
 		;
 	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;
 	constexpr auto DebugUtilExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+	constexpr auto VkTrue = VK_TRUE;
 	constexpr auto VkFalse = VK_FALSE;
 	constexpr auto VkNullHandle = VK_NULL_HANDLE;
+	constexpr auto VkHkrSwapchainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
 	constexpr auto MakeVersion(int major, int minor, int patch) -> uint32_t
 	{

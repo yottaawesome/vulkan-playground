@@ -57,6 +57,13 @@ export namespace HelloTriangle
 		);
 		fn ? fn(instance, debugMessenger, pAllocator) : void();
 	}
+
+	struct SwapChainSupportDetails
+	{
+		Vulkan::VkSurfaceCapabilitiesKHR Capabilities;
+		std::vector<Vulkan::VkSurfaceFormatKHR> Formats;
+		std::vector<Vulkan::VkPresentModeKHR> PresentModes;
+	};
 }
 
 //
@@ -71,6 +78,9 @@ export namespace HelloTriangle
 		constexpr static bool EnableValidationLayers = Build::IsDebug;
 		constexpr static std::array ValidationLayers{
 			"VK_LAYER_KHRONOS_validation"
+		};
+		constexpr static std::array DeviceExtensions{
+			Vulkan::VkHkrSwapchainExtensionName
 		};
 
 		void Run(this auto& self)
@@ -94,6 +104,40 @@ export namespace HelloTriangle
 		Vulkan::VkQueue graphicsQueue;
 		Vulkan::VkSurfaceKHR surface;
 		Vulkan::VkQueue presentQueue;
+		Vulkan::VkSwapchainKHR swapChain;
+		std::vector<Vulkan::VkImage> swapChainImages;
+		Vulkan::VkFormat swapChainImageFormat;
+		Vulkan::VkExtent2D swapChainExtent;
+
+		auto CheckDeviceExtensionSupport(
+			this const auto& self, 
+			Vulkan::VkPhysicalDevice device
+		) noexcept -> bool
+		{
+			std::uint32_t extensionCount = 0;
+			Vulkan::vkEnumerateDeviceExtensionProperties(
+				device,
+				nullptr,
+				&extensionCount,
+				nullptr
+			);
+			std::vector<Vulkan::VkExtensionProperties> availableExtensions(extensionCount);
+			Vulkan::vkEnumerateDeviceExtensionProperties(
+				device,
+				nullptr,
+				&extensionCount,
+				availableExtensions.data()
+			);
+
+			std::set<std::string> requiredExtensions{
+				DeviceExtensions.begin(), 
+				DeviceExtensions.end()
+			};
+			for (const auto& extension : availableExtensions)
+				requiredExtensions.erase(extension.extensionName);
+
+			return requiredExtensions.empty();
+		}
 
 		auto CheckValidationLayerSupport(this const auto& self) -> bool
 		{
@@ -133,8 +177,62 @@ export namespace HelloTriangle
 			);
 		}
 		
+		auto ChooseSwapExtent(
+			this const auto& self,
+			const Vulkan::VkSurfaceCapabilitiesKHR& capabilities
+		) -> Vulkan::VkExtent2D
+		{
+			if (capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+				return capabilities.currentExtent;
+
+			int width; 
+			int height;
+			GLFW::glfwGetFramebufferSize(self.window, &width, &height);
+			Vulkan::VkExtent2D actualExtent{
+				.width = static_cast<std::uint32_t>(width),
+				.height = static_cast<std::uint32_t>(height)
+			};
+			actualExtent.width = 
+				std::clamp(
+					actualExtent.width,
+					capabilities.minImageExtent.width,
+					capabilities.maxImageExtent.width
+				);
+			actualExtent.height =
+				std::clamp(
+					actualExtent.height,
+					capabilities.minImageExtent.height,
+					capabilities.maxImageExtent.height
+				);
+			return actualExtent;
+		}
+
+		auto ChooseSwapPresentMode(
+			this const auto& self,
+			const std::vector<Vulkan::VkPresentModeKHR>& availablePresentModes
+		) -> Vulkan::VkPresentModeKHR
+		{
+			for (auto&& mode : availablePresentModes)
+				if (mode == Vulkan::VkPresentModeKHR::VK_PRESENT_MODE_MAILBOX_KHR)
+					return mode;
+			return Vulkan::VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR;
+		}
+
+		auto ChooseSwapSurfaceFormat(
+			this const auto& self,
+			const std::vector<Vulkan::VkSurfaceFormatKHR>& availableFormats
+		) -> Vulkan::VkSurfaceFormatKHR
+		{
+			for (const auto& availableFormat : availableFormats)
+				if (availableFormat.format == Vulkan::VkFormat::VK_FORMAT_B8G8R8A8_SRGB
+					and availableFormat.colorSpace == Vulkan::VkColorSpaceKHR::VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+				) return availableFormat;
+			return availableFormats[0];
+		}
+
 		void Cleanup(this auto& self)
 		{
+			Vulkan::vkDestroySwapchainKHR(self.device, self.swapChain, nullptr);
 			Vulkan::vkDestroyDevice(self.device, nullptr);
 			if (EnableValidationLayers)
 				DestroyDebugUtilsMessengerEXT(self.instance, self.debugMessenger, nullptr);
@@ -176,7 +274,6 @@ export namespace HelloTriangle
 				createInfo.pNext =
 					reinterpret_cast<Vulkan::VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
 			}
-
 			Vulkan::VkResult result =
 				Vulkan::vkCreateInstance(&createInfo, nullptr, &self.instance);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
@@ -213,14 +310,15 @@ export namespace HelloTriangle
 			Vulkan::VkPhysicalDeviceFeatures deviceFeatures{};
 			Vulkan::VkDeviceCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+				.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
 				.pQueueCreateInfos = queueCreateInfos.data(),
-				.enabledExtensionCount = 0,
+				.enabledExtensionCount = static_cast<std::uint32_t>(DeviceExtensions.size()),
+				.ppEnabledExtensionNames = DeviceExtensions.data(),
 				.pEnabledFeatures = &deviceFeatures,
 			};
 			if (EnableValidationLayers)
 			{
-				createInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
+				createInfo.enabledLayerCount = static_cast<std::uint32_t>(ValidationLayers.size());
 				createInfo.ppEnabledLayerNames = ValidationLayers.data();
 			}
 
@@ -263,6 +361,85 @@ export namespace HelloTriangle
 			);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to create window surface.");
+		}
+
+		void CreateSwapChain(this auto& self)
+		{
+			SwapChainSupportDetails swapChainSupport = self.QuerySwapChainSupport(self.physicalDevice);
+
+			Vulkan::VkSurfaceFormatKHR surfaceFormat =
+				self.ChooseSwapSurfaceFormat(swapChainSupport.Formats);
+			Vulkan::VkPresentModeKHR presentMode =
+				self.ChooseSwapPresentMode(swapChainSupport.PresentModes);
+			Vulkan::VkExtent2D extent = self.ChooseSwapExtent(swapChainSupport.Capabilities);
+
+			std::uint32_t imageCount = swapChainSupport.Capabilities.minImageCount + 1;
+			if (
+				swapChainSupport.Capabilities.maxImageCount > 0
+				and imageCount > swapChainSupport.Capabilities.maxImageCount
+			) imageCount = swapChainSupport.Capabilities.maxImageCount;
+
+			Vulkan::VkSwapchainCreateInfoKHR createInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+				.surface = self.surface,
+				.minImageCount = imageCount,
+				.imageFormat = surfaceFormat.format,
+				.imageColorSpace = surfaceFormat.colorSpace,
+				.imageExtent = extent,
+				.imageArrayLayers = 1,
+				.imageUsage = Vulkan::VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			};
+
+			QueueFamilyIndices indices = self.FindQueueFamilies(self.physicalDevice);
+			std::uint32_t queueFamilyIndices[]{
+				indices.GraphicsFamily.value(),
+				indices.PresentFamily.value()
+			};
+
+			if (indices.GraphicsFamily != indices.PresentFamily)
+			{
+				createInfo.imageSharingMode = Vulkan::VkSharingMode::VK_SHARING_MODE_CONCURRENT;
+				createInfo.queueFamilyIndexCount = 2;
+				createInfo.pQueueFamilyIndices = queueFamilyIndices;
+			}
+			else
+			{
+				createInfo.imageSharingMode = Vulkan::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+				createInfo.queueFamilyIndexCount = 0;
+				createInfo.pQueueFamilyIndices = nullptr;
+			}
+			createInfo.preTransform = swapChainSupport.Capabilities.currentTransform;
+			createInfo.compositeAlpha = Vulkan::VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+			createInfo.presentMode = presentMode;
+			createInfo.clipped = true;
+			createInfo.oldSwapchain = nullptr;
+
+			auto result = Vulkan::vkCreateSwapchainKHR(
+				self.device,
+				&createInfo,
+				nullptr,
+				&self.swapChain
+			);
+			if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to create swap chain.");
+
+			std::uint32_t actualImageCount;
+			Vulkan::vkGetSwapchainImagesKHR(
+				self.device, 
+				self.swapChain, 
+				&actualImageCount,
+				nullptr
+			);
+			self.swapChainImages.resize(actualImageCount);
+			Vulkan::vkGetSwapchainImagesKHR(
+				self.device, 
+				self.swapChain, 
+				&actualImageCount,
+				self.swapChainImages.data()
+			);
+
+			self.swapChainImageFormat = surfaceFormat.format;
+			self.swapChainExtent = extent;
 		}
 
 		// stdcall on Windows, but this is ignored on x64.
@@ -368,6 +545,7 @@ export namespace HelloTriangle
 			self.CreateSurface();
 			self.PickPhysicalDevice();
 			self.CreateLogicalDevice();
+			self.CreateSwapChain();
 		}
 
 		void InitWindow(this auto& self)
@@ -385,16 +563,21 @@ export namespace HelloTriangle
 		) -> bool
 		{
 			QueueFamilyIndices indices = self.FindQueueFamilies(device);
-
-			return indices.GraphicsFamily.has_value();
-
-			/*Vulkan::VkPhysicalDeviceProperties deviceProperties;
-			Vulkan::vkGetPhysicalDeviceProperties(device, &deviceProperties);
-			Vulkan::VkPhysicalDeviceFeatures deviceFeatures;
-			Vulkan::vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-			return
-				deviceProperties.deviceType == Vulkan::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-				and deviceFeatures.geometryShader;*/
+			bool extensionsSupported = self.CheckDeviceExtensionSupport(device);
+			bool swapChainAdequate = 
+				[&] -> bool
+				{
+					if (not extensionsSupported)
+						return false;
+					SwapChainSupportDetails swapChainSupport =
+						self.QuerySwapChainSupport(device);
+					return not swapChainSupport.Formats.empty()
+						and not swapChainSupport.PresentModes.empty();
+				}();
+			
+			return indices.IsComplete()
+				and extensionsSupported 
+				and swapChainAdequate;
 		}
 
 		void MainLoop(this auto& self)
@@ -439,6 +622,57 @@ export namespace HelloTriangle
 				.pfnUserCallback = DebugCallback,
 				.pUserData = nullptr // Optional
 			};
+		}
+
+		auto QuerySwapChainSupport(
+			this const auto& self,
+			Vulkan::VkPhysicalDevice device
+		) -> SwapChainSupportDetails
+		{
+			SwapChainSupportDetails details;
+			Vulkan::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+				device,
+				self.surface,
+				&details.Capabilities
+			);
+
+			std::uint32_t formatCount;
+			Vulkan::vkGetPhysicalDeviceSurfaceFormatsKHR(
+				device,
+				self.surface,
+				&formatCount,
+				details.Formats.data()
+			);
+			if (formatCount != 0)
+			{
+				details.Formats.resize(formatCount);
+				Vulkan::vkGetPhysicalDeviceSurfaceFormatsKHR(
+					device,
+					self.surface,
+					&formatCount,
+					details.Formats.data()
+				);
+			}
+
+			std::uint32_t presentModeCount;
+			Vulkan::vkGetPhysicalDeviceSurfacePresentModesKHR(
+				device, 
+				self.surface, 
+				&presentModeCount, 
+				nullptr
+			);
+			if (presentModeCount != 0)
+			{
+				details.PresentModes.resize(presentModeCount);
+				Vulkan::vkGetPhysicalDeviceSurfacePresentModesKHR(
+					device,
+					self.surface,
+					&presentModeCount,
+					details.PresentModes.data()
+				);
+			}
+
+			return details;
 		}
 
 		void SetupDebugMessenger(this auto& self)

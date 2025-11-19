@@ -18,6 +18,8 @@ export namespace Build
 // Various helper functions and structures for the Hello Triangle application
 export namespace HelloTriangle
 {
+	constexpr int MaxFramesInFlight = 2;
+
 	struct QueueFamilyIndices
 	{
 		std::optional<std::uint32_t> GraphicsFamily;
@@ -129,10 +131,11 @@ export namespace HelloTriangle
 		Vulkan::VkPipeline graphicsPipeline;
 		std::vector<Vulkan::VkFramebuffer> swapChainFramebuffers;
 		Vulkan::VkCommandPool commandPool;
-		Vulkan::VkCommandBuffer commandBuffer;
-		Vulkan::VkSemaphore imageAvailableSemaphore;
-		Vulkan::VkSemaphore renderFinishedSemaphore;
-		Vulkan::VkFence inFlightFence;
+		std::vector<Vulkan::VkCommandBuffer> commandBuffers;
+		std::vector<Vulkan::VkSemaphore> imageAvailableSemaphores;
+		std::vector<Vulkan::VkSemaphore> renderFinishedSemaphores;
+		std::vector<Vulkan::VkFence> inFlightFences;
+		uint32_t currentFrame = 0;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -257,9 +260,13 @@ export namespace HelloTriangle
 
 		void Cleanup(this auto& self)
 		{
-			Vulkan::vkDestroySemaphore(self.device, self.imageAvailableSemaphore, nullptr);
-			Vulkan::vkDestroySemaphore(self.device, self.renderFinishedSemaphore, nullptr);
-			Vulkan::vkDestroyFence(self.device, self.inFlightFence, nullptr);
+			for (size_t i = 0; i < MaxFramesInFlight; i++)
+			{
+				Vulkan::vkDestroySemaphore(self.device, self.imageAvailableSemaphores[i], nullptr);
+				Vulkan::vkDestroySemaphore(self.device, self.renderFinishedSemaphores[i], nullptr);
+				Vulkan::vkDestroyFence(self.device, self.inFlightFences[i], nullptr);
+			}
+
 			Vulkan::vkDestroyCommandPool(self.device, self.commandPool, nullptr);
 			for (auto framebuffer : self.swapChainFramebuffers)
 				Vulkan::vkDestroyFramebuffer(self.device, framebuffer, nullptr);
@@ -278,18 +285,20 @@ export namespace HelloTriangle
 			GLFW::glfwTerminate();
 		}
 
-		void CreateCommandBuffer(this auto& self)
+		void CreateCommandBuffers(this auto& self)
 		{
+			self.commandBuffers.resize(MaxFramesInFlight);
+
 			Vulkan::VkCommandBufferAllocateInfo allocInfo{};
 			allocInfo.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			allocInfo.commandPool = self.commandPool;
 			allocInfo.level = Vulkan::VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			allocInfo.commandBufferCount = 1;
+			allocInfo.commandBufferCount = (uint32_t)self.commandBuffers.size();;
 
 			auto result = Vulkan::vkAllocateCommandBuffers(
 				self.device, 
 				&allocInfo, 
-				&self.commandBuffer
+				self.commandBuffers.data()
 			);
 			if (result != Vulkan::VkResult::VK_SUCCESS) 
 				throw std::runtime_error("Failed to allocate command buffers.");
@@ -800,6 +809,29 @@ export namespace HelloTriangle
 			self.swapChainExtent = extent;
 		}
 
+		void CreateSyncObjects(this auto& self)
+		{
+			self.imageAvailableSemaphores.resize(MaxFramesInFlight);
+			self.renderFinishedSemaphores.resize(MaxFramesInFlight);
+			self.inFlightFences.resize(MaxFramesInFlight);
+
+			Vulkan::VkSemaphoreCreateInfo semaphoreInfo{};
+			semaphoreInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+			Vulkan::VkFenceCreateInfo fenceInfo{};
+			fenceInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceInfo.flags = Vulkan::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
+
+			for (int i = 0; i < MaxFramesInFlight; i++)
+			{
+				if (
+					Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.imageAvailableSemaphores[i]) != VK_SUCCESS
+					or Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.renderFinishedSemaphores[i]) != VK_SUCCESS
+					or Vulkan::vkCreateFence(self.device, &fenceInfo, nullptr, &self.inFlightFences[i]) != VK_SUCCESS
+				) throw std::runtime_error("failed to create synchronization objects for a frame!");
+			}
+		}
+
 		// stdcall on Windows, but this is ignored on x64.
 		static auto DebugCallback(
 			Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -821,29 +853,29 @@ export namespace HelloTriangle
 			Vulkan::vkWaitForFences(
 				self.device, 
 				1, 
-				&self.inFlightFence, 
+				&self.inFlightFences[self.currentFrame],
 				true, 
 				std::numeric_limits<std::uint64_t>::max()
 			);
-			Vulkan::vkResetFences(self.device, 1, &self.inFlightFence);
+			Vulkan::vkResetFences(self.device, 1, &self.inFlightFences[self.currentFrame]);
 
 			std::uint32_t imageIndex;
 			Vulkan::vkAcquireNextImageKHR(
 				self.device, 
 				self.swapChain, 
 				std::numeric_limits<std::uint64_t>::max(),
-				self.imageAvailableSemaphore, 
+				self.imageAvailableSemaphores[self.currentFrame],
 				nullptr, 
 				&imageIndex
 			);
 
-			Vulkan::vkResetCommandBuffer(self.commandBuffer, 0);
-			self.RecordCommandBuffer(self.commandBuffer, imageIndex);
+			Vulkan::vkResetCommandBuffer(self.commandBuffers[self.currentFrame], 0);
+			self.RecordCommandBuffer(self.commandBuffers[self.currentFrame], imageIndex);
 
 			Vulkan::VkSubmitInfo submitInfo{};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-			Vulkan::VkSemaphore waitSemaphores[]{ self.imageAvailableSemaphore };
+			Vulkan::VkSemaphore waitSemaphores[]{ self.imageAvailableSemaphores[self.currentFrame] };
 			Vulkan::VkPipelineStageFlags waitStages[]{
 				Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 			};
@@ -851,9 +883,9 @@ export namespace HelloTriangle
 			submitInfo.pWaitSemaphores = waitSemaphores;
 			submitInfo.pWaitDstStageMask = waitStages;
 			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &self.commandBuffer;
+			submitInfo.pCommandBuffers = &self.commandBuffers[self.currentFrame];
 
-			Vulkan::VkSemaphore signalSemaphores[]{ self.renderFinishedSemaphore };
+			Vulkan::VkSemaphore signalSemaphores[]{ self.renderFinishedSemaphores[self.currentFrame] };
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -861,7 +893,7 @@ export namespace HelloTriangle
 				self.graphicsQueue, 
 				1, 
 				&submitInfo, 
-				self.inFlightFence
+				self.inFlightFences[self.currentFrame]
 			);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to submit draw command buffer.");
@@ -880,6 +912,8 @@ export namespace HelloTriangle
 			presentInfo.pResults = nullptr; // Optional
 
 			Vulkan::vkQueuePresentKHR(self.presentQueue, &presentInfo);
+
+			self.currentFrame = (self.currentFrame + 1) % MaxFramesInFlight;
 		}
 
 		void EnumerateExtensions(this const auto& self)
@@ -962,26 +996,6 @@ export namespace HelloTriangle
 			return extensions;
 		}
 
-		void InitSyncObjects(this auto& self)
-		{
-			Vulkan::VkSemaphoreCreateInfo semaphoreInfo{};
-			semaphoreInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-			Vulkan::VkFenceCreateInfo fenceInfo{};
-			fenceInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			fenceInfo.flags = Vulkan::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
-
-			[](auto...results)
-			{
-				if (((results != Vulkan::VkResult::VK_SUCCESS) or ...))
-					throw std::runtime_error("Failed to create synchronization objects for a frame.");
-			}(
-				Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.imageAvailableSemaphore),
-				Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.renderFinishedSemaphore),
-				Vulkan::vkCreateFence(self.device, &fenceInfo, nullptr, &self.inFlightFence)
-			);
-		}
-
 		void InitVulkan(this auto& self)
 		{
 			self.CreateInstance();
@@ -995,8 +1009,8 @@ export namespace HelloTriangle
 			self.CreateGraphicsPipeline();
 			self.CreateFramebuffer();
 			self.CreateCommandPool();
-			self.CreateCommandBuffer();
-			self.InitSyncObjects();
+			self.CreateCommandBuffers();
+			self.CreateSyncObjects();
 		}
 
 		void InitWindow(this auto& self)
@@ -1175,13 +1189,13 @@ export namespace HelloTriangle
 			renderPassInfo.pClearValues = &clearColor;
 
 			Vulkan::vkCmdBeginRenderPass(
-				self.commandBuffer, 
+				commandBuffer, 
 				&renderPassInfo, 
 				Vulkan::VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE
 			);
 
 			Vulkan::vkCmdBindPipeline(
-				self.commandBuffer, 
+				commandBuffer, 
 				Vulkan::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, 
 				self.graphicsPipeline
 			);
@@ -1193,17 +1207,17 @@ export namespace HelloTriangle
 			viewport.height = static_cast<float>(self.swapChainExtent.height);
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			Vulkan::vkCmdSetViewport(self.commandBuffer, 0, 1, &viewport);
+			Vulkan::vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 			Vulkan::VkRect2D scissor{};
 			scissor.offset = { 0, 0 };
 			scissor.extent = self.swapChainExtent;
-			Vulkan::vkCmdSetScissor(self.commandBuffer, 0, 1, &scissor);
+			Vulkan::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			Vulkan::vkCmdDraw(self.commandBuffer, 3, 1, 0, 0);
+			Vulkan::vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
-			Vulkan::vkCmdEndRenderPass(self.commandBuffer);
-			result = Vulkan::vkEndCommandBuffer(self.commandBuffer);
+			Vulkan::vkCmdEndRenderPass(commandBuffer);
+			result = Vulkan::vkEndCommandBuffer(commandBuffer);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to record command buffer.");
 		}

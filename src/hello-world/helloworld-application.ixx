@@ -127,6 +127,7 @@ export namespace HelloTriangle
 		Vulkan::VkRenderPass renderPass;
 		Vulkan::VkPipelineLayout pipelineLayout;
 		Vulkan::VkPipeline graphicsPipeline;
+		std::vector<Vulkan::VkFramebuffer> swapChainFramebuffers;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -251,6 +252,8 @@ export namespace HelloTriangle
 
 		void Cleanup(this auto& self)
 		{
+			for (auto framebuffer : self.swapChainFramebuffers)
+				Vulkan::vkDestroyFramebuffer(self.device, framebuffer, nullptr);
 			Vulkan::vkDestroyPipeline(self.device, self.graphicsPipeline, nullptr);
 			Vulkan::vkDestroyPipelineLayout(self.device, self.pipelineLayout, nullptr);
 			Vulkan::vkDestroyRenderPass(self.device, self.renderPass, nullptr);
@@ -264,6 +267,32 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyInstance(self.instance, nullptr);
 			GLFW::glfwDestroyWindow(self.window);
 			GLFW::glfwTerminate();
+		}
+
+		void CreateFramebuffer(this auto& self)
+		{
+			self.swapChainFramebuffers.resize(self.swapChainImageViews.size());
+			for (size_t i = 0; i < self.swapChainImageViews.size(); i++) {
+				Vulkan::VkImageView attachments[]{ self.swapChainImageViews[i] };
+
+				Vulkan::VkFramebufferCreateInfo framebufferInfo{};
+				framebufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+				framebufferInfo.renderPass = self.renderPass;
+				framebufferInfo.attachmentCount = 1;
+				framebufferInfo.pAttachments = attachments;
+				framebufferInfo.width = self.swapChainExtent.width;
+				framebufferInfo.height = self.swapChainExtent.height;
+				framebufferInfo.layers = 1;
+
+				auto result = Vulkan::vkCreateFramebuffer(
+					self.device, 
+					&framebufferInfo, 
+					nullptr, 
+					&self.swapChainFramebuffers[i]
+				);
+				if (result != Vulkan::VkResult::VK_SUCCESS) 
+					throw std::runtime_error("Failed to create framebuffer.");
+			}
 		}
 
 		void CreateGraphicsPipeline(this auto& self)
@@ -823,6 +852,7 @@ export namespace HelloTriangle
 			self.CreateImageViews();
 			self.CreateRenderPass();
 			self.CreateGraphicsPipeline();
+			self.CreateFramebuffer();
 		}
 
 		void InitWindow(this auto& self)

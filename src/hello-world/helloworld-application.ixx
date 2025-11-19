@@ -64,6 +64,21 @@ export namespace HelloTriangle
 		std::vector<Vulkan::VkSurfaceFormatKHR> Formats;
 		std::vector<Vulkan::VkPresentModeKHR> PresentModes;
 	};
+
+	auto ReadFile(const std::filesystem::path& filename) -> std::vector<std::byte>
+	{
+		std::ifstream file(filename.string(), std::ios_base::ate | std::ios_base::binary);
+		if (not file.is_open())
+			throw std::runtime_error("Failed to open file: " + filename.string());
+
+		size_t fileSize = file.tellg();
+		std::vector<std::byte> buffer(fileSize);
+		file.seekg(0);
+		file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
+		file.close();
+
+		return buffer;
+	}
 }
 
 //
@@ -109,6 +124,9 @@ export namespace HelloTriangle
 		Vulkan::VkFormat swapChainImageFormat;
 		Vulkan::VkExtent2D swapChainExtent;
 		std::vector<Vulkan::VkImageView> swapChainImageViews;
+		Vulkan::VkRenderPass renderPass;
+		Vulkan::VkPipelineLayout pipelineLayout;
+		Vulkan::VkPipeline graphicsPipeline;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -233,6 +251,9 @@ export namespace HelloTriangle
 
 		void Cleanup(this auto& self)
 		{
+			Vulkan::vkDestroyPipeline(self.device, self.graphicsPipeline, nullptr);
+			Vulkan::vkDestroyPipelineLayout(self.device, self.pipelineLayout, nullptr);
+			Vulkan::vkDestroyRenderPass(self.device, self.renderPass, nullptr);
 			for (auto imageView : self.swapChainImageViews)
 				Vulkan::vkDestroyImageView(self.device, imageView, nullptr);
 			Vulkan::vkDestroySwapchainKHR(self.device, self.swapChain, nullptr);
@@ -247,6 +268,166 @@ export namespace HelloTriangle
 
 		void CreateGraphicsPipeline(this auto& self)
 		{
+			auto vertShaderCode = ReadFile("shaders/vert.spv");
+			auto fragShaderCode = ReadFile("shaders/frag.spv");
+
+			Vulkan::VkShaderModule vertShaderModule = self.CreateShaderModule(vertShaderCode);
+			Vulkan::VkShaderModule fragShaderModule = self.CreateShaderModule(fragShaderCode);
+
+			Vulkan::VkPipelineShaderStageCreateInfo vertShaderStageInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = Vulkan::VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT,
+				.module = vertShaderModule,
+				.pName = "main" // can have multiple entry points that change the behavior of the shader
+			};
+
+			Vulkan::VkPipelineShaderStageCreateInfo fragShaderStageInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = Vulkan::VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT,
+				.module = fragShaderModule,
+				.pName = "main"
+			};
+
+			Vulkan::VkPipelineShaderStageCreateInfo shaderStages[]{ 
+				vertShaderStageInfo, 
+				fragShaderStageInfo 
+			};
+
+			Vulkan::VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+				.setLayoutCount = 0, // Optional
+				.pSetLayouts = nullptr, // Optional
+				.pushConstantRangeCount = 0, // Optional
+				.pPushConstantRanges = nullptr // Optional
+			};
+
+			auto result = Vulkan::vkCreatePipelineLayout(
+				self.device, 
+				&pipelineLayoutInfo, 
+				nullptr, 
+				&self.pipelineLayout
+			);
+			if(result != VK_SUCCESS)
+				throw std::runtime_error("Failed to create pipeline layout.");
+
+			// ADD HERE
+			Vulkan::VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+			vertexInputInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			vertexInputInfo.vertexBindingDescriptionCount = 0;
+			vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
+			vertexInputInfo.vertexAttributeDescriptionCount = 0;
+			vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+			Vulkan::VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+			inputAssembly.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+			inputAssembly.topology = Vulkan::VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			inputAssembly.primitiveRestartEnable = false;
+
+			Vulkan::VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = (float)self.swapChainExtent.width;
+			viewport.height = (float)self.swapChainExtent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			Vulkan::VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = self.swapChainExtent;
+
+			std::vector<Vulkan::VkDynamicState> dynamicStates = {
+				Vulkan::VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT,
+				Vulkan::VkDynamicState::VK_DYNAMIC_STATE_SCISSOR
+			};
+
+			Vulkan::VkPipelineDynamicStateCreateInfo dynamicState{};
+			dynamicState.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+			dynamicState.dynamicStateCount = static_cast<std::uint32_t>(dynamicStates.size());
+			dynamicState.pDynamicStates = dynamicStates.data();
+
+			Vulkan::VkPipelineViewportStateCreateInfo viewportState{};
+			viewportState.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+			viewportState.viewportCount = 1;
+			viewportState.pViewports = &viewport;
+			viewportState.scissorCount = 1;
+			viewportState.pScissors = &scissor;
+
+			Vulkan::VkPipelineRasterizationStateCreateInfo rasterizer{};
+			rasterizer.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+			rasterizer.depthClampEnable = false;
+			rasterizer.rasterizerDiscardEnable = false;
+			rasterizer.polygonMode = Vulkan::VkPolygonMode::VK_POLYGON_MODE_FILL;
+			rasterizer.lineWidth = 1.0f;
+			rasterizer.cullMode = Vulkan::VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT;
+			rasterizer.frontFace = Vulkan::VkFrontFace::VK_FRONT_FACE_CLOCKWISE;
+			rasterizer.depthBiasEnable = false;
+			rasterizer.depthBiasConstantFactor = 0.0f; // Optional
+			rasterizer.depthBiasClamp = 0.0f; // Optional
+			rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+
+			Vulkan::VkPipelineMultisampleStateCreateInfo multisampling{};
+			multisampling.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+			multisampling.sampleShadingEnable = false;
+			multisampling.rasterizationSamples = Vulkan::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+			multisampling.minSampleShading = 1.0f; // Optional
+			multisampling.pSampleMask = nullptr; // Optional
+			multisampling.alphaToCoverageEnable = false; // Optional
+			multisampling.alphaToOneEnable = false; // Optional
+
+			// See for alpha blending: https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Fixed_functions
+			Vulkan::VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+			colorBlendAttachment.colorWriteMask = Vulkan::VkColorComponentFlagBits::VK_COLOR_COMPONENT_R_BIT | Vulkan::VkColorComponentFlagBits::VK_COLOR_COMPONENT_G_BIT | Vulkan::VkColorComponentFlagBits::VK_COLOR_COMPONENT_B_BIT | Vulkan::VkColorComponentFlagBits::VK_COLOR_COMPONENT_A_BIT;
+			colorBlendAttachment.blendEnable = false;
+			colorBlendAttachment.srcColorBlendFactor = Vulkan::VkBlendFactor::VK_BLEND_FACTOR_ONE; // Optional
+			colorBlendAttachment.dstColorBlendFactor = Vulkan::VkBlendFactor::VK_BLEND_FACTOR_ZERO; // Optional
+			colorBlendAttachment.colorBlendOp = Vulkan::VkBlendOp::VK_BLEND_OP_ADD; // Optional
+			colorBlendAttachment.srcAlphaBlendFactor = Vulkan::VkBlendFactor::VK_BLEND_FACTOR_ONE; // Optional
+			colorBlendAttachment.dstAlphaBlendFactor = Vulkan::VkBlendFactor::VK_BLEND_FACTOR_ZERO; // Optional
+			colorBlendAttachment.alphaBlendOp = Vulkan::VkBlendOp::VK_BLEND_OP_ADD; // Optional
+
+			Vulkan::VkPipelineColorBlendStateCreateInfo colorBlending{};
+			colorBlending.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+			colorBlending.logicOpEnable = false;
+			colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
+			colorBlending.attachmentCount = 1;
+			colorBlending.pAttachments = &colorBlendAttachment;
+			colorBlending.blendConstants[0] = 0.0f; // Optional
+			colorBlending.blendConstants[1] = 0.0f; // Optional
+			colorBlending.blendConstants[2] = 0.0f; // Optional
+			colorBlending.blendConstants[3] = 0.0f; // Optional
+			// ADD HERE
+
+			Vulkan::VkGraphicsPipelineCreateInfo pipelineInfo{};
+			pipelineInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipelineInfo.stageCount = 2;
+			pipelineInfo.pStages = shaderStages;
+			pipelineInfo.pVertexInputState = &vertexInputInfo;
+			pipelineInfo.pInputAssemblyState = &inputAssembly;
+			pipelineInfo.pViewportState = &viewportState;
+			pipelineInfo.pRasterizationState = &rasterizer;
+			pipelineInfo.pMultisampleState = &multisampling;
+			pipelineInfo.pDepthStencilState = nullptr; // Optional
+			pipelineInfo.pColorBlendState = &colorBlending;
+			pipelineInfo.pDynamicState = &dynamicState;
+			pipelineInfo.layout = self.pipelineLayout;
+			pipelineInfo.renderPass = self.renderPass;
+			pipelineInfo.subpass = 0;
+			pipelineInfo.basePipelineHandle = nullptr; // Optional
+			pipelineInfo.basePipelineIndex = -1; // Optional
+
+			result = Vulkan::vkCreateGraphicsPipelines(
+				self.device,
+				nullptr, 
+				1, 
+				&pipelineInfo, 
+				nullptr, 
+				&self.graphicsPipeline
+			);
+			if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to create graphics pipeline.");
+
+			Vulkan::vkDestroyShaderModule(self.device, fragShaderModule, nullptr);
+			Vulkan::vkDestroyShaderModule(self.device, vertShaderModule, nullptr);
 		}
 
 		void CreateImageViews(this auto& self)
@@ -385,6 +566,57 @@ export namespace HelloTriangle
 				0, 
 				&self.presentQueue
 			);
+		}
+
+		auto CreateShaderModule(
+			this auto& self, 
+			const std::vector<std::byte>& code
+		) -> Vulkan::VkShaderModule
+		{
+			Vulkan::VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = code.size();
+			createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+			Vulkan::VkShaderModule shaderModule;
+			auto result = Vulkan::vkCreateShaderModule(self.device, &createInfo, nullptr, &shaderModule);
+			if (result != Vulkan::VkResult::VK_SUCCESS) 
+				throw std::runtime_error("Failed to create shader module.");
+
+			return shaderModule;
+		}
+
+		void CreateRenderPass(this auto& self)
+		{
+			Vulkan::VkAttachmentDescription colorAttachment{};
+			colorAttachment.format = self.swapChainImageFormat;
+			colorAttachment.samples = Vulkan::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.loadOp = Vulkan::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = Vulkan::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.stencilLoadOp = Vulkan::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.stencilStoreOp = Vulkan::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachment.initialLayout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachment.finalLayout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			Vulkan::VkAttachmentReference colorAttachmentRef{};
+			colorAttachmentRef.attachment = 0;
+			colorAttachmentRef.layout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			Vulkan::VkSubpassDescription subpass{};
+			subpass.pipelineBindPoint = Vulkan::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = &colorAttachmentRef;
+
+			Vulkan::VkRenderPassCreateInfo renderPassInfo{};
+			renderPassInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			renderPassInfo.attachmentCount = 1;
+			renderPassInfo.pAttachments = &colorAttachment;
+			renderPassInfo.subpassCount = 1;
+			renderPassInfo.pSubpasses = &subpass;
+
+			auto result = Vulkan::vkCreateRenderPass(self.device, &renderPassInfo, nullptr, &self.renderPass);
+			if (result != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to create render pass.");
 		}
 
 		void CreateSurface(this auto& self)
@@ -589,6 +821,7 @@ export namespace HelloTriangle
 			self.CreateLogicalDevice();
 			self.CreateSwapChain();
 			self.CreateImageViews();
+			self.CreateRenderPass();
 			self.CreateGraphicsPipeline();
 		}
 

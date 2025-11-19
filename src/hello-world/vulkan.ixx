@@ -97,6 +97,50 @@ export namespace Vulkan
 		::VkImageViewType,
 		::VkComponentSwizzle,
 		::VkImageAspectFlagBits,
+		::VkShaderModule,
+		::VkShaderModuleCreateInfo,
+		::VkShaderStageFlagBits,
+		::VkPipelineShaderStageCreateInfo,
+		::VkPipelineLayoutCreateInfo,
+		::VkPrimitiveTopology,
+		::VkPipelineLayout,
+		::VkPipelineInputAssemblyStateCreateInfo,
+		::VkViewport,
+		::VkRect2D,
+		::VkAttachmentDescription,
+		::VkSampleCountFlagBits,
+		::VkAttachmentLoadOp,
+		::VkAttachmentReference,
+		::VkImageLayout,
+		::VkAttachmentStoreOp,
+		::VkSubpassDescription,
+		::VkPipelineBindPoint,
+		::VkRenderPass,
+		::VkRenderPassCreateInfo,
+		::VkGraphicsPipelineCreateInfo,
+		::VkPipeline,
+		::VkPipelineVertexInputStateCreateInfo,
+		::VkDynamicState,
+		::VkPipelineDynamicStateCreateInfo,
+		::VkPipelineViewportStateCreateInfo,
+		::VkPipelineRasterizationStateCreateInfo,
+		::VkPolygonMode,
+		::VkCullModeFlagBits,
+		::VkFrontFace,
+		::VkPipelineMultisampleStateCreateInfo,
+		::VkColorComponentFlagBits,
+		::VkPipelineColorBlendAttachmentState,
+		::VkPipelineColorBlendStateCreateInfo,
+		::VkBlendFactor,
+		::VkBlendOp,
+		::vkDestroyPipeline,
+		::vkCreateGraphicsPipelines,
+		::vkDestroyRenderPass,
+		::vkCreateRenderPass,
+		::vkDestroyPipelineLayout,
+		::vkCreatePipelineLayout,
+		::vkDestroyShaderModule,
+		::vkCreateShaderModule,
 		::vkDestroyImageView,
 		::vkCreateImageView,
 		::vkGetSwapchainImagesKHR,
@@ -124,13 +168,14 @@ export namespace Vulkan
 		::vkDestroyInstance,
 		::vkEnumerateInstanceLayerProperties
 		;
+
 	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;
 	constexpr auto DebugUtilExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 	constexpr auto VkTrue = VK_TRUE;
 	constexpr auto VkFalse = VK_FALSE;
 	constexpr auto VkNullHandle = VK_NULL_HANDLE;
 	constexpr auto VkHkrSwapchainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-
+	
 	constexpr auto MakeVersion(int major, int minor, int patch) -> uint32_t
 	{
 		return VK_MAKE_VERSION(major, minor,  patch);

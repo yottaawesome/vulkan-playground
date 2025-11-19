@@ -263,9 +263,10 @@ export namespace HelloTriangle
 			for (size_t i = 0; i < MaxFramesInFlight; i++)
 			{
 				Vulkan::vkDestroySemaphore(self.device, self.imageAvailableSemaphores[i], nullptr);
-				Vulkan::vkDestroySemaphore(self.device, self.renderFinishedSemaphores[i], nullptr);
 				Vulkan::vkDestroyFence(self.device, self.inFlightFences[i], nullptr);
 			}
+			for (auto&& renderFinishedSemaphore : self.renderFinishedSemaphores)
+				Vulkan::vkDestroySemaphore(self.device, renderFinishedSemaphore, nullptr);
 
 			Vulkan::vkDestroyCommandPool(self.device, self.commandPool, nullptr);
 			for (auto framebuffer : self.swapChainFramebuffers)
@@ -812,7 +813,7 @@ export namespace HelloTriangle
 		void CreateSyncObjects(this auto& self)
 		{
 			self.imageAvailableSemaphores.resize(MaxFramesInFlight);
-			self.renderFinishedSemaphores.resize(MaxFramesInFlight);
+			self.renderFinishedSemaphores.resize(self.swapChainImages.size());
 			self.inFlightFences.resize(MaxFramesInFlight);
 
 			Vulkan::VkSemaphoreCreateInfo semaphoreInfo{};
@@ -826,10 +827,15 @@ export namespace HelloTriangle
 			{
 				if (
 					Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.imageAvailableSemaphores[i]) != VK_SUCCESS
-					or Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.renderFinishedSemaphores[i]) != VK_SUCCESS
 					or Vulkan::vkCreateFence(self.device, &fenceInfo, nullptr, &self.inFlightFences[i]) != VK_SUCCESS
 				) throw std::runtime_error("failed to create synchronization objects for a frame!");
 			}
+
+			// The tutorial triggers a validation error and so followed the advice in this comment
+			// to resolve it: http://disq.us/p/32wdmkz
+			for (auto& renderFinishedSemaphore : self.renderFinishedSemaphores)
+				if (Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS)
+					throw std::runtime_error("failed to create synchronization objects for a frame!");
 		}
 
 		// stdcall on Windows, but this is ignored on x64.
@@ -885,7 +891,7 @@ export namespace HelloTriangle
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &self.commandBuffers[self.currentFrame];
 
-			Vulkan::VkSemaphore signalSemaphores[]{ self.renderFinishedSemaphores[self.currentFrame] };
+			Vulkan::VkSemaphore signalSemaphores[]{ self.renderFinishedSemaphores[imageIndex] };
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphores;
 

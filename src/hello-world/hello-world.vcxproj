@@ -136,6 +136,8 @@
     <ClCompile Include="vulkan.ixx" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\shader.frag" />
+    <None Include="shaders\shader.vert" />
     <None Include="vcpkg.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

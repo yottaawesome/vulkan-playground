@@ -135,6 +135,7 @@ export namespace HelloTriangle
 		std::vector<Vulkan::VkSemaphore> imageAvailableSemaphores;
 		std::vector<Vulkan::VkSemaphore> renderFinishedSemaphores;
 		std::vector<Vulkan::VkFence> inFlightFences;
+		bool framebufferResized = false;
 		uint32_t currentFrame = 0;
 
 		auto CheckDeviceExtensionSupport(
@@ -260,6 +261,12 @@ export namespace HelloTriangle
 
 		void Cleanup(this auto& self)
 		{
+			self.CleanupSwapChain();
+
+			Vulkan::vkDestroyPipeline(self.device, self.graphicsPipeline, nullptr);
+			Vulkan::vkDestroyPipelineLayout(self.device, self.pipelineLayout, nullptr);
+			Vulkan::vkDestroyRenderPass(self.device, self.renderPass, nullptr);
+
 			for (size_t i = 0; i < MaxFramesInFlight; i++)
 			{
 				Vulkan::vkDestroySemaphore(self.device, self.imageAvailableSemaphores[i], nullptr);
@@ -269,21 +276,26 @@ export namespace HelloTriangle
 				Vulkan::vkDestroySemaphore(self.device, renderFinishedSemaphore, nullptr);
 
 			Vulkan::vkDestroyCommandPool(self.device, self.commandPool, nullptr);
+			
+			Vulkan::vkDestroyDevice(self.device, nullptr);
+
+			if (EnableValidationLayers)
+				DestroyDebugUtilsMessengerEXT(self.m_instance, self.m_debugMessenger, nullptr);
+			
+			Vulkan::vkDestroySurfaceKHR(self.m_instance, self.surface, nullptr);
+			Vulkan::vkDestroyInstance(self.m_instance, nullptr);
+			
+			GLFW::glfwDestroyWindow(self.m_window);
+			GLFW::glfwTerminate();
+		}
+
+		void CleanupSwapChain(this auto& self)
+		{
 			for (auto framebuffer : self.swapChainFramebuffers)
 				Vulkan::vkDestroyFramebuffer(self.device, framebuffer, nullptr);
-			Vulkan::vkDestroyPipeline(self.device, self.graphicsPipeline, nullptr);
-			Vulkan::vkDestroyPipelineLayout(self.device, self.pipelineLayout, nullptr);
-			Vulkan::vkDestroyRenderPass(self.device, self.renderPass, nullptr);
 			for (auto imageView : self.swapChainImageViews)
 				Vulkan::vkDestroyImageView(self.device, imageView, nullptr);
 			Vulkan::vkDestroySwapchainKHR(self.device, self.swapChain, nullptr);
-			Vulkan::vkDestroyDevice(self.device, nullptr);
-			if (EnableValidationLayers)
-				DestroyDebugUtilsMessengerEXT(self.m_instance, self.m_debugMessenger, nullptr);
-			Vulkan::vkDestroySurfaceKHR(self.m_instance, self.surface, nullptr);
-			Vulkan::vkDestroyInstance(self.m_instance, nullptr);
-			GLFW::glfwDestroyWindow(self.m_window);
-			GLFW::glfwTerminate();
 		}
 
 		void CreateCommandBuffers(this auto& self)
@@ -324,7 +336,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create command pool.");
 		}
 
-		void CreateFramebuffer(this auto& self)
+		void CreateFramebuffers(this auto& self)
 		{
 			self.swapChainFramebuffers.resize(self.swapChainImageViews.size());
 			for (size_t i = 0; i < self.swapChainImageViews.size(); i++) {
@@ -863,17 +875,25 @@ export namespace HelloTriangle
 				true, 
 				std::numeric_limits<std::uint64_t>::max()
 			);
-			Vulkan::vkResetFences(self.device, 1, &self.inFlightFences[self.currentFrame]);
 
 			std::uint32_t imageIndex;
-			Vulkan::vkAcquireNextImageKHR(
-				self.device, 
-				self.swapChain, 
+			auto result = Vulkan::vkAcquireNextImageKHR(
+				self.device,
+				self.swapChain,
 				std::numeric_limits<std::uint64_t>::max(),
 				self.imageAvailableSemaphores[self.currentFrame],
-				nullptr, 
+				nullptr,
 				&imageIndex
 			);
+			if (result == Vulkan::VkResult::VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				self.RecreateSwapChain();
+				return;
+			}
+			if (result != Vulkan::VkResult::VK_SUCCESS and result != Vulkan::VkResult::VK_SUBOPTIMAL_KHR)
+				throw std::runtime_error("Failed to acquire swap chain image.");
+
+			Vulkan::vkResetFences(self.device, 1, &self.inFlightFences[self.currentFrame]);
 
 			Vulkan::vkResetCommandBuffer(self.commandBuffers[self.currentFrame], 0);
 			self.RecordCommandBuffer(self.commandBuffers[self.currentFrame], imageIndex);
@@ -895,7 +915,7 @@ export namespace HelloTriangle
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = signalSemaphores;
 
-			auto result = Vulkan::vkQueueSubmit(
+			result = Vulkan::vkQueueSubmit(
 				self.graphicsQueue, 
 				1, 
 				&submitInfo, 
@@ -917,7 +937,14 @@ export namespace HelloTriangle
 
 			presentInfo.pResults = nullptr; // Optional
 
-			Vulkan::vkQueuePresentKHR(self.presentQueue, &presentInfo);
+			result = Vulkan::vkQueuePresentKHR(self.presentQueue, &presentInfo);
+			if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or self.framebufferResized)
+			{
+				self.framebufferResized = false;
+				self.RecreateSwapChain();
+			}
+			else if (result != VK_SUCCESS) 
+				throw std::runtime_error("failed to present swap chain image!");
 
 			self.currentFrame = (self.currentFrame + 1) % MaxFramesInFlight;
 		}
@@ -1013,10 +1040,16 @@ export namespace HelloTriangle
 			self.CreateImageViews();
 			self.CreateRenderPass();
 			self.CreateGraphicsPipeline();
-			self.CreateFramebuffer();
+			self.CreateFramebuffers();
 			self.CreateCommandPool();
 			self.CreateCommandBuffers();
 			self.CreateSyncObjects();
+		}
+
+		static void FramebufferResizeCallback(GLFW::GLFWwindow* window, int width, int height) 
+		{
+			auto app = reinterpret_cast<Application*>(GLFW::glfwGetWindowUserPointer(window));
+			app->framebufferResized = true;
 		}
 
 		void InitWindow(this auto& self)
@@ -1024,8 +1057,9 @@ export namespace HelloTriangle
 			GLFW::glfwInit();
 			GLFW::glfwWindowHint(GLFW::ClientApi, GLFW::NoApi);
 			GLFW::glfwWindowHint(GLFW::Resizable, false);
-			self.m_window =
-				GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
+			self.m_window = GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
+			GLFW::glfwSetWindowUserPointer(self.m_window, &self);
+			GLFW::glfwSetFramebufferSizeCallback(self.m_window, FramebufferResizeCallback);
 		}
 
 		auto IsDeviceSuitable(
@@ -1147,6 +1181,24 @@ export namespace HelloTriangle
 			}
 
 			return details;
+		}
+
+		void RecreateSwapChain(this auto& self)
+		{
+			int width = 0, height = 0;
+			GLFW::glfwGetFramebufferSize(self.m_window, &width, &height);
+			while (width == 0 or height == 0) 
+			{
+				GLFW::glfwGetFramebufferSize(self.m_window, &width, &height);
+				GLFW::glfwWaitEvents();
+			}
+
+			Vulkan::vkDeviceWaitIdle(self.device);
+
+			self.CleanupSwapChain();
+			self.CreateSwapChain();
+			self.CreateImageViews();
+			self.CreateFramebuffers();
 		}
 
 		void SetupDebugMessenger(this auto& self)

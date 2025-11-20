@@ -36,6 +36,10 @@ export namespace GLFW
 		::glfwCreateWindowSurface,
 		::glfwGetWin32Window,
 		::glfwGetFramebufferSize,
+		::glfwSetWindowUserPointer,
+		::glfwSetFramebufferSizeCallback,
+		::glfwGetWindowUserPointer,
+		::glfwWaitEvents,
 		::GLFWwindow
 		;
 
@@ -156,6 +160,7 @@ export namespace Vulkan
 		::VkSubpassDependency,
 		::VkAccessFlagBits,
 		::VkPresentInfoKHR,
+		
 		::vkDeviceWaitIdle,
 		::vkQueuePresentKHR,
 		::vkQueueSubmit,

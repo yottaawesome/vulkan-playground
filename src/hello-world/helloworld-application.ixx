@@ -893,6 +893,11 @@ export namespace HelloTriangle
 					throw std::runtime_error("failed to create synchronization objects for a frame!");
 		}
 
+		void CreateVertexBuffer(this auto& self) 
+		{
+
+		}
+
 		// stdcall on Windows, but this is ignored on x64.
 		static auto DebugCallback(
 			Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -1085,6 +1090,7 @@ export namespace HelloTriangle
 			self.CreateGraphicsPipeline();
 			self.CreateFramebuffers();
 			self.CreateCommandPool();
+			self.CreateVertexBuffer();
 			self.CreateCommandBuffers();
 			self.CreateSyncObjects();
 		}

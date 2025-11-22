@@ -22,6 +22,16 @@ export namespace Win32
 		;
 }
 
+export namespace glm
+{
+	using 
+		::glm::vec2,
+		::glm::vec3,
+		::glm::vec4,
+		::glm::mat4
+		;
+}
+
 export namespace GLFW
 {
 	using 
@@ -160,7 +170,10 @@ export namespace Vulkan
 		::VkSubpassDependency,
 		::VkAccessFlagBits,
 		::VkPresentInfoKHR,
-		
+		::VkVertexInputBindingDescription,
+		::VkVertexInputRate,
+		::VkVertexInputAttributeDescription,
+		::VkFormat,
 		::vkDeviceWaitIdle,
 		::vkQueuePresentKHR,
 		::vkQueueSubmit,

@@ -20,6 +20,40 @@ export namespace HelloTriangle
 {
 	constexpr int MaxFramesInFlight = 2;
 
+	struct Vertex 
+	{
+		glm::vec2 pos;
+		glm::vec3 color;
+		
+		static auto GetBindingDescription() -> Vulkan::VkVertexInputBindingDescription
+		{
+			Vulkan::VkVertexInputBindingDescription bindingDescription{};
+			bindingDescription.binding = 0;
+			bindingDescription.stride = sizeof(Vertex);
+			bindingDescription.inputRate = Vulkan::VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+
+			return bindingDescription;
+		}
+
+		static auto GetAttributeDescriptions() -> std::array<Vulkan::VkVertexInputAttributeDescription, 2>
+		{
+			std::array<Vulkan::VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+			
+			attributeDescriptions[0].binding = 0;
+			attributeDescriptions[0].location = 0;
+			attributeDescriptions[0].format = Vulkan::VkFormat::VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[0].offset = 
+				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
+			attributeDescriptions[1].binding = 0;
+			attributeDescriptions[1].location = 1;
+			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[1].offset =
+				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->color)));
+
+			return attributeDescriptions;
+		}
+	};
+
 	struct QueueFamilyIndices
 	{
 		std::optional<std::uint32_t> GraphicsFamily;
@@ -136,7 +170,12 @@ export namespace HelloTriangle
 		std::vector<Vulkan::VkSemaphore> renderFinishedSemaphores;
 		std::vector<Vulkan::VkFence> inFlightFences;
 		bool framebufferResized = false;
-		uint32_t currentFrame = 0;
+		std::uint32_t currentFrame = 0;
+		const std::vector<Vertex> vertices{
+			{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+			{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+			{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+		};
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -407,12 +446,16 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create pipeline layout.");
 
 			// ADD HERE
+			auto bindingDescription = Vertex::GetBindingDescription();
+			auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+
 			Vulkan::VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 			vertexInputInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-			vertexInputInfo.vertexBindingDescriptionCount = 0;
-			vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-			vertexInputInfo.vertexAttributeDescriptionCount = 0;
-			vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+			vertexInputInfo.vertexBindingDescriptionCount = 1;
+			vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+			vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+			vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 			Vulkan::VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 			inputAssembly.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

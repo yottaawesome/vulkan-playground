@@ -176,6 +176,7 @@ export namespace HelloTriangle
 			{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
 			{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 		};
+		Vulkan::VkBuffer vertexBuffer;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -301,6 +302,8 @@ export namespace HelloTriangle
 		void Cleanup(this auto& self)
 		{
 			self.CleanupSwapChain();
+
+			Vulkan::vkDestroyBuffer(self.device, self.vertexBuffer, nullptr);
 
 			Vulkan::vkDestroyPipeline(self.device, self.graphicsPipeline, nullptr);
 			Vulkan::vkDestroyPipelineLayout(self.device, self.pipelineLayout, nullptr);
@@ -895,7 +898,16 @@ export namespace HelloTriangle
 
 		void CreateVertexBuffer(this auto& self) 
 		{
+			Vulkan::VkBufferCreateInfo bufferInfo{};
+			bufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			bufferInfo.size = sizeof(self.vertices[0]) * self.vertices.size();
+			bufferInfo.usage = Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			bufferInfo.sharingMode = Vulkan::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+			if (Vulkan::vkCreateBuffer(self.device, &bufferInfo, nullptr, &self.vertexBuffer) != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("failed to create vertex buffer!");
 
+			Vulkan::VkMemoryRequirements memRequirements;
+			Vulkan::vkGetBufferMemoryRequirements(self.device, self.vertexBuffer, &memRequirements);
 		}
 
 		// stdcall on Windows, but this is ignored on x64.

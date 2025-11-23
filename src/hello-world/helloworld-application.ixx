@@ -172,12 +172,18 @@ export namespace HelloTriangle
 		bool framebufferResized = false;
 		std::uint32_t currentFrame = 0;
 		const std::vector<Vertex> vertices{
-			{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-			{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+		};
+		const std::vector<std::uint16_t> indices = {
+			0, 1, 2, 2, 3, 0
 		};
 		Vulkan::VkBuffer vertexBuffer;
 		Vulkan::VkDeviceMemory vertexBufferMemory;
+		Vulkan::VkBuffer indexBuffer;
+		Vulkan::VkDeviceMemory indexBufferMemory;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -303,6 +309,9 @@ export namespace HelloTriangle
 		void Cleanup(this auto& self)
 		{
 			self.CleanupSwapChain();
+
+			Vulkan::vkDestroyBuffer(self.device, self.indexBuffer, nullptr);
+			Vulkan::vkFreeMemory(self.device, self.indexBufferMemory, nullptr);
 
 			Vulkan::vkDestroyBuffer(self.device, self.vertexBuffer, nullptr);
 			Vulkan::vkFreeMemory(self.device, self.vertexBufferMemory, nullptr);
@@ -679,6 +688,39 @@ export namespace HelloTriangle
 				if (result != Vulkan::VkResult::VK_SUCCESS)
 					throw std::runtime_error("Failed to create image views.");
 			}
+		}
+
+		void CreateIndexBuffer(this auto& self)
+		{
+			Vulkan::VkDeviceSize bufferSize = sizeof(self.indices[0]) * self.indices.size();
+
+			Vulkan::VkBuffer stagingBuffer;
+			Vulkan::VkDeviceMemory stagingBufferMemory;
+			self.CreateBuffer(
+				bufferSize, 
+				Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				stagingBuffer, 
+				stagingBufferMemory
+			);
+
+			void* data;
+			Vulkan::vkMapMemory(self.device, stagingBufferMemory, 0, bufferSize, 0, &data);
+			std::memcpy(data, self.indices.data(), (size_t)bufferSize);
+			Vulkan::vkUnmapMemory(self.device, stagingBufferMemory);
+
+			self.CreateBuffer(
+				bufferSize, 
+				Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT | Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				self.indexBuffer,
+				self.indexBufferMemory
+			);
+
+			self.CopyBuffer(stagingBuffer, self.indexBuffer, bufferSize);
+
+			Vulkan::vkDestroyBuffer(self.device, stagingBuffer, nullptr);
+			Vulkan::vkFreeMemory(self.device, stagingBufferMemory, nullptr);
 		}
 
 		void CreateInstance(this auto& self)
@@ -1213,6 +1255,7 @@ export namespace HelloTriangle
 			self.CreateFramebuffers();
 			self.CreateCommandPool();
 			self.CreateVertexBuffer();
+			self.CreateIndexBuffer();
 			self.CreateCommandBuffers();
 			self.CreateSyncObjects();
 		}
@@ -1446,12 +1489,12 @@ export namespace HelloTriangle
 			Vulkan::VkBuffer vertexBuffers[] = { self.vertexBuffer };
 			Vulkan::VkDeviceSize offsets[] = { 0 };
 			Vulkan::vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			Vulkan::vkCmdBindIndexBuffer(commandBuffer, self.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-			Vulkan::vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+			Vulkan::vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(self.indices.size()), 1, 0, 0, 0);
 
 			Vulkan::vkCmdEndRenderPass(commandBuffer);
-			result = Vulkan::vkEndCommandBuffer(commandBuffer);
-			if (result != Vulkan::VkResult::VK_SUCCESS)
+			if (Vulkan::vkEndCommandBuffer(commandBuffer) != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to record command buffer.");
 		}
 	};

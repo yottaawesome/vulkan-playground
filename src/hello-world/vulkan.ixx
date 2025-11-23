@@ -188,6 +188,8 @@ export namespace Vulkan
 		::VkCommandBufferUsageFlagBits,
 		::VkCommandBufferLevel,
 		::VkBufferCopy,
+		::vkCmdDrawIndexed,
+		::vkCmdBindIndexBuffer,
 		::vkFreeCommandBuffers,
 		::vkQueueWaitIdle,
 		::vkCmdCopyBuffer,

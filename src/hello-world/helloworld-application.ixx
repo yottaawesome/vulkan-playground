@@ -177,6 +177,7 @@ export namespace HelloTriangle
 			{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 		};
 		Vulkan::VkBuffer vertexBuffer;
+		Vulkan::VkDeviceMemory vertexBufferMemory;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -304,6 +305,7 @@ export namespace HelloTriangle
 			self.CleanupSwapChain();
 
 			Vulkan::vkDestroyBuffer(self.device, self.vertexBuffer, nullptr);
+			Vulkan::vkFreeMemory(self.device, self.vertexBufferMemory, nullptr);
 
 			Vulkan::vkDestroyPipeline(self.device, self.graphicsPipeline, nullptr);
 			Vulkan::vkDestroyPipelineLayout(self.device, self.pipelineLayout, nullptr);
@@ -908,6 +910,26 @@ export namespace HelloTriangle
 
 			Vulkan::VkMemoryRequirements memRequirements;
 			Vulkan::vkGetBufferMemoryRequirements(self.device, self.vertexBuffer, &memRequirements);
+			self.FindMemoryType(
+				memRequirements.memoryTypeBits,
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+
+			Vulkan::VkMemoryAllocateInfo allocInfo{};
+			allocInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			allocInfo.allocationSize = memRequirements.size;
+			allocInfo.memoryTypeIndex = self.FindMemoryType(
+				memRequirements.memoryTypeBits, 
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+			if (Vulkan::vkAllocateMemory(self.device, &allocInfo, nullptr, &self.vertexBufferMemory) != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to allocate vertex buffer memory.");
+			Vulkan::vkBindBufferMemory(self.device, self.vertexBuffer, self.vertexBufferMemory, 0);
+
+			void* data;
+			Vulkan::vkMapMemory(self.device, self.vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+			std::memcpy(data, self.vertices.data(), static_cast<size_t>(bufferInfo.size));
+			Vulkan::vkUnmapMemory(self.device, self.vertexBufferMemory);
 		}
 
 		// stdcall on Windows, but this is ignored on x64.
@@ -1032,6 +1054,22 @@ export namespace HelloTriangle
 
 			for (const auto& extension : extensions)
 				std::println("Extension: {}", extension.extensionName);
+		}
+
+		auto FindMemoryType(this const auto& self, std::uint32_t typeFilter, std::uint32_t properties) -> std::uint32_t
+		{
+			Vulkan::VkPhysicalDeviceMemoryProperties memProperties;
+			Vulkan::vkGetPhysicalDeviceMemoryProperties(self.physicalDevice, &memProperties);
+
+			/*constexpr auto properties = 
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT 
+				| Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;*/
+
+			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+				if (typeFilter & (1 << i) and (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+					return i;
+
+			throw std::runtime_error("Failed to find suitable memory type.");
 		}
 
 		auto FindQueueFamilies(this auto& self, Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
@@ -1332,6 +1370,10 @@ export namespace HelloTriangle
 			scissor.offset = { 0, 0 };
 			scissor.extent = self.swapChainExtent;
 			Vulkan::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+			Vulkan::VkBuffer vertexBuffers[] = { self.vertexBuffer };
+			Vulkan::VkDeviceSize offsets[] = { 0 };
+			Vulkan::vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
 			Vulkan::vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 

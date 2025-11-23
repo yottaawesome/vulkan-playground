@@ -342,6 +342,78 @@ export namespace HelloTriangle
 			Vulkan::vkDestroySwapchainKHR(self.device, self.swapChain, nullptr);
 		}
 
+		void CopyBuffer(
+			this auto& self, 
+			Vulkan::VkBuffer srcBuffer, 
+			Vulkan::VkBuffer dstBuffer, 
+			Vulkan::VkDeviceSize size
+		)
+		{
+			Vulkan::VkCommandBufferAllocateInfo allocInfo{};
+			allocInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			allocInfo.level = Vulkan::VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			allocInfo.commandPool = self.commandPool;
+			allocInfo.commandBufferCount = 1;
+
+			Vulkan::VkCommandBuffer commandBuffer;
+			Vulkan::vkAllocateCommandBuffers(self.device, &allocInfo, &commandBuffer);
+
+			Vulkan::VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = Vulkan::VkCommandBufferUsageFlagBits::VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+			Vulkan::vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+			Vulkan::VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = 0; // Optional
+			copyRegion.dstOffset = 0; // Optional
+			copyRegion.size = size;
+			Vulkan::vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+			Vulkan::vkEndCommandBuffer(commandBuffer);
+
+			Vulkan::VkSubmitInfo submitInfo{};
+			submitInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &commandBuffer;
+
+			Vulkan::vkQueueSubmit(self.graphicsQueue, 1, &submitInfo, nullptr);
+			Vulkan::vkQueueWaitIdle(self.graphicsQueue);
+
+			Vulkan::vkFreeCommandBuffers(self.device, self.commandPool, 1, &commandBuffer);
+		}
+
+		void CreateBuffer(
+			this auto& self, 
+			Vulkan::VkDeviceSize size, 
+			Vulkan::VkBufferUsageFlags usage,
+			Vulkan::VkMemoryPropertyFlags properties,
+			Vulkan::VkBuffer& buffer, 
+			Vulkan::VkDeviceMemory& bufferMemory
+		)
+		{
+			Vulkan::VkBufferCreateInfo bufferInfo{};
+			bufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			bufferInfo.size = sizeof(self.vertices[0]) * self.vertices.size();
+			bufferInfo.usage = usage;
+			bufferInfo.sharingMode = Vulkan::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+
+			if (Vulkan::vkCreateBuffer(self.device, &bufferInfo, nullptr, &buffer) != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to create buffer.");
+
+			Vulkan::VkMemoryRequirements memRequirements;
+			Vulkan::vkGetBufferMemoryRequirements(self.device, buffer, &memRequirements);
+
+			Vulkan::VkMemoryAllocateInfo allocInfo{};
+			allocInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			allocInfo.allocationSize = memRequirements.size;
+			allocInfo.memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, properties);
+			if (Vulkan::vkAllocateMemory(self.device, &allocInfo, nullptr, &bufferMemory) != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to allocate vertex buffer memory.");
+
+			Vulkan::vkBindBufferMemory(self.device, buffer, bufferMemory, 0);
+		}
+
 		void CreateCommandBuffers(this auto& self)
 		{
 			self.commandBuffers.resize(MaxFramesInFlight);
@@ -900,36 +972,36 @@ export namespace HelloTriangle
 
 		void CreateVertexBuffer(this auto& self) 
 		{
-			Vulkan::VkBufferCreateInfo bufferInfo{};
-			bufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.size = sizeof(self.vertices[0]) * self.vertices.size();
-			bufferInfo.usage = Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-			bufferInfo.sharingMode = Vulkan::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-			if (Vulkan::vkCreateBuffer(self.device, &bufferInfo, nullptr, &self.vertexBuffer) != Vulkan::VkResult::VK_SUCCESS)
-				throw std::runtime_error("failed to create vertex buffer!");
+			Vulkan::VkDeviceSize bufferSize = sizeof(self.vertices[0]) * self.vertices.size();
 
-			Vulkan::VkMemoryRequirements memRequirements;
-			Vulkan::vkGetBufferMemoryRequirements(self.device, self.vertexBuffer, &memRequirements);
-			self.FindMemoryType(
-				memRequirements.memoryTypeBits,
-				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			Vulkan::VkBuffer stagingBuffer;
+			Vulkan::VkDeviceMemory stagingBufferMemory;
+			self.CreateBuffer(
+				bufferSize, 
+				Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				stagingBuffer,
+				stagingBufferMemory
 			);
-
-			Vulkan::VkMemoryAllocateInfo allocInfo{};
-			allocInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			allocInfo.allocationSize = memRequirements.size;
-			allocInfo.memoryTypeIndex = self.FindMemoryType(
-				memRequirements.memoryTypeBits, 
-				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
-			if (Vulkan::vkAllocateMemory(self.device, &allocInfo, nullptr, &self.vertexBufferMemory) != Vulkan::VkResult::VK_SUCCESS)
-				throw std::runtime_error("Failed to allocate vertex buffer memory.");
-			Vulkan::vkBindBufferMemory(self.device, self.vertexBuffer, self.vertexBufferMemory, 0);
 
 			void* data;
-			Vulkan::vkMapMemory(self.device, self.vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-			std::memcpy(data, self.vertices.data(), static_cast<size_t>(bufferInfo.size));
-			Vulkan::vkUnmapMemory(self.device, self.vertexBufferMemory);
+			Vulkan::vkMapMemory(self.device, stagingBufferMemory, 0, bufferSize, 0, &data);
+			std::memcpy(data, self.vertices.data(), (size_t)bufferSize);
+			Vulkan::vkUnmapMemory(self.device, stagingBufferMemory);
+
+			self.CreateBuffer(
+				bufferSize, 
+				Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT | Vulkan::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				self.vertexBuffer, 
+				self.vertexBufferMemory
+			);
+
+			self.CopyBuffer(stagingBuffer, self.vertexBuffer, bufferSize);
+			self.CopyBuffer(stagingBuffer, self.vertexBuffer, bufferSize);
+
+			Vulkan::vkDestroyBuffer(self.device, stagingBuffer, nullptr);
+			Vulkan::vkFreeMemory(self.device, stagingBufferMemory, nullptr);
 		}
 
 		// stdcall on Windows, but this is ignored on x64.

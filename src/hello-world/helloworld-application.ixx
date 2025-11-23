@@ -1489,9 +1489,9 @@ export namespace HelloTriangle
 			Vulkan::VkBuffer vertexBuffers[] = { self.vertexBuffer };
 			Vulkan::VkDeviceSize offsets[] = { 0 };
 			Vulkan::vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			Vulkan::vkCmdBindIndexBuffer(commandBuffer, self.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+			Vulkan::vkCmdBindIndexBuffer(commandBuffer, self.indexBuffer, 0, Vulkan::VkIndexType::VK_INDEX_TYPE_UINT16);
 
-			Vulkan::vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(self.indices.size()), 1, 0, 0, 0);
+			Vulkan::vkCmdDrawIndexed(commandBuffer, static_cast<std::uint32_t>(self.indices.size()), 1, 0, 0, 0);
 
 			Vulkan::vkCmdEndRenderPass(commandBuffer);
 			if (Vulkan::vkEndCommandBuffer(commandBuffer) != Vulkan::VkResult::VK_SUCCESS)

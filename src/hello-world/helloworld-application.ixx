@@ -199,6 +199,8 @@ export namespace HelloTriangle
 		std::vector<Vulkan::VkDescriptorSet> descriptorSets;
 		Vulkan::VkImage textureImage;
 		Vulkan::VkDeviceMemory textureImageMemory;
+		Vulkan::VkImageView textureImageView;
+		Vulkan::VkSampler textureSampler;
 
 		auto BeginSingleTimeCommands(this Application& self) -> Vulkan::VkCommandBuffer
 		{
@@ -358,6 +360,11 @@ export namespace HelloTriangle
 		void Cleanup(this Application& self)
 		{
 			self.CleanupSwapChain();
+
+			Vulkan::vkDestroySampler(self.device, self.textureSampler, nullptr);
+			Vulkan::vkDestroyImageView(self.device, self.textureImageView, nullptr);
+			Vulkan::vkDestroyImage(self.device, self.textureImage, nullptr);
+			Vulkan::vkFreeMemory(self.device, self.textureImageMemory, nullptr);
 
 			for (size_t i = 0; i < MaxFramesInFlight; i++)
 			{
@@ -807,39 +814,32 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyShaderModule(self.device, vertShaderModule, nullptr);
 		}
 
+		auto CreateImageView(this Application& self, VkImage image, VkFormat format) -> Vulkan::VkImageView
+		{
+			Vulkan::VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = image;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = format;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+			Vulkan::VkImageView imageView;
+			if (Vulkan::vkCreateImageView(self.device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+				throw std::runtime_error("Failed to create image view.");
+
+			return imageView;
+		}
+
 		void CreateImageViews(this Application& self)
 		{
 			self.swapChainImageViews.resize(self.swapChainImages.size());
 			for (size_t i = 0; i < self.swapChainImages.size(); i++)
-			{
-				Vulkan::VkImageViewCreateInfo createInfo{
-					.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-					.image = self.swapChainImages[i],
-					.viewType = Vulkan::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
-					.format = self.swapChainImageFormat,
-					.components{
-						.r = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
-						.g = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
-						.b = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
-						.a = Vulkan::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY
-					},
-					.subresourceRange{
-						.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
-						.baseMipLevel = 0,
-						.levelCount = 1,
-						.baseArrayLayer = 0,
-						.layerCount = 1
-					}
-				};
-				auto result = Vulkan::vkCreateImageView(
-					self.device,
-					&createInfo,
-					nullptr,
-					&self.swapChainImageViews[i]
-				);
-				if (result != Vulkan::VkResult::VK_SUCCESS)
-					throw std::runtime_error("Failed to create image views.");
-			}
+				self.swapChainImageViews[i] = 
+					self.CreateImageView(self.swapChainImages[i], self.swapChainImageFormat);
 		}
 
 		void CreateIndexBuffer(this Application& self)
@@ -941,6 +941,7 @@ export namespace HelloTriangle
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 
 			Vulkan::VkPhysicalDeviceFeatures deviceFeatures{};
+			deviceFeatures.samplerAnisotropy = true;
 			Vulkan::VkDeviceCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
@@ -1274,6 +1275,39 @@ export namespace HelloTriangle
 			Vulkan::vkFreeMemory(self.device, stagingBufferMemory, nullptr);
 		}
 
+		void CreateTextureImageView(this Application& self) 
+		{
+			self.textureImageView = self.CreateImageView(self.textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+		}
+
+		void CreateTextureSampler(this Application& self)
+		{
+			Vulkan::VkSamplerCreateInfo samplerInfo{};
+			samplerInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			samplerInfo.magFilter = Vulkan::VkFilter::VK_FILTER_LINEAR;
+			samplerInfo.minFilter = Vulkan::VkFilter::VK_FILTER_LINEAR;
+			samplerInfo.addressModeU = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeV = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeW = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			
+			samplerInfo.anisotropyEnable = true;
+			Vulkan::VkPhysicalDeviceProperties properties{};
+			Vulkan::vkGetPhysicalDeviceProperties(self.physicalDevice, &properties);
+			samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+			samplerInfo.borderColor = Vulkan::VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			samplerInfo.unnormalizedCoordinates = false;
+
+			samplerInfo.compareEnable = false;
+			samplerInfo.compareOp = Vulkan::VkCompareOp::VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = Vulkan::VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			samplerInfo.mipLodBias = 0.0f;
+			samplerInfo.minLod = 0.0f;
+			samplerInfo.maxLod = 0.0f;
+
+			if (Vulkan::vkCreateSampler(self.device, &samplerInfo, nullptr, &self.textureSampler) != VK_SUCCESS)
+				throw std::runtime_error("failed to create texture sampler!");
+		}
+
 		void CreateUniformBuffers(this Application& self)
 		{
 			Vulkan::VkDeviceSize bufferSize = sizeof(UniformBufferObject);
@@ -1547,6 +1581,8 @@ export namespace HelloTriangle
 			self.CreateFramebuffers();
 			self.CreateCommandPool();
 			self.CreateTextureImage();
+			self.CreateTextureImageView();
+			self.CreateTextureSampler();
 			self.CreateVertexBuffer();
 			self.CreateIndexBuffer();
 			self.CreateUniformBuffers();
@@ -1584,9 +1620,12 @@ export namespace HelloTriangle
 						and not swapChainSupport.PresentModes.empty();
 				}();
 
+			Vulkan::VkPhysicalDeviceFeatures supportedFeatures;
+			Vulkan::vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 			return indices.IsComplete()
 				and extensionsSupported
-				and swapChainAdequate;
+				and swapChainAdequate 
+				and supportedFeatures.samplerAnisotropy;
 		}
 
 		void MainLoop(this Application& self)

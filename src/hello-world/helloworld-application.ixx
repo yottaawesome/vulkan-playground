@@ -31,6 +31,7 @@ export namespace HelloTriangle
 	{
 		glm::vec2 pos;
 		glm::vec3 color;
+		glm::vec2 texCoord;
 
 		static auto GetBindingDescription() -> Vulkan::VkVertexInputBindingDescription
 		{
@@ -42,20 +43,25 @@ export namespace HelloTriangle
 			return bindingDescription;
 		}
 
-		static auto GetAttributeDescriptions() -> std::array<Vulkan::VkVertexInputAttributeDescription, 2>
+		static auto GetAttributeDescriptions() -> std::array<Vulkan::VkVertexInputAttributeDescription, 3>
 		{
-			std::array<Vulkan::VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+			std::array<Vulkan::VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
 			attributeDescriptions[0].binding = 0;
 			attributeDescriptions[0].location = 0;
 			attributeDescriptions[0].format = Vulkan::VkFormat::VK_FORMAT_R32G32_SFLOAT;
 			attributeDescriptions[0].offset =
-				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
+				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
 			attributeDescriptions[1].binding = 0;
 			attributeDescriptions[1].location = 1;
 			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attributeDescriptions[1].offset =
-				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->color)));
+				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->color)));
+			attributeDescriptions[2].binding = 0;
+			attributeDescriptions[2].location = 2;
+			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[2].offset = 
+				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->texCoord)));
 
 			return attributeDescriptions;
 		}
@@ -180,10 +186,10 @@ export namespace HelloTriangle
 		bool framebufferResized = false;
 		std::uint32_t currentFrame = 0;
 		const std::vector<Vertex> vertices{
-			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 		};
 		const std::vector<std::uint16_t> indices = {
 			0, 1, 2, 2, 3, 0
@@ -539,14 +545,17 @@ export namespace HelloTriangle
 
 		void CreateDescriptorPool(this Application& self)
 		{
-			Vulkan::VkDescriptorPoolSize poolSize{};
-			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize.descriptorCount = static_cast<uint32_t>(MaxFramesInFlight);
+			std::array<Vulkan::VkDescriptorPoolSize, 2> poolSizes{};
+			poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSizes[0].descriptorCount = static_cast<uint32_t>(MaxFramesInFlight);
+			poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			poolSizes[1].descriptorCount = static_cast<uint32_t>(MaxFramesInFlight);
+
 			Vulkan::VkDescriptorPoolCreateInfo poolInfo{};
 			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			poolInfo.poolSizeCount = 1;
-			poolInfo.pPoolSizes = &poolSize;
-			poolInfo.maxSets = static_cast<uint32_t>(MaxFramesInFlight);
+			poolInfo.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size());
+			poolInfo.pPoolSizes = poolSizes.data();
+			poolInfo.maxSets = static_cast<std::uint32_t>(MaxFramesInFlight);
 
 			if (Vulkan::vkCreateDescriptorPool(self.device, &poolInfo, nullptr, &self.descriptorPool) != VK_SUCCESS)
 				throw std::runtime_error("Failed to create descriptor pool.");
@@ -561,10 +570,18 @@ export namespace HelloTriangle
 			uboLayoutBinding.stageFlags = Vulkan::VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
 			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
+			Vulkan::VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+			samplerLayoutBinding.binding = 1;
+			samplerLayoutBinding.descriptorCount = 1;
+			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			samplerLayoutBinding.pImmutableSamplers = nullptr;
+			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 			Vulkan::VkDescriptorSetLayoutCreateInfo layoutInfo{};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = 1;
-			layoutInfo.pBindings = &uboLayoutBinding;
+			layoutInfo.bindingCount = static_cast<std::uint32_t>(bindings.size());
+			layoutInfo.pBindings = bindings.data();
 
 			if (Vulkan::vkCreateDescriptorSetLayout(self.device, &layoutInfo, nullptr, &self.descriptorSetLayout) != VK_SUCCESS)
 				throw std::runtime_error("failed to create descriptor set layout!");
@@ -597,24 +614,34 @@ export namespace HelloTriangle
 				bufferInfo.range = Vulkan::WholeSize; //
 				// sizeof(UniformBufferObject); gives validation errors.
 
-				Vulkan::VkWriteDescriptorSet descriptorWrite{};
-				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrite.dstSet = self.descriptorSets[i];
-				descriptorWrite.dstBinding = 0;
-				descriptorWrite.dstArrayElement = 0;
+				Vulkan::VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfo.imageView = self.textureImageView;
+				imageInfo.sampler = self.textureSampler;
 
-				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptorWrite.descriptorCount = 1;
+				std::array<Vulkan::VkWriteDescriptorSet, 2> descriptorWrites{};
 
-				descriptorWrite.pBufferInfo = &bufferInfo;
-				descriptorWrite.pImageInfo = nullptr; // Optional
-				descriptorWrite.pTexelBufferView = nullptr; // Optional
+				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[0].dstSet = self.descriptorSets[i];
+				descriptorWrites[0].dstBinding = 0;
+				descriptorWrites[0].dstArrayElement = 0;
+				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorWrites[0].descriptorCount = 1;
+				descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+				descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[1].dstSet = self.descriptorSets[i];
+				descriptorWrites[1].dstBinding = 1;
+				descriptorWrites[1].dstArrayElement = 0;
+				descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorWrites[1].descriptorCount = 1;
+				descriptorWrites[1].pImageInfo = &imageInfo;
 
 				Vulkan::vkUpdateDescriptorSets(
-					self.device,
-					1,
-					&descriptorWrite,
-					0,
+					self.device, 
+					static_cast<uint32_t>(descriptorWrites.size()), 
+					descriptorWrites.data(), 
+					0, 
 					nullptr
 				);
 			}

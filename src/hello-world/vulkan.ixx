@@ -235,6 +235,7 @@ export namespace Vulkan
 		::VkCompareOp,
 		::VkSamplerMipmapMode,
 		::VkSampler,
+		::VkDescriptorImageInfo,
 		::vkDestroySampler,
 		::vkCreateSampler,
 		::vkDestroyImage,

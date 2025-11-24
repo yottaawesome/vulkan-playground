@@ -208,6 +208,7 @@ export namespace Vulkan
 		::VkDescriptorBufferInfo,
 		::VkWriteDescriptorSet,
 		::VkDescriptorSet,
+		::VkDescriptorType,
 		::vkCmdBindDescriptorSets,
 		::vkAllocateDescriptorSets,
 		::vkUpdateDescriptorSets,

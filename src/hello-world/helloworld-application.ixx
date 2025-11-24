@@ -843,17 +843,19 @@ export namespace HelloTriangle
 
 		auto CreateImageView(this Application& self, VkImage image, VkFormat format) -> Vulkan::VkImageView
 		{
-			Vulkan::VkImageViewCreateInfo viewInfo{};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = image;
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = format;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			viewInfo.subresourceRange.baseMipLevel = 0;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.baseArrayLayer = 0;
-			viewInfo.subresourceRange.layerCount = 1;
-
+			Vulkan::VkImageViewCreateInfo viewInfo{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.image = image,
+				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.format = format,
+				.subresourceRange{ 
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1 
+				}
+			};
 			Vulkan::VkImageView imageView;
 			if (Vulkan::vkCreateImageView(self.device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
 				throw std::runtime_error("Failed to create image view.");
@@ -952,11 +954,12 @@ export namespace HelloTriangle
 			float queuePriority = 1.0f;
 			for (std::uint32_t queueFamily : uniqueQueueFamilies)
 			{
-				Vulkan::VkDeviceQueueCreateInfo queueCreateInfo{};
-				queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				queueCreateInfo.queueFamilyIndex = queueFamily;
-				queueCreateInfo.queueCount = 1;
-				queueCreateInfo.pQueuePriorities = &queuePriority;
+				Vulkan::VkDeviceQueueCreateInfo queueCreateInfo{
+					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+					.queueFamilyIndex = queueFamily,
+					.queueCount = 1,
+					.pQueuePriorities = &queuePriority
+				};
 				queueCreateInfos.push_back(queueCreateInfo);
 			}
 
@@ -967,8 +970,9 @@ export namespace HelloTriangle
 			};
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 
-			Vulkan::VkPhysicalDeviceFeatures deviceFeatures{};
-			deviceFeatures.samplerAnisotropy = true;
+			Vulkan::VkPhysicalDeviceFeatures deviceFeatures{
+				.samplerAnisotropy = true
+			};
 			Vulkan::VkDeviceCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
@@ -1170,19 +1174,20 @@ export namespace HelloTriangle
 			self.renderFinishedSemaphores.resize(self.swapChainImages.size());
 			self.inFlightFences.resize(MaxFramesInFlight);
 
-			Vulkan::VkSemaphoreCreateInfo semaphoreInfo{};
-			semaphoreInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-			Vulkan::VkFenceCreateInfo fenceInfo{};
-			fenceInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			fenceInfo.flags = Vulkan::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
+			Vulkan::VkSemaphoreCreateInfo semaphoreInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+			};
+			Vulkan::VkFenceCreateInfo fenceInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+				.flags = Vulkan::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT
+			};
 
 			for (int i = 0; i < MaxFramesInFlight; i++)
 			{
 				if (
 					Vulkan::vkCreateSemaphore(self.device, &semaphoreInfo, nullptr, &self.imageAvailableSemaphores[i]) != VK_SUCCESS
 					or Vulkan::vkCreateFence(self.device, &fenceInfo, nullptr, &self.inFlightFences[i]) != VK_SUCCESS
-					) throw std::runtime_error("failed to create synchronization objects for a frame!");
+				) throw std::runtime_error("failed to create synchronization objects for a frame!");
 			}
 
 			// The tutorial triggers a validation error and so followed the advice in this comment
@@ -1204,32 +1209,34 @@ export namespace HelloTriangle
 			Vulkan::VkDeviceMemory& imageMemory
 		) 
 		{
-			Vulkan::VkImageCreateInfo imageInfo{};
-			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent.width = width;
-			imageInfo.extent.height = height;
-			imageInfo.extent.depth = 1;
-			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
-			imageInfo.format = format;
-			imageInfo.tiling = tiling;
-			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageInfo.usage = usage;
-			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
+			Vulkan::VkImageCreateInfo imageInfo{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+				.imageType = VK_IMAGE_TYPE_2D,
+				.format = format,
+				.extent{
+					.width = width,
+					.height = height,
+					.depth = 1
+				},
+				.mipLevels = 1,
+				.arrayLayers = 1,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.tiling = tiling,
+				.usage = usage,
+				.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+			};
 			if (Vulkan::vkCreateImage(self.device, &imageInfo, nullptr, &image) != VK_SUCCESS)
 				throw std::runtime_error("Failed to create image.");
 
 			Vulkan::VkMemoryRequirements memRequirements;
 			Vulkan::vkGetImageMemoryRequirements(self.device, image, &memRequirements);
 
-			Vulkan::VkMemoryAllocateInfo allocInfo{};
-			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			allocInfo.allocationSize = memRequirements.size;
-			allocInfo.memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, properties);
-
+			Vulkan::VkMemoryAllocateInfo allocInfo{
+				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+				.allocationSize = memRequirements.size,
+				.memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, properties),
+			};
 			if (Vulkan::vkAllocateMemory(self.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) 
 				throw std::runtime_error("Failed to allocate image memory.");
 
@@ -1309,27 +1316,27 @@ export namespace HelloTriangle
 
 		void CreateTextureSampler(this Application& self)
 		{
-			Vulkan::VkSamplerCreateInfo samplerInfo{};
-			samplerInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			samplerInfo.magFilter = Vulkan::VkFilter::VK_FILTER_LINEAR;
-			samplerInfo.minFilter = Vulkan::VkFilter::VK_FILTER_LINEAR;
-			samplerInfo.addressModeU = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeV = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeW = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			
-			samplerInfo.anisotropyEnable = true;
 			Vulkan::VkPhysicalDeviceProperties properties{};
 			Vulkan::vkGetPhysicalDeviceProperties(self.physicalDevice, &properties);
-			samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-			samplerInfo.borderColor = Vulkan::VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-			samplerInfo.unnormalizedCoordinates = false;
 
-			samplerInfo.compareEnable = false;
-			samplerInfo.compareOp = Vulkan::VkCompareOp::VK_COMPARE_OP_ALWAYS;
-			samplerInfo.mipmapMode = Vulkan::VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			samplerInfo.mipLodBias = 0.0f;
-			samplerInfo.minLod = 0.0f;
-			samplerInfo.maxLod = 0.0f;
+			Vulkan::VkSamplerCreateInfo samplerInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.magFilter = Vulkan::VkFilter::VK_FILTER_LINEAR,
+				.minFilter = Vulkan::VkFilter::VK_FILTER_LINEAR,
+				.mipmapMode = Vulkan::VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.addressModeU = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeV = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeW = Vulkan::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.mipLodBias = 0.0f,
+				.anisotropyEnable = true,
+				.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+				.compareEnable = false,
+				.compareOp = Vulkan::VkCompareOp::VK_COMPARE_OP_ALWAYS,
+				.minLod = 0.0f,
+				.maxLod = 0.0f,
+				.borderColor = Vulkan::VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+				.unnormalizedCoordinates = false
+			};
 
 			if (Vulkan::vkCreateSampler(self.device, &samplerInfo, nullptr, &self.textureSampler) != VK_SUCCESS)
 				throw std::runtime_error("failed to create texture sampler!");
@@ -1399,10 +1406,7 @@ export namespace HelloTriangle
 		) -> Vulkan::VkBool32
 		{
 			if (messageSeverity >= Vulkan::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-			{
 				std::println("Validation layer: {}", pCallbackData->pMessage);
-			}
-
 			return false;
 		}
 
@@ -1440,23 +1444,21 @@ export namespace HelloTriangle
 			// Before or after the above?
 			self.UpdateUniformBuffer(self.currentFrame);
 
-			Vulkan::VkSubmitInfo submitInfo{};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
 			Vulkan::VkSemaphore waitSemaphores[]{ self.imageAvailableSemaphores[self.currentFrame] };
 			Vulkan::VkPipelineStageFlags waitStages[]{
 				Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 			};
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = waitSemaphores;
-			submitInfo.pWaitDstStageMask = waitStages;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &self.commandBuffers[self.currentFrame];
-
 			Vulkan::VkSemaphore signalSemaphores[]{ self.renderFinishedSemaphores[imageIndex] };
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = signalSemaphores;
-
+			Vulkan::VkSubmitInfo submitInfo{
+				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = waitSemaphores,
+				.pWaitDstStageMask = waitStages,
+				.commandBufferCount = 1,
+				.pCommandBuffers = &self.commandBuffers[self.currentFrame],
+				.signalSemaphoreCount = 1,
+				.pSignalSemaphores = signalSemaphores
+			};
 			result = Vulkan::vkQueueSubmit(
 				self.graphicsQueue,
 				1,
@@ -1466,27 +1468,28 @@ export namespace HelloTriangle
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to submit draw command buffer.");
 
-			Vulkan::VkPresentInfoKHR presentInfo{};
-			presentInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = signalSemaphores;
-
 			Vulkan::VkSwapchainKHR swapChains[] = { self.swapChain };
-			presentInfo.swapchainCount = 1;
-			presentInfo.pSwapchains = swapChains;
-			presentInfo.pImageIndices = &imageIndex;
-
-			presentInfo.pResults = nullptr; // Optional
-
+			Vulkan::VkPresentInfoKHR presentInfo{
+				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = signalSemaphores,
+				.swapchainCount = 1,
+				.pSwapchains = swapChains,
+				.pImageIndices = &imageIndex,
+				.pResults = nullptr // Optional
+			};
 			result = Vulkan::vkQueuePresentKHR(self.presentQueue, &presentInfo);
-			if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or self.framebufferResized)
+			if (
+				result == VK_ERROR_OUT_OF_DATE_KHR 
+				or result == VK_SUBOPTIMAL_KHR 
+				or self.framebufferResized
+			)
 			{
 				self.framebufferResized = false;
 				self.RecreateSwapChain();
 			}
 			else if (result != VK_SUCCESS)
-				throw std::runtime_error("failed to present swap chain image!");
+				throw std::runtime_error("Failed to present swap chain image.");
 
 			self.currentFrame = (self.currentFrame + 1) % MaxFramesInFlight;
 		}

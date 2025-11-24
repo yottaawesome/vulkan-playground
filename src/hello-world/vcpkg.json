@@ -4,6 +4,7 @@
   "dependencies": [
     "vulkan",
     "glfw3",
-    "glm"
+    "glm",
+    "stb"
   ]
 }

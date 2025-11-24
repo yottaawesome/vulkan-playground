@@ -27,6 +27,16 @@ export namespace Win32
 		;
 }
 
+export namespace stb
+{
+	using 
+		::stbi_load,
+		::stbi_image_free,
+		::stbi_uc,
+		::STBI_rgb_alpha
+		;
+}
+
 export namespace glm
 {
 	using 
@@ -209,6 +219,19 @@ export namespace Vulkan
 		::VkWriteDescriptorSet,
 		::VkDescriptorSet,
 		::VkDescriptorType,
+		::VkImageCreateInfo,
+		::VkImageType,
+		::VkImageTiling,
+		::VkImageLayout,
+		::VkImageUsageFlags,
+		::VkImageMemoryBarrier,
+		::VkImageAspectFlagBits,
+		::VkBufferImageCopy,
+		::vkCmdCopyBufferToImage,
+		::vkCmdPipelineBarrier,
+		::vkBindImageMemory,
+		::vkGetImageMemoryRequirements,
+		::vkCreateImage,
 		::vkCmdBindDescriptorSets,
 		::vkAllocateDescriptorSets,
 		::vkUpdateDescriptorSets,
@@ -291,6 +314,7 @@ export namespace Vulkan
 		::vkEnumerateInstanceLayerProperties
 		;
 
+	constexpr auto QueueFamilyIgnored = VK_QUEUE_FAMILY_IGNORED;
 	constexpr auto WholeSize = VK_WHOLE_SIZE;
 	constexpr auto VkSubpassExternalDependency = VK_SUBPASS_EXTERNAL;
 	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;

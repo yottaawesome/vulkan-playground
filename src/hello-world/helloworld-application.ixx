@@ -141,7 +141,7 @@ export namespace HelloTriangle
 			Vulkan::VkHkrSwapchainExtensionName
 		};
 
-		void Run(this auto& self)
+		void Run(this Application& self)
 		{
 			self.InitWindow();
 			self.InitVulkan();
@@ -197,9 +197,45 @@ export namespace HelloTriangle
 		std::vector<void*> uniformBuffersMapped;
 		Vulkan::VkDescriptorPool descriptorPool;
 		std::vector<Vulkan::VkDescriptorSet> descriptorSets;
+		Vulkan::VkImage textureImage;
+		Vulkan::VkDeviceMemory textureImageMemory;
+
+		auto BeginSingleTimeCommands(this Application& self) -> Vulkan::VkCommandBuffer
+		{
+			Vulkan::VkCommandBufferAllocateInfo allocInfo{};
+			allocInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			allocInfo.level = Vulkan::VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			allocInfo.commandPool = self.commandPool;
+			allocInfo.commandBufferCount = 1;
+
+			Vulkan::VkCommandBuffer commandBuffer;
+			Vulkan::vkAllocateCommandBuffers(self.device, &allocInfo, &commandBuffer);
+
+			Vulkan::VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = Vulkan::VkCommandBufferUsageFlagBits::VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+			Vulkan::vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+			return commandBuffer;
+		}
+
+		void EndSingleTimeCommands(this Application& self, Vulkan::VkCommandBuffer commandBuffer)
+		{
+			Vulkan::vkEndCommandBuffer(commandBuffer);
+
+			Vulkan::VkSubmitInfo submitInfo{};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &commandBuffer;
+
+			Vulkan::vkQueueSubmit(self.graphicsQueue, 1, &submitInfo, nullptr);
+			Vulkan::vkQueueWaitIdle(self.graphicsQueue);
+			Vulkan::vkFreeCommandBuffers(self.device, self.commandPool, 1, &commandBuffer);
+		}
 
 		auto CheckDeviceExtensionSupport(
-			this const auto& self,
+			this const Application& self,
 			Vulkan::VkPhysicalDevice device
 		) noexcept -> bool
 		{
@@ -228,7 +264,7 @@ export namespace HelloTriangle
 			return requiredExtensions.empty();
 		}
 
-		auto CheckValidationLayerSupport(this const auto& self) -> bool
+		auto CheckValidationLayerSupport(this const Application& self) -> bool
 		{
 			std::uint32_t layerCount = 0;
 			auto result = Vulkan::vkEnumerateInstanceLayerProperties(
@@ -267,7 +303,7 @@ export namespace HelloTriangle
 		}
 
 		auto ChooseSwapExtent(
-			this const auto& self,
+			this const Application& self,
 			const Vulkan::VkSurfaceCapabilitiesKHR& capabilities
 		) -> Vulkan::VkExtent2D
 		{
@@ -297,7 +333,7 @@ export namespace HelloTriangle
 		}
 
 		auto ChooseSwapPresentMode(
-			this const auto& self,
+			this const Application& self,
 			const std::vector<Vulkan::VkPresentModeKHR>& availablePresentModes
 		) -> Vulkan::VkPresentModeKHR
 		{
@@ -308,7 +344,7 @@ export namespace HelloTriangle
 		}
 
 		auto ChooseSwapSurfaceFormat(
-			this const auto& self,
+			this const Application& self,
 			const std::vector<Vulkan::VkSurfaceFormatKHR>& availableFormats
 		) -> Vulkan::VkSurfaceFormatKHR
 		{
@@ -319,7 +355,7 @@ export namespace HelloTriangle
 			return availableFormats[0];
 		}
 
-		void Cleanup(this auto& self)
+		void Cleanup(this Application& self)
 		{
 			self.CleanupSwapChain();
 
@@ -363,7 +399,7 @@ export namespace HelloTriangle
 			GLFW::glfwTerminate();
 		}
 
-		void CleanupSwapChain(this auto& self)
+		void CleanupSwapChain(this Application& self)
 		{
 			for (auto framebuffer : self.swapChainFramebuffers)
 				Vulkan::vkDestroyFramebuffer(self.device, framebuffer, nullptr);
@@ -373,48 +409,59 @@ export namespace HelloTriangle
 		}
 
 		void CopyBuffer(
-			this auto& self,
+			this Application& self,
 			Vulkan::VkBuffer srcBuffer,
 			Vulkan::VkBuffer dstBuffer,
 			Vulkan::VkDeviceSize size
 		)
 		{
-			Vulkan::VkCommandBufferAllocateInfo allocInfo{};
-			allocInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			allocInfo.level = Vulkan::VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			allocInfo.commandPool = self.commandPool;
-			allocInfo.commandBufferCount = 1;
-
-			Vulkan::VkCommandBuffer commandBuffer;
-			Vulkan::vkAllocateCommandBuffers(self.device, &allocInfo, &commandBuffer);
-
-			Vulkan::VkCommandBufferBeginInfo beginInfo{};
-			beginInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = Vulkan::VkCommandBufferUsageFlagBits::VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-			Vulkan::vkBeginCommandBuffer(commandBuffer, &beginInfo);
+			Vulkan::VkCommandBuffer commandBuffer = self.BeginSingleTimeCommands();
 
 			Vulkan::VkBufferCopy copyRegion{};
-			copyRegion.srcOffset = 0; // Optional
-			copyRegion.dstOffset = 0; // Optional
 			copyRegion.size = size;
 			Vulkan::vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-			Vulkan::vkEndCommandBuffer(commandBuffer);
+			self.EndSingleTimeCommands(commandBuffer);
+		}
 
-			Vulkan::VkSubmitInfo submitInfo{};
-			submitInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &commandBuffer;
+		void CopyBufferToImage(
+			this Application& self, 
+			Vulkan::VkBuffer buffer, 
+			Vulkan::VkImage image,
+			std::uint32_t width,
+			std::uint32_t height
+		)
+		{
+			Vulkan::VkCommandBuffer commandBuffer = self.BeginSingleTimeCommands();
+			Vulkan::VkBufferImageCopy region{};
+			region.bufferOffset = 0;
+			region.bufferRowLength = 0;
+			region.bufferImageHeight = 0;
 
-			Vulkan::vkQueueSubmit(self.graphicsQueue, 1, &submitInfo, nullptr);
-			Vulkan::vkQueueWaitIdle(self.graphicsQueue);
+			region.imageSubresource.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.mipLevel = 0;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
 
-			Vulkan::vkFreeCommandBuffers(self.device, self.commandPool, 1, &commandBuffer);
+			region.imageOffset = { 0, 0, 0 };
+			region.imageExtent = {
+				width,
+				height,
+				1
+			};
+			Vulkan::vkCmdCopyBufferToImage(
+				commandBuffer,
+				buffer,
+				image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1,
+				&region
+			);
+			self.EndSingleTimeCommands(commandBuffer);
 		}
 
 		void CreateBuffer(
-			this auto& self,
+			this Application& self,
 			Vulkan::VkDeviceSize size,
 			Vulkan::VkBufferUsageFlags usage,
 			Vulkan::VkMemoryPropertyFlags properties,
@@ -424,7 +471,7 @@ export namespace HelloTriangle
 		{
 			Vulkan::VkBufferCreateInfo bufferInfo{};
 			bufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.size = sizeof(self.vertices[0]) * self.vertices.size();
+			bufferInfo.size = size;
 			bufferInfo.usage = usage;
 			bufferInfo.sharingMode = Vulkan::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
 
@@ -439,12 +486,13 @@ export namespace HelloTriangle
 			allocInfo.allocationSize = memRequirements.size;
 			allocInfo.memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, properties);
 			if (Vulkan::vkAllocateMemory(self.device, &allocInfo, nullptr, &bufferMemory) != Vulkan::VkResult::VK_SUCCESS)
-				throw std::runtime_error("Failed to allocate vertex buffer memory.");
+				throw std::runtime_error("Failed to allocate buffer memory.");
 
-			Vulkan::vkBindBufferMemory(self.device, buffer, bufferMemory, 0);
+			if (Vulkan::vkBindBufferMemory(self.device, buffer, bufferMemory, 0) != Vulkan::VkResult::VK_SUCCESS)
+				throw std::runtime_error("Failed to allocate bind buffer memory.");
 		}
 
-		void CreateCommandBuffers(this auto& self)
+		void CreateCommandBuffers(this Application& self)
 		{
 			self.commandBuffers.resize(MaxFramesInFlight);
 
@@ -463,7 +511,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to allocate command buffers.");
 		}
 
-		void CreateCommandPool(this auto& self)
+		void CreateCommandPool(this Application& self)
 		{
 			QueueFamilyIndices queueFamilyIndices = self.FindQueueFamilies(self.physicalDevice);
 
@@ -482,7 +530,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create command pool.");
 		}
 
-		void CreateDescriptorPool(this auto& self)
+		void CreateDescriptorPool(this Application& self)
 		{
 			Vulkan::VkDescriptorPoolSize poolSize{};
 			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -497,7 +545,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create descriptor pool.");
 		}
 
-		auto CreateDescriptorSetLayout(this auto& self)
+		auto CreateDescriptorSetLayout(this Application& self)
 		{
 			Vulkan::VkDescriptorSetLayoutBinding uboLayoutBinding{};
 			uboLayoutBinding.binding = 0;
@@ -515,7 +563,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("failed to create descriptor set layout!");
 		}
 
-		void CreateDescriptorSets(this auto& self)
+		void CreateDescriptorSets(this Application& self)
 		{
 			std::vector<Vulkan::VkDescriptorSetLayout> layouts(MaxFramesInFlight, self.descriptorSetLayout);
 			Vulkan::VkDescriptorSetAllocateInfo allocInfo{};
@@ -529,7 +577,7 @@ export namespace HelloTriangle
 				self.device,
 				&allocInfo,
 				self.descriptorSets.data()) != VK_SUCCESS
-				)
+			)
 			{
 				throw std::runtime_error("Failed to allocate descriptor sets.");
 			}
@@ -565,7 +613,7 @@ export namespace HelloTriangle
 			}
 		}
 
-		void CreateFramebuffers(this auto& self)
+		void CreateFramebuffers(this Application& self)
 		{
 			self.swapChainFramebuffers.resize(self.swapChainImageViews.size());
 			for (size_t i = 0; i < self.swapChainImageViews.size(); i++) {
@@ -591,7 +639,7 @@ export namespace HelloTriangle
 			}
 		}
 
-		void CreateGraphicsPipeline(this auto& self)
+		void CreateGraphicsPipeline(this Application& self)
 		{
 			auto vertShaderCode = ReadFile("shaders/vert.spv");
 			auto fragShaderCode = ReadFile("shaders/frag.spv");
@@ -759,7 +807,7 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyShaderModule(self.device, vertShaderModule, nullptr);
 		}
 
-		void CreateImageViews(this auto& self)
+		void CreateImageViews(this Application& self)
 		{
 			self.swapChainImageViews.resize(self.swapChainImages.size());
 			for (size_t i = 0; i < self.swapChainImages.size(); i++)
@@ -794,7 +842,7 @@ export namespace HelloTriangle
 			}
 		}
 
-		void CreateIndexBuffer(this auto& self)
+		void CreateIndexBuffer(this Application& self)
 		{
 			Vulkan::VkDeviceSize bufferSize = sizeof(self.indices[0]) * self.indices.size();
 
@@ -827,7 +875,7 @@ export namespace HelloTriangle
 			Vulkan::vkFreeMemory(self.device, stagingBufferMemory, nullptr);
 		}
 
-		void CreateInstance(this auto& self)
+		void CreateInstance(this Application& self)
 		{
 			if (EnableValidationLayers and not self.CheckValidationLayerSupport())
 				throw std::runtime_error("Validation layers requested, but not available");
@@ -865,7 +913,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create instance!");
 		}
 
-		void CreateLogicalDevice(this auto& self)
+		void CreateLogicalDevice(this Application& self)
 		{
 			QueueFamilyIndices indices = self.FindQueueFamilies(self.physicalDevice);
 
@@ -930,7 +978,7 @@ export namespace HelloTriangle
 			);
 		}
 
-		void CreateRenderPass(this auto& self)
+		void CreateRenderPass(this Application& self)
 		{
 			Vulkan::VkAttachmentDescription colorAttachment{};
 			colorAttachment.format = self.swapChainImageFormat;
@@ -974,7 +1022,7 @@ export namespace HelloTriangle
 		}
 
 		auto CreateShaderModule(
-			this auto& self,
+			this Application& self,
 			const std::vector<std::byte>& code
 		) -> Vulkan::VkShaderModule
 		{
@@ -991,7 +1039,7 @@ export namespace HelloTriangle
 			return shaderModule;
 		}
 
-		void CreateSurface(this auto& self)
+		void CreateSurface(this Application& self)
 		{
 			Vulkan::VkWin32SurfaceCreateInfoKHR createInfo{
 				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -1009,7 +1057,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create window surface.");
 		}
 
-		void CreateSwapChain(this auto& self)
+		void CreateSwapChain(this Application& self)
 		{
 			SwapChainSupportDetails swapChainSupport = self.QuerySwapChainSupport(self.physicalDevice);
 
@@ -1023,7 +1071,7 @@ export namespace HelloTriangle
 			if (
 				swapChainSupport.Capabilities.maxImageCount > 0
 				and imageCount > swapChainSupport.Capabilities.maxImageCount
-				) imageCount = swapChainSupport.Capabilities.maxImageCount;
+			) imageCount = swapChainSupport.Capabilities.maxImageCount;
 
 			Vulkan::VkSwapchainCreateInfoKHR createInfo{
 				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -1088,7 +1136,7 @@ export namespace HelloTriangle
 			self.swapChainExtent = extent;
 		}
 
-		void CreateSyncObjects(this auto& self)
+		void CreateSyncObjects(this Application& self)
 		{
 			self.imageAvailableSemaphores.resize(MaxFramesInFlight);
 			self.renderFinishedSemaphores.resize(self.swapChainImages.size());
@@ -1116,7 +1164,117 @@ export namespace HelloTriangle
 					throw std::runtime_error("failed to create synchronization objects for a frame!");
 		}
 
-		void CreateUniformBuffers(this auto& self)
+		void CreateImage(
+			this Application& self, 
+			uint32_t width, 
+			uint32_t height, 
+			Vulkan::VkFormat format, 
+			Vulkan::VkImageTiling tiling,
+			Vulkan::VkImageUsageFlags usage,
+			Vulkan::VkMemoryPropertyFlags properties,
+			Vulkan::VkImage& image,
+			Vulkan::VkDeviceMemory& imageMemory
+		) 
+		{
+			Vulkan::VkImageCreateInfo imageInfo{};
+			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageInfo.extent.width = width;
+			imageInfo.extent.height = height;
+			imageInfo.extent.depth = 1;
+			imageInfo.mipLevels = 1;
+			imageInfo.arrayLayers = 1;
+			imageInfo.format = format;
+			imageInfo.tiling = tiling;
+			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageInfo.usage = usage;
+			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			if (Vulkan::vkCreateImage(self.device, &imageInfo, nullptr, &image) != VK_SUCCESS)
+				throw std::runtime_error("Failed to create image.");
+
+			Vulkan::VkMemoryRequirements memRequirements;
+			Vulkan::vkGetImageMemoryRequirements(self.device, image, &memRequirements);
+
+			Vulkan::VkMemoryAllocateInfo allocInfo{};
+			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			allocInfo.allocationSize = memRequirements.size;
+			allocInfo.memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, properties);
+
+			if (Vulkan::vkAllocateMemory(self.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) 
+				throw std::runtime_error("Failed to allocate image memory.");
+
+			Vulkan::vkBindImageMemory(self.device, image, imageMemory, 0);
+		}
+
+		void CreateTextureImage(this Application& self)
+		{
+			int texWidth, texHeight, texChannels;
+			stb::stbi_uc* pixels = stb::stbi_load(
+				"textures/texture.jpg", 
+				&texWidth, 
+				&texHeight, 
+				&texChannels, 
+				stb::STBI_rgb_alpha
+			);
+			Vulkan::VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+			if (!pixels)
+				throw std::runtime_error("Failed to load texture image.");
+
+			Vulkan::VkBuffer stagingBuffer;
+			Vulkan::VkDeviceMemory stagingBufferMemory;
+			self.CreateBuffer(
+				imageSize, 
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+				stagingBuffer, 
+				stagingBufferMemory
+			);
+
+			void* data;
+			Vulkan::vkMapMemory(self.device, stagingBufferMemory, 0, imageSize, 0, &data);
+			std::memcpy(data, pixels, static_cast<size_t>(imageSize));
+			Vulkan::vkUnmapMemory(self.device, stagingBufferMemory);
+
+			stb::stbi_image_free(pixels);
+
+			self.CreateImage(
+				texWidth, 
+				texHeight, 
+				VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, 
+				VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+				self.textureImage, 
+				self.textureImageMemory
+			);
+
+			self.TransitionImageLayout(
+				self.textureImage, 
+				VK_FORMAT_R8G8B8A8_SRGB, 
+				VK_IMAGE_LAYOUT_UNDEFINED, 
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+			);
+			self.CopyBufferToImage(
+				stagingBuffer, 
+				self.textureImage, 
+				static_cast<uint32_t>(texWidth), 
+				static_cast<uint32_t>(texHeight)
+			);
+
+			self.TransitionImageLayout(
+				self.textureImage, 
+				VK_FORMAT_R8G8B8A8_SRGB, 
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			);
+
+			Vulkan::vkDestroyBuffer(self.device, stagingBuffer, nullptr);
+			Vulkan::vkFreeMemory(self.device, stagingBufferMemory, nullptr);
+		}
+
+		void CreateUniformBuffers(this Application& self)
 		{
 			Vulkan::VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1137,7 +1295,7 @@ export namespace HelloTriangle
 			}
 		}
 
-		void CreateVertexBuffer(this auto& self)
+		void CreateVertexBuffer(this Application& self)
 		{
 			Vulkan::VkDeviceSize bufferSize = sizeof(self.vertices[0]) * self.vertices.size();
 
@@ -1187,7 +1345,7 @@ export namespace HelloTriangle
 			return false;
 		}
 
-		void DrawFrame(this auto& self)
+		void DrawFrame(this Application& self)
 		{
 			Vulkan::vkWaitForFences(
 				self.device,
@@ -1272,7 +1430,7 @@ export namespace HelloTriangle
 			self.currentFrame = (self.currentFrame + 1) % MaxFramesInFlight;
 		}
 
-		void EnumerateExtensions(this const auto& self)
+		void EnumerateExtensions(this const Application& self)
 		{
 			std::uint32_t extensionsCount = 0;
 			auto result =
@@ -1297,7 +1455,7 @@ export namespace HelloTriangle
 				std::println("Extension: {}", extension.extensionName);
 		}
 
-		auto FindMemoryType(this const auto& self, std::uint32_t typeFilter, std::uint32_t properties) -> std::uint32_t
+		auto FindMemoryType(this const Application& self, std::uint32_t typeFilter, std::uint32_t properties) -> std::uint32_t
 		{
 			Vulkan::VkPhysicalDeviceMemoryProperties memProperties;
 			Vulkan::vkGetPhysicalDeviceMemoryProperties(self.physicalDevice, &memProperties);
@@ -1313,7 +1471,7 @@ export namespace HelloTriangle
 			throw std::runtime_error("Failed to find suitable memory type.");
 		}
 
-		auto FindQueueFamilies(this auto& self, Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
+		auto FindQueueFamilies(this const Application& self, Vulkan::VkPhysicalDevice device) -> QueueFamilyIndices
 		{
 			std::uint32_t queueFamilyCount = 0;
 			Vulkan::vkGetPhysicalDeviceQueueFamilyProperties(
@@ -1360,7 +1518,7 @@ export namespace HelloTriangle
 			app->framebufferResized = true;
 		}
 
-		auto GetRequiredExtensions(this const auto& self) -> std::vector<const char*>
+		auto GetRequiredExtensions(this const Application& self) -> std::vector<const char*>
 		{
 			std::uint32_t glfwExtensionCount = 0;
 			const char** glfwExtensions =
@@ -1374,7 +1532,7 @@ export namespace HelloTriangle
 			return extensions;
 		}
 
-		void InitVulkan(this auto& self)
+		void InitVulkan(this Application& self)
 		{
 			self.CreateInstance();
 			self.SetupDebugMessenger();
@@ -1388,6 +1546,7 @@ export namespace HelloTriangle
 			self.CreateGraphicsPipeline();
 			self.CreateFramebuffers();
 			self.CreateCommandPool();
+			self.CreateTextureImage();
 			self.CreateVertexBuffer();
 			self.CreateIndexBuffer();
 			self.CreateUniformBuffers();
@@ -1397,7 +1556,7 @@ export namespace HelloTriangle
 			self.CreateSyncObjects();
 		}
 
-		void InitWindow(this auto& self)
+		void InitWindow(this Application& self)
 		{
 			GLFW::glfwInit();
 			GLFW::glfwWindowHint(GLFW::ClientApi, GLFW::NoApi);
@@ -1408,7 +1567,7 @@ export namespace HelloTriangle
 		}
 
 		auto IsDeviceSuitable(
-			this const auto& self,
+			this const Application& self,
 			Vulkan::VkPhysicalDevice device
 		) -> bool
 		{
@@ -1430,7 +1589,7 @@ export namespace HelloTriangle
 				and swapChainAdequate;
 		}
 
-		void MainLoop(this auto& self)
+		void MainLoop(this Application& self)
 		{
 			while (not GLFW::glfwWindowShouldClose(self.m_window))
 			{
@@ -1441,7 +1600,7 @@ export namespace HelloTriangle
 			Vulkan::vkDeviceWaitIdle(self.device);
 		}
 
-		auto PickPhysicalDevice(this auto& self) -> Vulkan::VkPhysicalDevice
+		auto PickPhysicalDevice(this Application& self) -> Vulkan::VkPhysicalDevice
 		{
 			std::uint32_t deviceCount = 0;
 			Vulkan::vkEnumeratePhysicalDevices(self.m_instance, &deviceCount, nullptr);
@@ -1458,7 +1617,7 @@ export namespace HelloTriangle
 		}
 
 		void PopulateDebugMessengerCreateInfo(
-			this auto& self,
+			this Application& self,
 			Vulkan::VkDebugUtilsMessengerCreateInfoEXT& createInfo
 		)
 		{
@@ -1478,7 +1637,7 @@ export namespace HelloTriangle
 		}
 
 		auto QuerySwapChainSupport(
-			this const auto& self,
+			this const Application& self,
 			Vulkan::VkPhysicalDevice device
 		) -> SwapChainSupportDetails
 		{
@@ -1528,7 +1687,7 @@ export namespace HelloTriangle
 			return details;
 		}
 
-		void RecreateSwapChain(this auto& self)
+		void RecreateSwapChain(this Application& self)
 		{
 			int width = 0, height = 0;
 			GLFW::glfwGetFramebufferSize(self.m_window, &width, &height);
@@ -1547,7 +1706,7 @@ export namespace HelloTriangle
 		}
 
 		void RecordCommandBuffer(
-			this auto& self,
+			this Application& self,
 			Vulkan::VkCommandBuffer commandBuffer,
 			std::uint32_t imageIndex
 		)
@@ -1621,7 +1780,7 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to record command buffer.");
 		}
 
-		void SetupDebugMessenger(this auto& self)
+		void SetupDebugMessenger(this Application& self)
 		{
 			if (not EnableValidationLayers)
 				return;
@@ -1639,7 +1798,68 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to set up debug messenger");
 		}
 
-		void UpdateUniformBuffer(this auto& self, uint32_t currentImage)
+		void TransitionImageLayout(
+			this Application& self,
+			Vulkan::VkImage image,
+			Vulkan::VkFormat format,
+			Vulkan::VkImageLayout oldLayout,
+			Vulkan::VkImageLayout newLayout
+		)
+		{
+			Vulkan::VkCommandBuffer commandBuffer = self.BeginSingleTimeCommands();
+
+			Vulkan::VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.oldLayout = oldLayout;
+			barrier.newLayout = newLayout;
+			barrier.srcQueueFamilyIndex = Vulkan::QueueFamilyIgnored;
+			barrier.dstQueueFamilyIndex = Vulkan::QueueFamilyIgnored;
+			barrier.image = image;
+			barrier.subresourceRange.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
+			barrier.srcAccessMask = 0; // TODO
+			barrier.dstAccessMask = 0; // TODO
+
+			Vulkan::VkPipelineStageFlags sourceStage;
+			Vulkan::VkPipelineStageFlags destinationStage;
+
+			if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) 
+			{
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			}
+			else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) 
+			{
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			}
+			else 
+			{
+				throw std::invalid_argument("Unsupported layout transition.");
+			}
+
+			Vulkan::vkCmdPipelineBarrier(
+				commandBuffer,
+				sourceStage, 
+				destinationStage,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1,
+				&barrier
+			);
+
+			self.EndSingleTimeCommands(commandBuffer);
+		}
+
+		void UpdateUniformBuffer(this Application& self, uint32_t currentImage)
 		{
 			static auto startTime = std::chrono::high_resolution_clock::now();
 

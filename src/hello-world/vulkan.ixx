@@ -1,5 +1,6 @@
 module;
 
+#define GLM_FORCE_RADIANS
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -10,6 +11,7 @@ module;
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 export module vulkan;
 
@@ -28,7 +30,11 @@ export namespace glm
 		::glm::vec2,
 		::glm::vec3,
 		::glm::vec4,
-		::glm::mat4
+		::glm::mat4,
+		::glm::rotate,
+		::glm::lookAt,
+		::glm::perspective,
+		::glm::radians
 		;
 }
 
@@ -189,6 +195,23 @@ export namespace Vulkan
 		::VkCommandBufferLevel,
 		::VkBufferCopy,
 		::VkIndexType,
+		::VkDescriptorSetLayoutBinding,
+		::VkDescriptorSetLayout,
+		::VkDescriptorSetLayoutCreateInfo,
+		::VkDescriptorPool,
+		::VkDescriptorPoolSize,
+		::VkDescriptorPoolCreateInfo,
+		::VkDescriptorSetAllocateInfo,
+		::VkDescriptorBufferInfo,
+		::VkWriteDescriptorSet,
+		::VkDescriptorSet,
+		::vkCmdBindDescriptorSets,
+		::vkAllocateDescriptorSets,
+		::vkUpdateDescriptorSets,
+		::vkDestroyDescriptorPool,
+		::vkCreateDescriptorPool,
+		::vkDestroyDescriptorSetLayout,
+		::vkCreateDescriptorSetLayout,
 		::vkCmdDrawIndexed,
 		::vkCmdBindIndexBuffer,
 		::vkFreeCommandBuffers,
@@ -264,6 +287,7 @@ export namespace Vulkan
 		::vkEnumerateInstanceLayerProperties
 		;
 
+	constexpr auto WholeSize = VK_WHOLE_SIZE;
 	constexpr auto VkSubpassExternalDependency = VK_SUBPASS_EXTERNAL;
 	constexpr auto ApiVersion1 = VK_API_VERSION_1_0;
 	constexpr auto DebugUtilExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;

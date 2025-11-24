@@ -19,6 +19,13 @@ export namespace Build
 export namespace HelloTriangle
 {
 	constexpr int MaxFramesInFlight = 2;
+	
+	struct UniformBufferObject 
+	{
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
 
 	struct Vertex 
 	{
@@ -161,6 +168,7 @@ export namespace HelloTriangle
 		Vulkan::VkExtent2D swapChainExtent;
 		std::vector<Vulkan::VkImageView> swapChainImageViews;
 		Vulkan::VkRenderPass renderPass;
+		Vulkan::VkDescriptorSetLayout descriptorSetLayout;
 		Vulkan::VkPipelineLayout pipelineLayout;
 		Vulkan::VkPipeline graphicsPipeline;
 		std::vector<Vulkan::VkFramebuffer> swapChainFramebuffers;
@@ -184,6 +192,11 @@ export namespace HelloTriangle
 		Vulkan::VkDeviceMemory vertexBufferMemory;
 		Vulkan::VkBuffer indexBuffer;
 		Vulkan::VkDeviceMemory indexBufferMemory;
+		std::vector<Vulkan::VkBuffer> uniformBuffers;
+		std::vector<Vulkan::VkDeviceMemory> uniformBuffersMemory;
+		std::vector<void*> uniformBuffersMapped;
+		Vulkan::VkDescriptorPool descriptorPool;
+		std::vector<Vulkan::VkDescriptorSet> descriptorSets;
 
 		auto CheckDeviceExtensionSupport(
 			this const auto& self, 
@@ -309,6 +322,14 @@ export namespace HelloTriangle
 		void Cleanup(this auto& self)
 		{
 			self.CleanupSwapChain();
+
+			for (size_t i = 0; i < MaxFramesInFlight; i++) 
+			{
+				Vulkan::vkDestroyBuffer(self.device, self.uniformBuffers[i], nullptr);
+				Vulkan::vkFreeMemory(self.device, self.uniformBuffersMemory[i], nullptr);
+			}
+			Vulkan::vkDestroyDescriptorPool(self.device, self.descriptorPool, nullptr);
+			Vulkan::vkDestroyDescriptorSetLayout(self.device, self.descriptorSetLayout, nullptr);
 
 			Vulkan::vkDestroyBuffer(self.device, self.indexBuffer, nullptr);
 			Vulkan::vkFreeMemory(self.device, self.indexBufferMemory, nullptr);
@@ -516,8 +537,8 @@ export namespace HelloTriangle
 
 			Vulkan::VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-				.setLayoutCount = 0, // Optional
-				.pSetLayouts = nullptr, // Optional
+				.setLayoutCount = 1,
+				.pSetLayouts = &self.descriptorSetLayout,
 				.pushConstantRangeCount = 0, // Optional
 				.pPushConstantRanges = nullptr // Optional
 			};
@@ -584,7 +605,7 @@ export namespace HelloTriangle
 			rasterizer.polygonMode = Vulkan::VkPolygonMode::VK_POLYGON_MODE_FILL;
 			rasterizer.lineWidth = 1.0f;
 			rasterizer.cullMode = Vulkan::VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT;
-			rasterizer.frontFace = Vulkan::VkFrontFace::VK_FRONT_FACE_CLOCKWISE;
+			rasterizer.frontFace = Vulkan::VkFrontFace::VK_FRONT_FACE_COUNTER_CLOCKWISE;
 			rasterizer.depthBiasEnable = false;
 			rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 			rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -1062,6 +1083,20 @@ export namespace HelloTriangle
 			return false;
 		}
 
+		void UpdateUniformBuffer(this auto& self, uint32_t currentImage) 
+		{
+			static auto startTime = std::chrono::high_resolution_clock::now();
+
+			auto currentTime = std::chrono::high_resolution_clock::now();
+			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+			UniformBufferObject ubo{};
+			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.proj = glm::perspective(glm::radians(45.0f), self.swapChainExtent.width / (float)self.swapChainExtent.height, 0.1f, 10.0f);
+			ubo.proj[1][1] *= -1;
+			std::memcpy(self.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+		}
+
 		void DrawFrame(this auto& self)
 		{
 			Vulkan::vkWaitForFences(
@@ -1093,6 +1128,8 @@ export namespace HelloTriangle
 
 			Vulkan::vkResetCommandBuffer(self.commandBuffers[self.currentFrame], 0);
 			self.RecordCommandBuffer(self.commandBuffers[self.currentFrame], imageIndex);
+			// Before or after the above?
+			self.UpdateUniformBuffer(self.currentFrame);
 
 			Vulkan::VkSubmitInfo submitInfo{};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1241,6 +1278,45 @@ export namespace HelloTriangle
 			return extensions;
 		}
 
+		auto CreateDescriptorSetLayout(this auto& self)
+		{
+			Vulkan::VkDescriptorSetLayoutBinding uboLayoutBinding{};
+			uboLayoutBinding.binding = 0;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboLayoutBinding.descriptorCount = 1;
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			Vulkan::VkDescriptorSetLayoutCreateInfo layoutInfo{};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = 1;
+			layoutInfo.pBindings = &uboLayoutBinding;
+
+			if (Vulkan::vkCreateDescriptorSetLayout(self.device, &layoutInfo, nullptr, &self.descriptorSetLayout) != VK_SUCCESS)
+				throw std::runtime_error("failed to create descriptor set layout!");
+		}
+
+		void CreateUniformBuffers(this auto& self)
+		{
+			Vulkan::VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+			self.uniformBuffers.resize(MaxFramesInFlight);
+			self.uniformBuffersMemory.resize(MaxFramesInFlight);
+			self.uniformBuffersMapped.resize(MaxFramesInFlight);
+
+			for (size_t i = 0; i < MaxFramesInFlight; i++) 
+			{
+				self.CreateBuffer(
+					bufferSize, 
+					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+					self.uniformBuffers[i],
+					self.uniformBuffersMemory[i]
+				);
+				Vulkan::vkMapMemory(self.device, self.uniformBuffersMemory[i], 0, bufferSize, 0, &self.uniformBuffersMapped[i]);
+			}
+		}
+
 		void InitVulkan(this auto& self)
 		{
 			self.CreateInstance();
@@ -1251,13 +1327,82 @@ export namespace HelloTriangle
 			self.CreateSwapChain();
 			self.CreateImageViews();
 			self.CreateRenderPass();
+			self.CreateDescriptorSetLayout();
 			self.CreateGraphicsPipeline();
 			self.CreateFramebuffers();
 			self.CreateCommandPool();
 			self.CreateVertexBuffer();
 			self.CreateIndexBuffer();
+			self.CreateUniformBuffers();
+			self.CreateDescriptorPool();
+			self.CreateDescriptorSets();
 			self.CreateCommandBuffers();
 			self.CreateSyncObjects();
+		}
+
+		void CreateDescriptorSets(this auto& self)
+		{
+			std::vector<Vulkan::VkDescriptorSetLayout> layouts(MaxFramesInFlight, self.descriptorSetLayout);
+			Vulkan::VkDescriptorSetAllocateInfo allocInfo{};
+			allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			allocInfo.descriptorPool = self.descriptorPool;
+			allocInfo.descriptorSetCount = static_cast<uint32_t>(MaxFramesInFlight);
+			allocInfo.pSetLayouts = layouts.data();
+
+			self.descriptorSets.resize(MaxFramesInFlight);
+			if (Vulkan::vkAllocateDescriptorSets(
+				self.device, 
+				&allocInfo, 
+				self.descriptorSets.data()) != VK_SUCCESS
+			) 
+			{
+				throw std::runtime_error("Failed to allocate descriptor sets.");
+			}
+
+			for (size_t i = 0; i < MaxFramesInFlight; i++) 
+			{
+				Vulkan::VkDescriptorBufferInfo bufferInfo{};
+				bufferInfo.buffer = self.uniformBuffers[i];
+				bufferInfo.offset = 0;
+				bufferInfo.range = Vulkan::WholeSize; //
+					// sizeof(UniformBufferObject); gives validation errors.
+
+				Vulkan::VkWriteDescriptorSet descriptorWrite{};
+				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrite.dstSet = self.descriptorSets[i];
+				descriptorWrite.dstBinding = 0;
+				descriptorWrite.dstArrayElement = 0;
+
+				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorWrite.descriptorCount = 1;
+
+				descriptorWrite.pBufferInfo = &bufferInfo;
+				descriptorWrite.pImageInfo = nullptr; // Optional
+				descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+				Vulkan::vkUpdateDescriptorSets(
+					self.device, 
+					1, 
+					&descriptorWrite, 
+					0, 
+					nullptr
+				);
+			}
+		}
+
+		void CreateDescriptorPool(this auto& self)
+		{
+			Vulkan::VkDescriptorPoolSize poolSize{};
+			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSize.descriptorCount = static_cast<uint32_t>(MaxFramesInFlight);
+			Vulkan::VkDescriptorPoolCreateInfo poolInfo{};
+			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			poolInfo.poolSizeCount = 1;
+			poolInfo.pPoolSizes = &poolSize;
+			poolInfo.maxSets = static_cast<uint32_t>(MaxFramesInFlight);
+
+			if (Vulkan::vkCreateDescriptorPool(self.device, &poolInfo, nullptr, &self.descriptorPool) != VK_SUCCESS)
+				throw std::runtime_error("Failed to create descriptor pool.");
 		}
 
 		static void FramebufferResizeCallback(GLFW::GLFWwindow* window, int width, int height) 
@@ -1491,6 +1636,16 @@ export namespace HelloTriangle
 			Vulkan::vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 			Vulkan::vkCmdBindIndexBuffer(commandBuffer, self.indexBuffer, 0, Vulkan::VkIndexType::VK_INDEX_TYPE_UINT16);
 
+			Vulkan::vkCmdBindDescriptorSets(
+				commandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				self.pipelineLayout,
+				0,
+				1,
+				&self.descriptorSets[self.currentFrame],
+				0, 
+				nullptr
+			);
 			Vulkan::vkCmdDrawIndexed(commandBuffer, static_cast<std::uint32_t>(self.indices.size()), 1, 0, 0, 0);
 
 			Vulkan::vkCmdEndRenderPass(commandBuffer);

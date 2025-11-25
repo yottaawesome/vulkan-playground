@@ -29,7 +29,7 @@ export namespace HelloTriangle
 
 	struct Vertex
 	{
-		glm::vec2 pos;
+		glm::vec3 pos;
 		glm::vec3 color;
 		glm::vec2 texCoord;
 
@@ -49,7 +49,7 @@ export namespace HelloTriangle
 
 			attributeDescriptions[0].binding = 0;
 			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = Vulkan::VkFormat::VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[0].format = Vulkan::VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
 			attributeDescriptions[0].offset =
 				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
 			attributeDescriptions[1].binding = 0;
@@ -186,13 +186,19 @@ export namespace HelloTriangle
 		bool framebufferResized = false;
 		std::uint32_t currentFrame = 0;
 		const std::vector<Vertex> vertices{
-			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-			{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+			{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+			{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+			{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+			{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+			{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+			{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+			{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 		};
 		const std::vector<std::uint16_t> indices = {
-			0, 1, 2, 2, 3, 0
+			0, 1, 2, 2, 3, 0,
+			4, 5, 6, 6, 7, 4
 		};
 		Vulkan::VkBuffer vertexBuffer;
 		Vulkan::VkDeviceMemory vertexBufferMemory;

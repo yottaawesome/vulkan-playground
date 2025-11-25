@@ -423,6 +423,10 @@ export namespace HelloTriangle
 
 		void CleanupSwapChain(this Application& self)
 		{
+			Vulkan::vkDestroyImageView(self.device, self.depthImageView, nullptr);
+			Vulkan::vkDestroyImage(self.device, self.depthImage, nullptr);
+			Vulkan::vkFreeMemory(self.device, self.depthImageMemory, nullptr);
+
 			for (auto framebuffer : self.swapChainFramebuffers)
 				Vulkan::vkDestroyFramebuffer(self.device, framebuffer, nullptr);
 			for (auto imageView : self.swapChainImageViews)
@@ -1890,6 +1894,7 @@ export namespace HelloTriangle
 			self.CleanupSwapChain();
 			self.CreateSwapChain();
 			self.CreateImageViews();
+			self.CreateDepthResources();
 			self.CreateFramebuffers();
 		}
 

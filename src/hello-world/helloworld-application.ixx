@@ -213,6 +213,9 @@ export namespace HelloTriangle
 		Vulkan::VkDeviceMemory textureImageMemory;
 		Vulkan::VkImageView textureImageView;
 		Vulkan::VkSampler textureSampler;
+		Vulkan::VkImage depthImage;
+		Vulkan::VkDeviceMemory depthImageMemory;
+		Vulkan::VkImageView depthImageView;
 
 		auto BeginSingleTimeCommands(this Application& self) -> Vulkan::VkCommandBuffer
 		{
@@ -549,6 +552,32 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to create command pool.");
 		}
 
+		void CreateDepthResources(this Application& self)
+		{
+			VkFormat depthFormat = self.FindDepthFormat();
+			self.CreateImage(
+				self.swapChainExtent.width, 
+				self.swapChainExtent.height,
+				depthFormat, 
+				Vulkan::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
+				Vulkan::VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+				self.depthImage,
+				self.depthImageMemory
+			);
+			self.depthImageView = self.CreateImageView(
+				self.depthImage, 
+				depthFormat,
+				Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+			self.TransitionImageLayout(
+				self.depthImage, 
+				depthFormat,
+				Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED, 
+				Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+			);
+		}
+
 		void CreateDescriptorPool(this Application& self)
 		{
 			std::array<Vulkan::VkDescriptorPoolSize, 2> poolSizes{};
@@ -657,13 +686,13 @@ export namespace HelloTriangle
 		{
 			self.swapChainFramebuffers.resize(self.swapChainImageViews.size());
 			for (size_t i = 0; i < self.swapChainImageViews.size(); i++) {
-				Vulkan::VkImageView attachments[]{ self.swapChainImageViews[i] };
+				std::array<Vulkan::VkImageView, 2> attachments{ self.swapChainImageViews[i], self.depthImageView };
 
 				Vulkan::VkFramebufferCreateInfo framebufferInfo{};
 				framebufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 				framebufferInfo.renderPass = self.renderPass;
-				framebufferInfo.attachmentCount = 1;
-				framebufferInfo.pAttachments = attachments;
+				framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+				framebufferInfo.pAttachments = attachments.data();
 				framebufferInfo.width = self.swapChainExtent.width;
 				framebufferInfo.height = self.swapChainExtent.height;
 				framebufferInfo.layers = 1;
@@ -814,6 +843,18 @@ export namespace HelloTriangle
 			colorBlending.blendConstants[3] = 0.0f; // Optional
 			// ADD HERE
 
+			Vulkan::VkPipelineDepthStencilStateCreateInfo depthStencil{};
+			depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+			depthStencil.depthTestEnable = true;
+			depthStencil.depthWriteEnable = true;
+			depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+			depthStencil.depthBoundsTestEnable = false;
+			depthStencil.minDepthBounds = 0.0f; // Optional
+			depthStencil.maxDepthBounds = 1.0f; // Optional
+			depthStencil.stencilTestEnable = false;
+			depthStencil.front = {}; // Optional
+			depthStencil.back = {}; // Optional
+			
 			Vulkan::VkGraphicsPipelineCreateInfo pipelineInfo{};
 			pipelineInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			pipelineInfo.stageCount = 2;
@@ -831,6 +872,7 @@ export namespace HelloTriangle
 			pipelineInfo.subpass = 0;
 			pipelineInfo.basePipelineHandle = nullptr; // Optional
 			pipelineInfo.basePipelineIndex = -1; // Optional
+			pipelineInfo.pDepthStencilState = &depthStencil;
 
 			result = Vulkan::vkCreateGraphicsPipelines(
 				self.device,
@@ -847,7 +889,12 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyShaderModule(self.device, vertShaderModule, nullptr);
 		}
 
-		auto CreateImageView(this Application& self, VkImage image, VkFormat format) -> Vulkan::VkImageView
+		auto CreateImageView(
+			this Application& self, 
+			Vulkan::VkImage image, 
+			Vulkan::VkFormat format,
+			Vulkan::VkImageAspectFlags aspectFlags
+		) -> Vulkan::VkImageView
 		{
 			Vulkan::VkImageViewCreateInfo viewInfo{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -855,7 +902,7 @@ export namespace HelloTriangle
 				.viewType = VK_IMAGE_VIEW_TYPE_2D,
 				.format = format,
 				.subresourceRange{ 
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.aspectMask = aspectFlags,
 					.baseMipLevel = 0,
 					.levelCount = 1,
 					.baseArrayLayer = 0,
@@ -874,7 +921,7 @@ export namespace HelloTriangle
 			self.swapChainImageViews.resize(self.swapChainImages.size());
 			for (size_t i = 0; i < self.swapChainImages.size(); i++)
 				self.swapChainImageViews[i] = 
-					self.CreateImageView(self.swapChainImages[i], self.swapChainImageFormat);
+					self.CreateImageView(self.swapChainImages[i], self.swapChainImageFormat, Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 
 		void CreateIndexBuffer(this Application& self)
@@ -1032,23 +1079,47 @@ export namespace HelloTriangle
 			colorAttachmentRef.attachment = 0;
 			colorAttachmentRef.layout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+			Vulkan::VkAttachmentDescription depthAttachment{};
+			depthAttachment.format = self.FindDepthFormat();
+			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			Vulkan::VkAttachmentReference depthAttachmentRef{};
+			depthAttachmentRef.attachment = 1;
+			depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 			Vulkan::VkSubpassDescription subpass{};
 			subpass.pipelineBindPoint = Vulkan::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &colorAttachmentRef;
+			subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 			Vulkan::VkSubpassDependency dependency{};
 			dependency.srcSubpass = Vulkan::VkSubpassExternalDependency;
 			dependency.dstSubpass = 0;
-			dependency.srcStageMask = Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependency.srcAccessMask = 0;
-			dependency.dstStageMask = Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependency.dstAccessMask = Vulkan::VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependency.srcStageMask = 
+				Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT 
+				| Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			dependency.srcAccessMask =
+				Vulkan::VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			dependency.dstStageMask = 
+				Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+				| Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.dstAccessMask = 
+				Vulkan::VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+				| Vulkan::VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
 
 			Vulkan::VkRenderPassCreateInfo renderPassInfo{};
 			renderPassInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassInfo.attachmentCount = 1;
-			renderPassInfo.pAttachments = &colorAttachment;
+			renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
+			renderPassInfo.pAttachments = attachments.data();
 			renderPassInfo.subpassCount = 1;
 			renderPassInfo.pSubpasses = &subpass;
 			renderPassInfo.dependencyCount = 1;
@@ -1317,7 +1388,11 @@ export namespace HelloTriangle
 
 		void CreateTextureImageView(this Application& self) 
 		{
-			self.textureImageView = self.CreateImageView(self.textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+			self.textureImageView = self.CreateImageView(
+				self.textureImage, 
+				VK_FORMAT_R8G8B8A8_SRGB, 
+				Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT
+			);
 		}
 
 		void CreateTextureSampler(this Application& self)
@@ -1525,6 +1600,15 @@ export namespace HelloTriangle
 				std::println("Extension: {}", extension.extensionName);
 		}
 
+		auto FindDepthFormat(this Application& self) -> VkFormat 
+		{
+			return self.FindSupportedFormat(
+				{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+				VK_IMAGE_TILING_OPTIMAL,
+				Vulkan::VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+			);
+		}
+
 		auto FindMemoryType(this const Application& self, std::uint32_t typeFilter, std::uint32_t properties) -> std::uint32_t
 		{
 			Vulkan::VkPhysicalDeviceMemoryProperties memProperties;
@@ -1582,10 +1666,38 @@ export namespace HelloTriangle
 			return indices;
 		}
 
+		auto FindSupportedFormat(
+			this const Application& self,
+			const std::vector<Vulkan::VkFormat>& candidates,
+			Vulkan::VkImageTiling tiling,
+			Vulkan::VkFormatFeatureFlags features
+		) -> Vulkan::VkFormat
+		{
+			for (VkFormat format : candidates) 
+			{
+				Vulkan::VkFormatProperties props;
+				Vulkan::vkGetPhysicalDeviceFormatProperties(self.physicalDevice, format, &props);
+				if (tiling == VK_IMAGE_TILING_LINEAR and (props.linearTilingFeatures & features) == features) 
+				{
+					return format;
+				}
+				else if (tiling == VK_IMAGE_TILING_OPTIMAL and (props.optimalTilingFeatures & features) == features)
+				{
+					return format;
+				}
+			}
+			throw std::runtime_error("Failed to find supported format.");
+		}
+
 		static void FramebufferResizeCallback(GLFW::GLFWwindow* window, int width, int height)
 		{
 			auto app = reinterpret_cast<Application*>(GLFW::glfwGetWindowUserPointer(window));
 			app->framebufferResized = true;
+		}
+
+		auto HasStencilComponent(this const Application& self, Vulkan::VkFormat format) -> bool
+		{
+			return format == VK_FORMAT_D32_SFLOAT_S8_UINT or format == VK_FORMAT_D24_UNORM_S8_UINT;
 		}
 
 		auto GetRequiredExtensions(this const Application& self) -> std::vector<const char*>
@@ -1614,8 +1726,9 @@ export namespace HelloTriangle
 			self.CreateRenderPass();
 			self.CreateDescriptorSetLayout();
 			self.CreateGraphicsPipeline();
-			self.CreateFramebuffers();
 			self.CreateCommandPool();
+			self.CreateDepthResources();
+			self.CreateFramebuffers();
 			self.CreateTextureImage();
 			self.CreateTextureImageView();
 			self.CreateTextureSampler();
@@ -1803,9 +1916,12 @@ export namespace HelloTriangle
 			renderPassInfo.renderArea.offset = { 0, 0 };
 			renderPassInfo.renderArea.extent = self.swapChainExtent;
 
+			std::array<Vulkan::VkClearValue, 2> clearValues{};
+			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			clearValues[1].depthStencil = { 1.0f, 0 };
 			Vulkan::VkClearValue clearColor{ {{0.0f, 0.0f, 0.0f, 1.0f}} };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
+			renderPassInfo.clearValueCount = static_cast<std::uint32_t>(clearValues.size());
+			renderPassInfo.pClearValues = clearValues.data();
 
 			Vulkan::vkCmdBeginRenderPass(
 				commandBuffer,
@@ -1898,6 +2014,17 @@ export namespace HelloTriangle
 			barrier.srcAccessMask = 0; // TODO
 			barrier.dstAccessMask = 0; // TODO
 
+			if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
+			{
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				if (self.HasStencilComponent(format)) 
+					barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+			else 
+			{
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			}
+
 			Vulkan::VkPipelineStageFlags sourceStage;
 			Vulkan::VkPipelineStageFlags destinationStage;
 
@@ -1914,6 +2041,14 @@ export namespace HelloTriangle
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 				destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			}
+			else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
+			{
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+				sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 			}
 			else 
 			{

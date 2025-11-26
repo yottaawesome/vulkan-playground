@@ -364,3 +364,13 @@ export namespace Vulkan
 		return VK_MAKE_VERSION(major, minor,  patch);
 	}
 }
+
+export namespace Util
+{
+	// An alternative to the standard offsetof macro that works with non-POD types
+	template<typename T, typename M>
+	constexpr auto OffsetOf(M T::* member) -> size_t
+	{
+		return reinterpret_cast<size_t>(&(((T*)0)->*member));
+	}
+}

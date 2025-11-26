@@ -31,32 +31,37 @@ export namespace HelloTriangle
 			return bindingDescription;
 		}
 
-		static auto GetAttributeDescriptions() -> std::array<Vulkan::VkVertexInputAttributeDescription, 3>
+		static auto GetAttributeDescriptions() -> std::ranges::range auto
 		{
-			std::array<Vulkan::VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+			using Vulkan::VkFormat, Vulkan::VkVertexInputAttributeDescription;
 
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = Vulkan::VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[0].offset =
-				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset =
-				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->color)));
-			attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset =
-				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->texCoord)));
-
-			return attributeDescriptions;
+			return std::array{
+				VkVertexInputAttributeDescription{
+					.location = 0,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32B32_SFLOAT,
+					.offset = static_cast<std::uint32_t>(Util::OffsetOf(&Vertex::pos)),
+				},
+				VkVertexInputAttributeDescription{
+					.location = 1,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32B32_SFLOAT,
+					.offset = static_cast<std::uint32_t>(Util::OffsetOf(&Vertex::color))
+				},
+				VkVertexInputAttributeDescription{
+					.location = 2,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32_SFLOAT,
+					.offset = static_cast<std::uint32_t>(Util::OffsetOf(&Vertex::texCoord))
+				}
+			};
 		}
 
-		auto operator==(const Vertex& other) const -> bool
+		auto operator==(this const Vertex& self, const Vertex& other) -> bool
 		{
-			return pos == other.pos && color == other.color && texCoord == other.texCoord;
+			return self.pos == other.pos 
+				and self.color == other.color 
+				and self.texCoord == other.texCoord;
 		}
 	};
 }
@@ -66,7 +71,7 @@ namespace std
 	template<>
 	struct hash<HelloTriangle::Vertex> 
 	{
-		size_t operator()(HelloTriangle::Vertex const& vertex) const 
+		auto operator()(HelloTriangle::Vertex const& vertex) const -> size_t
 		{
 			return ((hash<glm::vec3>()(vertex.pos) ^
 				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^

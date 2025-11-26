@@ -3,6 +3,9 @@ module;
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
 #define GLM_FORCE_RADIANS
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
@@ -24,6 +27,16 @@ export namespace Win32
 		::GetModuleHandleW,
 		::HINSTANCE,
 		::HWND
+		;
+}
+
+export namespace tinyobj
+{
+	using 
+		::tinyobj::attrib_t,
+		::tinyobj::shape_t,
+		::tinyobj::material_t,
+		::tinyobj::LoadObj
 		;
 }
 

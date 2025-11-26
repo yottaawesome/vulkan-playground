@@ -139,6 +139,9 @@ export namespace HelloTriangle
 	{
 		constexpr static int Width = 800;
 		constexpr static int Height = 600;
+		constexpr static std::string_view ModelPath = "models/viking_room.obj";
+		constexpr static std::string_view TexturePath = "textures/viking_room.png";
+
 		constexpr static bool EnableValidationLayers = Build::IsDebug;
 		constexpr static std::array ValidationLayers{
 			"VK_LAYER_KHRONOS_validation"
@@ -185,7 +188,7 @@ export namespace HelloTriangle
 		std::vector<Vulkan::VkFence> inFlightFences;
 		bool framebufferResized = false;
 		std::uint32_t currentFrame = 0;
-		const std::vector<Vertex> vertices{
+		std::vector<Vertex> Oldvertices{
 			{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 			{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
 			{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
@@ -196,12 +199,16 @@ export namespace HelloTriangle
 			{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
 			{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 		};
-		const std::vector<std::uint16_t> indices = {
+		const std::vector<std::uint32_t> OldIndices = {
 			0, 1, 2, 2, 3, 0,
 			4, 5, 6, 6, 7, 4
 		};
+
+		std::vector<Vertex> vertices;
+		std::vector<std::uint32_t> indices;
 		Vulkan::VkBuffer vertexBuffer;
 		Vulkan::VkDeviceMemory vertexBufferMemory;
+
 		Vulkan::VkBuffer indexBuffer;
 		Vulkan::VkDeviceMemory indexBufferMemory;
 		std::vector<Vulkan::VkBuffer> uniformBuffers;
@@ -1328,7 +1335,7 @@ export namespace HelloTriangle
 		{
 			int texWidth, texHeight, texChannels;
 			stb::stbi_uc* pixels = stb::stbi_load(
-				"textures/texture.jpg", 
+				self.TexturePath.data(), 
 				&texWidth, 
 				&texHeight, 
 				&texChannels, 
@@ -1736,6 +1743,7 @@ export namespace HelloTriangle
 			self.CreateTextureImage();
 			self.CreateTextureImageView();
 			self.CreateTextureSampler();
+			self.LoadModel();
 			self.CreateVertexBuffer();
 			self.CreateIndexBuffer();
 			self.CreateUniformBuffers();
@@ -1779,6 +1787,41 @@ export namespace HelloTriangle
 				and extensionsSupported
 				and swapChainAdequate 
 				and supportedFeatures.samplerAnisotropy;
+		}
+
+		void LoadModel(this Application& self)
+		{
+			tinyobj::attrib_t attrib;
+			std::vector<tinyobj::shape_t> shapes;
+			std::vector<tinyobj::material_t> materials;
+			std::string warn;
+			std::string err;
+
+			if (not tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, self.ModelPath.data()))
+				throw std::runtime_error(err);
+			for (const auto& shape : shapes) 
+			{
+				for (const auto& index : shape.mesh.indices) 
+				{
+					Vertex vertex{};
+
+					vertex.pos = {
+						attrib.vertices[3 * index.vertex_index + 0],
+						attrib.vertices[3 * index.vertex_index + 1],
+						attrib.vertices[3 * index.vertex_index + 2]
+					};
+
+					vertex.texCoord = {
+						attrib.texcoords[2 * index.texcoord_index + 0],
+						1.f - attrib.texcoords[2 * index.texcoord_index + 1]
+					};
+
+					vertex.color = { 1.0f, 1.0f, 1.0f };
+
+					self.vertices.push_back(vertex);
+					self.indices.push_back(static_cast<std::uint32_t>(self.indices.size()));
+				}
+			}
 		}
 
 		void MainLoop(this Application& self)
@@ -1957,7 +2000,12 @@ export namespace HelloTriangle
 			Vulkan::VkBuffer vertexBuffers[] = { self.vertexBuffer };
 			Vulkan::VkDeviceSize offsets[] = { 0 };
 			Vulkan::vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			Vulkan::vkCmdBindIndexBuffer(commandBuffer, self.indexBuffer, 0, Vulkan::VkIndexType::VK_INDEX_TYPE_UINT16);
+			Vulkan::vkCmdBindIndexBuffer(
+				commandBuffer, 
+				self.indexBuffer, 
+				0, 
+				Vulkan::VkIndexType::VK_INDEX_TYPE_UINT32
+			);
 
 			Vulkan::vkCmdBindDescriptorSets(
 				commandBuffer,

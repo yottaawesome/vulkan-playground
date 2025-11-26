@@ -13,20 +13,8 @@ export namespace Build
 	constexpr bool IsRelease = not IsDebug;
 }
 
-//
-//
-// Various helper functions and structures for the Hello Triangle application
 export namespace HelloTriangle
 {
-	constexpr int MaxFramesInFlight = 2;
-
-	struct UniformBufferObject
-	{
-		glm::mat4 model;
-		glm::mat4 view;
-		glm::mat4 proj;
-	};
-
 	struct Vertex
 	{
 		glm::vec3 pos;
@@ -51,21 +39,57 @@ export namespace HelloTriangle
 			attributeDescriptions[0].location = 0;
 			attributeDescriptions[0].format = Vulkan::VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
 			attributeDescriptions[0].offset =
-				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
+				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->pos)));
 			attributeDescriptions[1].binding = 0;
 			attributeDescriptions[1].location = 1;
 			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attributeDescriptions[1].offset =
-				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->color)));
+				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->color)));
 			attributeDescriptions[2].binding = 0;
 			attributeDescriptions[2].location = 2;
 			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset = 
-				((size_t)&reinterpret_cast<char const volatile&>((((Vertex*)0)->texCoord)));
+			attributeDescriptions[2].offset =
+				((size_t) & reinterpret_cast<char const volatile&>((((Vertex*)0)->texCoord)));
 
 			return attributeDescriptions;
 		}
+
+		auto operator==(const Vertex& other) const -> bool
+		{
+			return pos == other.pos && color == other.color && texCoord == other.texCoord;
+		}
 	};
+}
+
+namespace std 
+{
+	template<>
+	struct hash<HelloTriangle::Vertex> 
+	{
+		size_t operator()(HelloTriangle::Vertex const& vertex) const 
+		{
+			return ((hash<glm::vec3>()(vertex.pos) ^
+				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+				(hash<glm::vec2>()(vertex.texCoord) << 1);
+		}
+	};
+}
+
+//
+//
+// Various helper functions and structures for the Hello Triangle application
+export namespace HelloTriangle
+{
+	constexpr int MaxFramesInFlight = 2;
+
+	struct UniformBufferObject
+	{
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
+
+	
 
 	struct QueueFamilyIndices
 	{
@@ -1799,6 +1823,8 @@ export namespace HelloTriangle
 
 			if (not tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, self.ModelPath.data()))
 				throw std::runtime_error(err);
+
+			std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 			for (const auto& shape : shapes) 
 			{
 				for (const auto& index : shape.mesh.indices) 
@@ -1818,8 +1844,12 @@ export namespace HelloTriangle
 
 					vertex.color = { 1.0f, 1.0f, 1.0f };
 
-					self.vertices.push_back(vertex);
-					self.indices.push_back(static_cast<std::uint32_t>(self.indices.size()));
+					if (uniqueVertices.count(vertex) == 0) 
+					{
+						uniqueVertices[vertex] = static_cast<uint32_t>(self.vertices.size());
+						self.vertices.push_back(vertex);
+					}
+					self.indices.push_back(uniqueVertices[vertex]);
 				}
 			}
 		}

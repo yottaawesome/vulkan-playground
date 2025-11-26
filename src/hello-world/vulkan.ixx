@@ -19,6 +19,9 @@ module;
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
 export module vulkan;
 
 export namespace Win32
@@ -60,7 +63,8 @@ export namespace glm
 		::glm::rotate,
 		::glm::lookAt,
 		::glm::perspective,
-		::glm::radians
+		::glm::radians,
+		::glm::operator==
 		;
 }
 

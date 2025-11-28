@@ -94,8 +94,6 @@ export namespace HelloTriangle
 		glm::mat4 proj;
 	};
 
-	
-
 	struct QueueFamilyIndices
 	{
 		std::optional<std::uint32_t> GraphicsFamily;
@@ -190,9 +188,9 @@ export namespace HelloTriangle
 		}
 
 	private:
-		GLFW::GLFWwindow* m_window = nullptr;
-		Vulkan::VkInstance m_instance;
-		Vulkan::VkDebugUtilsMessengerEXT m_debugMessenger;
+		GLFW::GLFWwindow* window = nullptr;
+		Vulkan::VkInstance instance;
+		Vulkan::VkDebugUtilsMessengerEXT debugMessenger;
 		// Destroyed automatically when the m_instance is destroyed.
 		Vulkan::VkPhysicalDevice physicalDevice = nullptr;
 		Vulkan::VkDevice device;
@@ -319,6 +317,8 @@ export namespace HelloTriangle
 
 		auto CheckValidationLayerSupport(this const Application& self) -> bool
 		{
+			std::println("CheckValidationSupport().");
+
 			std::uint32_t layerCount = 0;
 			auto result = Vulkan::vkEnumerateInstanceLayerProperties(
 				&layerCount,
@@ -365,7 +365,7 @@ export namespace HelloTriangle
 
 			int width;
 			int height;
-			GLFW::glfwGetFramebufferSize(self.m_window, &width, &height);
+			GLFW::glfwGetFramebufferSize(self.window, &width, &height);
 			Vulkan::VkExtent2D actualExtent{
 				.width = static_cast<std::uint32_t>(width),
 				.height = static_cast<std::uint32_t>(height)
@@ -448,12 +448,12 @@ export namespace HelloTriangle
 			Vulkan::vkDestroyDevice(self.device, nullptr);
 
 			if (EnableValidationLayers)
-				DestroyDebugUtilsMessengerEXT(self.m_instance, self.m_debugMessenger, nullptr);
+				DestroyDebugUtilsMessengerEXT(self.instance, self.debugMessenger, nullptr);
 
-			Vulkan::vkDestroySurfaceKHR(self.m_instance, self.surface, nullptr);
-			Vulkan::vkDestroyInstance(self.m_instance, nullptr);
+			Vulkan::vkDestroySurfaceKHR(self.instance, self.surface, nullptr);
+			Vulkan::vkDestroyInstance(self.instance, nullptr);
 
-			GLFW::glfwDestroyWindow(self.m_window);
+			GLFW::glfwDestroyWindow(self.window);
 			GLFW::glfwTerminate();
 		}
 
@@ -1030,7 +1030,7 @@ export namespace HelloTriangle
 					reinterpret_cast<Vulkan::VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
 			}
 			Vulkan::VkResult result =
-				Vulkan::vkCreateInstance(&createInfo, nullptr, &self.m_instance);
+				Vulkan::vkCreateInstance(&createInfo, nullptr, &self.instance);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to create instance!");
 		}
@@ -1193,11 +1193,11 @@ export namespace HelloTriangle
 			Vulkan::VkWin32SurfaceCreateInfoKHR createInfo{
 				.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
 				.hinstance = Win32::GetModuleHandleW(nullptr),
-				.hwnd = GLFW::glfwGetWin32Window(self.m_window),
+				.hwnd = GLFW::glfwGetWin32Window(self.window),
 			};
 
 			auto result = Vulkan::vkCreateWin32SurfaceKHR(
-				self.m_instance,
+				self.instance,
 				&createInfo,
 				nullptr,
 				&self.surface
@@ -1617,6 +1617,8 @@ export namespace HelloTriangle
 
 		void EnumerateExtensions(this const Application& self)
 		{
+			std::println("EnumerateExtensions().");
+
 			std::uint32_t extensionsCount = 0;
 			auto result =
 				Vulkan::vkEnumerateInstanceExtensionProperties(
@@ -1636,8 +1638,9 @@ export namespace HelloTriangle
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to enumerate extensions.");
 
+			std::println("Available extensions:");
 			for (const auto& extension : extensions)
-				std::println("Extension: {}", extension.extensionName);
+				std::println("  * Extension: {}", extension.extensionName);
 		}
 
 		auto FindDepthFormat(this Application& self) -> VkFormat 
@@ -1756,6 +1759,8 @@ export namespace HelloTriangle
 
 		void InitVulkan(this Application& self)
 		{
+			std::println("InitVulkan().");
+
 			self.CreateInstance();
 			self.SetupDebugMessenger();
 			self.CreateSurface();
@@ -1784,12 +1789,14 @@ export namespace HelloTriangle
 
 		void InitWindow(this Application& self)
 		{
+			std::println("InitWindow().");
+
 			GLFW::glfwInit();
 			GLFW::glfwWindowHint(GLFW::ClientApi, GLFW::NoApi);
 			GLFW::glfwWindowHint(GLFW::Resizable, false);
-			self.m_window = GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
-			GLFW::glfwSetWindowUserPointer(self.m_window, &self);
-			GLFW::glfwSetFramebufferSizeCallback(self.m_window, FramebufferResizeCallback);
+			self.window = GLFW::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
+			GLFW::glfwSetWindowUserPointer(self.window, &self);
+			GLFW::glfwSetFramebufferSizeCallback(self.window, FramebufferResizeCallback);
 		}
 
 		auto IsDeviceSuitable(
@@ -1861,7 +1868,7 @@ export namespace HelloTriangle
 
 		void MainLoop(this Application& self)
 		{
-			while (not GLFW::glfwWindowShouldClose(self.m_window))
+			while (not GLFW::glfwWindowShouldClose(self.window))
 			{
 				GLFW::glfwPollEvents();
 				self.DrawFrame();
@@ -1873,12 +1880,12 @@ export namespace HelloTriangle
 		auto PickPhysicalDevice(this Application& self) -> Vulkan::VkPhysicalDevice
 		{
 			std::uint32_t deviceCount = 0;
-			Vulkan::vkEnumeratePhysicalDevices(self.m_instance, &deviceCount, nullptr);
+			Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, nullptr);
 			if (deviceCount == 0)
 				throw std::runtime_error("Failed to find GPUs with Vulkan support.");
 
 			std::vector<Vulkan::VkPhysicalDevice> devices(deviceCount);
-			Vulkan::vkEnumeratePhysicalDevices(self.m_instance, &deviceCount, devices.data());
+			Vulkan::vkEnumeratePhysicalDevices(self.instance, &deviceCount, devices.data());
 
 			for (const auto& device : devices)
 				if (self.IsDeviceSuitable(device))
@@ -1960,10 +1967,10 @@ export namespace HelloTriangle
 		void RecreateSwapChain(this Application& self)
 		{
 			int width = 0, height = 0;
-			GLFW::glfwGetFramebufferSize(self.m_window, &width, &height);
+			GLFW::glfwGetFramebufferSize(self.window, &width, &height);
 			while (width == 0 or height == 0)
 			{
-				GLFW::glfwGetFramebufferSize(self.m_window, &width, &height);
+				GLFW::glfwGetFramebufferSize(self.window, &width, &height);
 				GLFW::glfwWaitEvents();
 			}
 
@@ -2068,10 +2075,10 @@ export namespace HelloTriangle
 			self.PopulateDebugMessengerCreateInfo(createInfo);
 
 			auto result = CreateDebugUtilsMessengerEXT(
-				self.m_instance,
+				self.instance,
 				&createInfo,
 				nullptr,
-				&self.m_debugMessenger
+				&self.debugMessenger
 			);
 			if (result != Vulkan::VkResult::VK_SUCCESS)
 				throw std::runtime_error("Failed to set up debug messenger");
@@ -2087,20 +2094,21 @@ export namespace HelloTriangle
 		{
 			Vulkan::VkCommandBuffer commandBuffer = self.BeginSingleTimeCommands();
 
-			Vulkan::VkImageMemoryBarrier barrier{};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.oldLayout = oldLayout;
-			barrier.newLayout = newLayout;
-			barrier.srcQueueFamilyIndex = Vulkan::QueueFamilyIgnored;
-			barrier.dstQueueFamilyIndex = Vulkan::QueueFamilyIgnored;
-			barrier.image = image;
-			barrier.subresourceRange.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT;
-			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = 1;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
-			barrier.srcAccessMask = 0; // TODO
-			barrier.dstAccessMask = 0; // TODO
+			Vulkan::VkImageMemoryBarrier barrier{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				.oldLayout = oldLayout,
+				.newLayout = newLayout,
+				.srcQueueFamilyIndex = Vulkan::QueueFamilyIgnored,
+				.dstQueueFamilyIndex = Vulkan::QueueFamilyIgnored,
+				.image = image,
+				.subresourceRange{
+					.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
 
 			if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
 			{

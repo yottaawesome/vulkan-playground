@@ -243,14 +243,23 @@ export namespace HelloTriangle
 		std::vector<void*> uniformBuffersMapped;
 		Vulkan::VkDescriptorPool descriptorPool;
 		std::vector<Vulkan::VkDescriptorSet> descriptorSets;
+
 		std::uint32_t mipLevels;
+		
 		Vulkan::VkImage textureImage;
 		Vulkan::VkDeviceMemory textureImageMemory;
 		Vulkan::VkImageView textureImageView;
 		Vulkan::VkSampler textureSampler;
+
 		Vulkan::VkImage depthImage;
 		Vulkan::VkDeviceMemory depthImageMemory;
 		Vulkan::VkImageView depthImageView;
+
+		Vulkan::VkImage colorImage;
+		Vulkan::VkDeviceMemory colorImageMemory;
+		Vulkan::VkImageView colorImageView;
+
+		Vulkan::VkSampleCountFlagBits msaaSamples = Vulkan::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
 
 		auto BeginSingleTimeCommands(this Application& self) -> Vulkan::VkCommandBuffer
 		{
@@ -460,6 +469,10 @@ export namespace HelloTriangle
 
 		void CleanupSwapChain(this Application& self)
 		{
+			Vulkan::vkDestroyImageView(self.device, self.colorImageView, nullptr);
+			Vulkan::vkDestroyImage(self.device, self.colorImage, nullptr);
+			Vulkan::vkFreeMemory(self.device, self.colorImageMemory, nullptr);
+
 			Vulkan::vkDestroyImageView(self.device, self.depthImageView, nullptr);
 			Vulkan::vkDestroyImage(self.device, self.depthImage, nullptr);
 			Vulkan::vkFreeMemory(self.device, self.depthImageMemory, nullptr);
@@ -555,6 +568,30 @@ export namespace HelloTriangle
 				throw std::runtime_error("Failed to allocate bind buffer memory.");
 		}
 
+		void CreateColorResources(this Application& self)
+		{
+			Vulkan::VkFormat colorFormat = self.swapChainImageFormat;
+
+			self.CreateImage(
+				self.swapChainExtent.width, 
+				self.swapChainExtent.height, 
+				1, 
+				self.msaaSamples, 
+				colorFormat, 
+				Vulkan::VkImageTiling::VK_IMAGE_TILING_OPTIMAL, 
+				Vulkan::VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | Vulkan::VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+				Vulkan::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+				self.colorImage,
+				self.colorImageMemory
+			);
+			self.colorImageView = self.CreateImageView(
+				self.colorImage, 
+				colorFormat, 
+				VK_IMAGE_ASPECT_COLOR_BIT, 
+				1
+			);
+		}
+
 		void CreateCommandBuffers(this Application& self)
 		{
 			self.commandBuffers.resize(MaxFramesInFlight);
@@ -600,6 +637,7 @@ export namespace HelloTriangle
 				self.swapChainExtent.width, 
 				self.swapChainExtent.height,
 				1,
+				self.msaaSamples,
 				depthFormat, 
 				Vulkan::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
 				Vulkan::VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
@@ -730,7 +768,11 @@ export namespace HelloTriangle
 		{
 			self.swapChainFramebuffers.resize(self.swapChainImageViews.size());
 			for (size_t i = 0; i < self.swapChainImageViews.size(); i++) {
-				std::array<Vulkan::VkImageView, 2> attachments{ self.swapChainImageViews[i], self.depthImageView };
+				std::array attachments{ 
+					self.colorImageView,
+					self.depthImageView, 
+					self.swapChainImageViews[i]
+				};
 
 				Vulkan::VkFramebufferCreateInfo framebufferInfo{};
 				framebufferInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -858,7 +900,7 @@ export namespace HelloTriangle
 			Vulkan::VkPipelineMultisampleStateCreateInfo multisampling{};
 			multisampling.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 			multisampling.sampleShadingEnable = false;
-			multisampling.rasterizationSamples = Vulkan::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+			multisampling.rasterizationSamples = self.msaaSamples;
 			multisampling.minSampleShading = 1.0f; // Optional
 			multisampling.pSampleMask = nullptr; // Optional
 			multisampling.alphaToCoverageEnable = false; // Optional
@@ -1117,13 +1159,13 @@ export namespace HelloTriangle
 		{
 			Vulkan::VkAttachmentDescription colorAttachment{};
 			colorAttachment.format = self.swapChainImageFormat;
-			colorAttachment.samples = Vulkan::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.samples = self.msaaSamples;
 			colorAttachment.loadOp = Vulkan::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR;
 			colorAttachment.storeOp = Vulkan::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE;
 			colorAttachment.stencilLoadOp = Vulkan::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = Vulkan::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			colorAttachment.initialLayout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachment.finalLayout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			colorAttachment.finalLayout = Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			Vulkan::VkAttachmentReference colorAttachmentRef{};
 			colorAttachmentRef.attachment = 0;
@@ -1131,7 +1173,7 @@ export namespace HelloTriangle
 
 			Vulkan::VkAttachmentDescription depthAttachment{};
 			depthAttachment.format = self.FindDepthFormat();
-			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthAttachment.samples = self.msaaSamples;
 			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -1143,11 +1185,29 @@ export namespace HelloTriangle
 			depthAttachmentRef.attachment = 1;
 			depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+
+
+			Vulkan::VkAttachmentDescription colorAttachmentResolve{};
+			colorAttachmentResolve.format = self.swapChainImageFormat;
+			colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			Vulkan::VkAttachmentReference colorAttachmentResolveRef{};
+			colorAttachmentResolveRef.attachment = 2;
+			colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+
 			Vulkan::VkSubpassDescription subpass{};
 			subpass.pipelineBindPoint = Vulkan::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &colorAttachmentRef;
 			subpass.pDepthStencilAttachment = &depthAttachmentRef;
+			subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
 			Vulkan::VkSubpassDependency dependency{};
 			dependency.srcSubpass = Vulkan::VkSubpassExternalDependency;
@@ -1156,7 +1216,7 @@ export namespace HelloTriangle
 				Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT 
 				| Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 			dependency.srcAccessMask =
-				Vulkan::VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				Vulkan::VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | Vulkan::VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			dependency.dstStageMask = 
 				Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 				| Vulkan::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
@@ -1164,7 +1224,7 @@ export namespace HelloTriangle
 				Vulkan::VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
 				| Vulkan::VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-			std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+			std::array attachments{ colorAttachment, depthAttachment, colorAttachmentResolve };
 
 			Vulkan::VkRenderPassCreateInfo renderPassInfo{};
 			renderPassInfo.sType = Vulkan::VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1329,6 +1389,7 @@ export namespace HelloTriangle
 			std::uint32_t width,
 			std::uint32_t height,
 			std::uint32_t mipLevels,
+			Vulkan::VkSampleCountFlagBits numSamples,
 			Vulkan::VkFormat format, 
 			Vulkan::VkImageTiling tiling,
 			Vulkan::VkImageUsageFlags usage,
@@ -1348,7 +1409,7 @@ export namespace HelloTriangle
 				},
 				.mipLevels = mipLevels,
 				.arrayLayers = 1,
-				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.samples = numSamples,
 				.tiling = tiling,
 				.usage = usage,
 				.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -1409,6 +1470,7 @@ export namespace HelloTriangle
 				texWidth, 
 				texHeight,
 				self.mipLevels,
+				Vulkan::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
 				VK_FORMAT_R8G8B8A8_SRGB, 
 				VK_IMAGE_TILING_OPTIMAL, 
 				VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1862,6 +1924,22 @@ export namespace HelloTriangle
 			self.EndSingleTimeCommands(commandBuffer);
 		}
 
+		auto GetMaxUsableSampleCount() -> Vulkan::VkSampleCountFlagBits
+		{
+			Vulkan::VkPhysicalDeviceProperties physicalDeviceProperties;
+			Vulkan::vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+			Vulkan::VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+			if (counts & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
+			if (counts & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;
+			if (counts & VK_SAMPLE_COUNT_16_BIT) return VK_SAMPLE_COUNT_16_BIT;
+			if (counts & VK_SAMPLE_COUNT_8_BIT) return VK_SAMPLE_COUNT_8_BIT;
+			if (counts & VK_SAMPLE_COUNT_4_BIT) return VK_SAMPLE_COUNT_4_BIT;
+			if (counts & VK_SAMPLE_COUNT_2_BIT) return VK_SAMPLE_COUNT_2_BIT;
+
+			return VK_SAMPLE_COUNT_1_BIT;
+		}
+
 		auto GetRequiredExtensions(this const Application& self) -> std::vector<const char*>
 		{
 			std::uint32_t glfwExtensionCount = 0;
@@ -1891,6 +1969,7 @@ export namespace HelloTriangle
 			self.CreateDescriptorSetLayout();
 			self.CreateGraphicsPipeline();
 			self.CreateCommandPool();
+			self.CreateColorResources();
 			self.CreateDepthResources();
 			self.CreateFramebuffers();
 			self.CreateTextureImage();
@@ -2008,7 +2087,11 @@ export namespace HelloTriangle
 
 			for (const auto& device : devices)
 				if (self.IsDeviceSuitable(device))
-					return (self.physicalDevice = device, device);
+				{
+					self.physicalDevice = device;
+					self.msaaSamples = self.GetMaxUsableSampleCount();
+					return device;
+				}
 			throw std::runtime_error("Failed to find a suitable GPU.");
 		}
 
@@ -2098,6 +2181,7 @@ export namespace HelloTriangle
 			self.CleanupSwapChain();
 			self.CreateSwapChain();
 			self.CreateImageViews();
+			self.CreateColorResources();
 			self.CreateDepthResources();
 			self.CreateFramebuffers();
 		}

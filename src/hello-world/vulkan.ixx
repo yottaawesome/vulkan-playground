@@ -259,6 +259,7 @@ export namespace Vulkan
 		::VkImageAspectFlags,
 		::VkPipelineDepthStencilStateCreateInfo,
 		::VkImageBlit,
+		::VkSampleCountFlags,
 		::vkCmdBlitImage,
 		::vkGetPhysicalDeviceFormatProperties,
 		::vkDestroySampler,

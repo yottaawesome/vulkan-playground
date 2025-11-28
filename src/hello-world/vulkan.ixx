@@ -258,6 +258,8 @@ export namespace Vulkan
 		::VkFormatFeatureFlagBits,
 		::VkImageAspectFlags,
 		::VkPipelineDepthStencilStateCreateInfo,
+		::VkImageBlit,
+		::vkCmdBlitImage,
 		::vkGetPhysicalDeviceFormatProperties,
 		::vkDestroySampler,
 		::vkCreateSampler,
@@ -363,6 +365,8 @@ export namespace Vulkan
 	{
 		return VK_MAKE_VERSION(major, minor,  patch);
 	}
+
+	constexpr auto LodClampNone = VK_LOD_CLAMP_NONE;
 }
 
 export namespace Util

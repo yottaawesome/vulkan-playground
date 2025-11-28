@@ -243,6 +243,7 @@ export namespace HelloTriangle
 		std::vector<void*> uniformBuffersMapped;
 		Vulkan::VkDescriptorPool descriptorPool;
 		std::vector<Vulkan::VkDescriptorSet> descriptorSets;
+		std::uint32_t mipLevels;
 		Vulkan::VkImage textureImage;
 		Vulkan::VkDeviceMemory textureImageMemory;
 		Vulkan::VkImageView textureImageView;
@@ -598,6 +599,7 @@ export namespace HelloTriangle
 			self.CreateImage(
 				self.swapChainExtent.width, 
 				self.swapChainExtent.height,
+				1,
 				depthFormat, 
 				Vulkan::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
 				Vulkan::VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
@@ -608,13 +610,15 @@ export namespace HelloTriangle
 			self.depthImageView = self.CreateImageView(
 				self.depthImage, 
 				depthFormat,
-				Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT
+				Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT,
+				1
 			);
 			self.TransitionImageLayout(
 				self.depthImage, 
 				depthFormat,
 				Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED, 
-				Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+				Vulkan::VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				1
 			);
 		}
 
@@ -933,7 +937,8 @@ export namespace HelloTriangle
 			this Application& self, 
 			Vulkan::VkImage image, 
 			Vulkan::VkFormat format,
-			Vulkan::VkImageAspectFlags aspectFlags
+			Vulkan::VkImageAspectFlags aspectFlags,
+			std::uint32_t mipLevels
 		) -> Vulkan::VkImageView
 		{
 			Vulkan::VkImageViewCreateInfo viewInfo{
@@ -944,7 +949,7 @@ export namespace HelloTriangle
 				.subresourceRange{ 
 					.aspectMask = aspectFlags,
 					.baseMipLevel = 0,
-					.levelCount = 1,
+					.levelCount = mipLevels,
 					.baseArrayLayer = 0,
 					.layerCount = 1 
 				}
@@ -961,7 +966,12 @@ export namespace HelloTriangle
 			self.swapChainImageViews.resize(self.swapChainImages.size());
 			for (size_t i = 0; i < self.swapChainImages.size(); i++)
 				self.swapChainImageViews[i] = 
-					self.CreateImageView(self.swapChainImages[i], self.swapChainImageFormat, Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT);
+					self.CreateImageView(
+						self.swapChainImages[i], 
+						self.swapChainImageFormat, 
+						Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT, 
+						1
+					);
 		}
 
 		void CreateIndexBuffer(this Application& self)
@@ -1316,8 +1326,9 @@ export namespace HelloTriangle
 
 		void CreateImage(
 			this Application& self, 
-			uint32_t width, 
-			uint32_t height, 
+			std::uint32_t width,
+			std::uint32_t height,
+			std::uint32_t mipLevels,
 			Vulkan::VkFormat format, 
 			Vulkan::VkImageTiling tiling,
 			Vulkan::VkImageUsageFlags usage,
@@ -1335,7 +1346,7 @@ export namespace HelloTriangle
 					.height = height,
 					.depth = 1
 				},
-				.mipLevels = 1,
+				.mipLevels = mipLevels,
 				.arrayLayers = 1,
 				.samples = VK_SAMPLE_COUNT_1_BIT,
 				.tiling = tiling,
@@ -1372,6 +1383,8 @@ export namespace HelloTriangle
 			);
 			Vulkan::VkDeviceSize imageSize = texWidth * texHeight * 4;
 
+			self.mipLevels = static_cast<std::uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
 			if (!pixels)
 				throw std::runtime_error("Failed to load texture image.");
 
@@ -1394,9 +1407,11 @@ export namespace HelloTriangle
 
 			self.CreateImage(
 				texWidth, 
-				texHeight, 
-				VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, 
-				VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+				texHeight,
+				self.mipLevels,
+				VK_FORMAT_R8G8B8A8_SRGB, 
+				VK_IMAGE_TILING_OPTIMAL, 
+				VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
 				self.textureImage, 
 				self.textureImageMemory
@@ -1406,7 +1421,8 @@ export namespace HelloTriangle
 				self.textureImage, 
 				VK_FORMAT_R8G8B8A8_SRGB, 
 				VK_IMAGE_LAYOUT_UNDEFINED, 
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				self.mipLevels
 			);
 			self.CopyBufferToImage(
 				stagingBuffer, 
@@ -1415,15 +1431,116 @@ export namespace HelloTriangle
 				static_cast<uint32_t>(texHeight)
 			);
 
-			self.TransitionImageLayout(
+			self.GenerateMipmaps(self.textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, self.mipLevels);
+
+			/*self.TransitionImageLayout(
 				self.textureImage, 
 				VK_FORMAT_R8G8B8A8_SRGB, 
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			);
+			);*/
 
 			Vulkan::vkDestroyBuffer(self.device, stagingBuffer, nullptr);
 			Vulkan::vkFreeMemory(self.device, stagingBufferMemory, nullptr);
+		}
+
+		void GenerateMipmaps(
+			this Application& self,
+			Vulkan::VkImage image,
+			Vulkan::VkFormat imageFormat,
+			std::int32_t texWidth, 
+			std::int32_t texHeight,
+			std::uint32_t mipLevels
+		)
+		{
+			// Check if image format supports linear blitting
+			Vulkan::VkFormatProperties formatProperties;
+			Vulkan::vkGetPhysicalDeviceFormatProperties(
+				self.physicalDevice, 
+				imageFormat, 
+				&formatProperties
+			);
+			if (not (formatProperties.optimalTilingFeatures & Vulkan::VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
+				throw std::runtime_error("Texture image format does not support linear blitting.");
+
+			Vulkan::VkCommandBuffer commandBuffer = self.BeginSingleTimeCommands();
+
+			Vulkan::VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.image = image;
+			barrier.srcQueueFamilyIndex = Vulkan::QueueFamilyIgnored;
+			barrier.dstQueueFamilyIndex = Vulkan::QueueFamilyIgnored;
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.baseArrayLayer = 0;
+			barrier.subresourceRange.layerCount = 1;
+			barrier.subresourceRange.levelCount = 1;
+
+			int32_t mipWidth = texWidth;
+			int32_t mipHeight = texHeight;
+
+			for (uint32_t i = 1; i < mipLevels; i++) 
+			{
+				barrier.subresourceRange.baseMipLevel = i - 1;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+				Vulkan::vkCmdPipelineBarrier(commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier);
+
+				Vulkan::VkImageBlit blit{};
+				blit.srcOffsets[0] = { 0, 0, 0 };
+				blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.srcSubresource.mipLevel = i - 1;
+				blit.srcSubresource.baseArrayLayer = 0;
+				blit.srcSubresource.layerCount = 1;
+				blit.dstOffsets[0] = { 0, 0, 0 };
+				blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.dstSubresource.mipLevel = i;
+				blit.dstSubresource.baseArrayLayer = 0;
+				blit.dstSubresource.layerCount = 1;
+
+				Vulkan::vkCmdBlitImage(commandBuffer,
+					image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1, &blit,
+					VK_FILTER_LINEAR);
+
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				Vulkan::vkCmdPipelineBarrier(commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier);
+
+				if (mipWidth > 1) mipWidth /= 2;
+				if (mipHeight > 1) mipHeight /= 2;
+			}
+
+			barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+
+			self.EndSingleTimeCommands(commandBuffer);
 		}
 
 		void CreateTextureImageView(this Application& self) 
@@ -1431,7 +1548,8 @@ export namespace HelloTriangle
 			self.textureImageView = self.CreateImageView(
 				self.textureImage, 
 				VK_FORMAT_R8G8B8A8_SRGB, 
-				Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT
+				Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+				self.mipLevels
 			);
 		}
 
@@ -1453,8 +1571,8 @@ export namespace HelloTriangle
 				.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
 				.compareEnable = false,
 				.compareOp = Vulkan::VkCompareOp::VK_COMPARE_OP_ALWAYS,
-				.minLod = 0.0f,
-				.maxLod = 0.0f,
+				.minLod = 0.0f, // static_cast<float>(mipLevels / 2); force worst miplevel
+				.maxLod = Vulkan::LodClampNone,
 				.borderColor = Vulkan::VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK,
 				.unnormalizedCoordinates = false
 			};
@@ -2089,7 +2207,8 @@ export namespace HelloTriangle
 			Vulkan::VkImage image,
 			Vulkan::VkFormat format,
 			Vulkan::VkImageLayout oldLayout,
-			Vulkan::VkImageLayout newLayout
+			Vulkan::VkImageLayout newLayout,
+			std::uint32_t mipLevels
 		)
 		{
 			Vulkan::VkCommandBuffer commandBuffer = self.BeginSingleTimeCommands();
@@ -2104,7 +2223,7 @@ export namespace HelloTriangle
 				.subresourceRange{
 					.aspectMask = Vulkan::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
 					.baseMipLevel = 0,
-					.levelCount = 1,
+					.levelCount = mipLevels,
 					.baseArrayLayer = 0,
 					.layerCount = 1
 				}

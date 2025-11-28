@@ -1571,7 +1571,8 @@ export namespace HelloTriangle
 				.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
 				.compareEnable = false,
 				.compareOp = Vulkan::VkCompareOp::VK_COMPARE_OP_ALWAYS,
-				.minLod = 0.0f, // static_cast<float>(mipLevels / 2); force worst miplevel
+				.minLod = 0.0f, 
+					 //static_cast<float>(self.mipLevels / 2), // force worst miplevel
 				.maxLod = Vulkan::LodClampNone,
 				.borderColor = Vulkan::VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK,
 				.unnormalizedCoordinates = false

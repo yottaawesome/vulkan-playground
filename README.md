@@ -12,3 +12,5 @@ You'll need Visual Studio 2026 with the _Desktop development with C++_ workload 
 
 * [Vulkan Tutorial](https://vulkan-tutorial.com)
 * [Vulkan Guide](https://vkguide.dev/)
+* [Official guide](https://www.vulkan.org/learn)
+* [GLW Vulkan Guide](https://www.glfw.org/docs/latest/vulkan_guide.html**)

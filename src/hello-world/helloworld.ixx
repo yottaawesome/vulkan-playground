@@ -3,7 +3,7 @@ import std;
 import vulkan;
 export import :hellotriangleapplication;
 
-extern "C" auto main() -> int
+extern "C++" auto main() -> int
 try 
 {
     HelloTriangle::Application app;

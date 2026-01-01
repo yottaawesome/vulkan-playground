@@ -4,4 +4,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="hello-world/hello-world.vcxproj" Id="583a70aa-e6f9-4c0d-b2cf-c870805930fc" />
+  <Project Path="vulkan-tutorial/vulkan-tutorial.vcxproj" Id="9883e565-2b0f-4608-904a-66003832c11e" />
 </Solution>

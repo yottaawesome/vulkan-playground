@@ -20,6 +20,21 @@ namespace VulkanTutorial
     private:
         glfw::GLFWwindow* window;
 
+        void Cleanup(this MainApp& self)
+        {
+            glfw::glfwDestroyWindow(self.window);
+            glfw::glfwTerminate();
+        }
+
+        void CreateInstance(this MainApp& self)
+        {
+            self.CreateInstance();
+        }
+
+        void InitVulkan(this MainApp& self)
+        {
+        }
+
         void InitWindow(this MainApp& self)
         {
             glfw::glfwInit();
@@ -28,18 +43,12 @@ namespace VulkanTutorial
             self.window = glfw::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
         }
 
-        void InitVulkan(this MainApp& self)
-        {
-        }
-
         void MainLoop(this MainApp& self)
         {
-
-        }
-
-        void Cleanup(this MainApp& self)
-        {
-
+            while (not glfw::glfwWindowShouldClose(self.window)) 
+            {
+                glfw::glfwPollEvents();
+            }
         }
     };
 }

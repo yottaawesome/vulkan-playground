@@ -1,7 +1,7 @@
 module;
 
-#include <vulkan/vulkan_raii.hpp>
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+#include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan.hpp>
 #define GLFW_INCLUDE_VULKAN
 //#define VK_USE_PLATFORM_WIN32_KHR
@@ -40,12 +40,21 @@ export namespace glfw
 
 export namespace vk
 {
+	using 
+		::vk::ApplicationInfo,
+		::vk::ApiVersion14
+		;
 
+	constexpr auto MakeVersion(int x, int y, int z)
+	{
+		return VK_MAKE_VERSION(x, y, z);
+	}
 }
 
 export namespace vk::raii
 {
 	using 
-		::vk::raii::Instance
+		::vk::raii::Instance,
+		::vk::raii::Context
 		;
 }

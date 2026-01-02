@@ -19,6 +19,8 @@ namespace VulkanTutorial
 
     private:
         glfw::GLFWwindow* window;
+        vk::raii::Instance instance = nullptr;
+        vk::raii::Context context;
 
         void Cleanup(this MainApp& self)
         {
@@ -28,7 +30,13 @@ namespace VulkanTutorial
 
         void CreateInstance(this MainApp& self)
         {
-            self.CreateInstance();
+            constexpr vk::ApplicationInfo appInfo{ 
+                .pApplicationName = "Hello Triangle",
+                .applicationVersion = vk::MakeVersion(1, 0, 0),
+                .pEngineName = "No Engine",
+                .engineVersion = vk::MakeVersion(1, 0, 0),
+                .apiVersion = vk::ApiVersion14 
+            };
         }
 
         void InitVulkan(this MainApp& self)

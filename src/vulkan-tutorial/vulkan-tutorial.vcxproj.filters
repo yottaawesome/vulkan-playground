@@ -21,6 +21,9 @@
     <ClCompile Include="vulkantutorial-libs.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkantutorial-error.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

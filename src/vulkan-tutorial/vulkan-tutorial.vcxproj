@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="vulkantutorial-error.ixx" />
     <ClCompile Include="vulkantutorial.ixx" />
     <ClCompile Include="vulkantutorial-libs.ixx" />
   </ItemGroup>

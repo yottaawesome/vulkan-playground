@@ -42,19 +42,24 @@ export namespace vk
 {
 	using 
 		::vk::ApplicationInfo,
+		::vk::InstanceCreateInfo,
+		::vk::SystemError,
 		::vk::ApiVersion14
 		;
 
-	constexpr auto MakeVersion(int x, int y, int z)
+	constexpr auto MakeVersion(int x, int y, int z) 
+		noexcept -> unsigned
 	{
 		return VK_MAKE_VERSION(x, y, z);
 	}
+
+	export namespace raii
+	{
+		using
+			::vk::raii::Instance,
+			::vk::raii::Context
+			;
+	}
 }
 
-export namespace vk::raii
-{
-	using 
-		::vk::raii::Instance,
-		::vk::raii::Context
-		;
-}
+

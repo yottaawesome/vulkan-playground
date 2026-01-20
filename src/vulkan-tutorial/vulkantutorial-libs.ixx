@@ -44,7 +44,14 @@ export namespace vk
 		::vk::ApplicationInfo,
 		::vk::InstanceCreateInfo,
 		::vk::SystemError,
-		::vk::ApiVersion14
+		::vk::DebugUtilsMessageTypeFlagsEXT,
+		::vk::DebugUtilsMessengerCallbackDataEXT,
+		::vk::DebugUtilsMessageSeverityFlagBitsEXT,
+		::vk::DebugUtilsMessageSeverityFlagsEXT,
+		::vk::Bool32,
+		::vk::DebugUtilsMessengerCreateInfoEXT,
+		::vk::ApiVersion14,
+		::vk::EXTDebugUtilsExtensionName
 		;
 
 	constexpr auto MakeVersion(int x, int y, int z) 
@@ -57,7 +64,8 @@ export namespace vk
 	{
 		using
 			::vk::raii::Instance,
-			::vk::raii::Context
+			::vk::raii::Context,
+			::vk::raii::DebugUtilsMessengerEXT
 			;
 	}
 }

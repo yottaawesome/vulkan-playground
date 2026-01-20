@@ -79,6 +79,7 @@ export namespace VulkanTutorial
             void*
         ) -> vk::Bool32
         {
+            std::println("A");
             if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
                 std::println("Validation layer: {}", pCallbackData->pMessage);
             return false;
@@ -118,15 +119,17 @@ export namespace VulkanTutorial
 
             // Check required layers are supported.
             auto requiredLayers = self.GetRequiredVulkanLayers();
+            auto requiredExtensions = self.GetRequiredVulkanExtensions();
+			// Transform required layers and extensions to const char* arrays
+			// for InstanceCreateInfo().
             auto layersList = requiredLayers
                 | std::ranges::views::transform([](const std::string& layer) { return layer.c_str(); })
                 | std::ranges::to<std::vector<const char*>>();
-            auto requiredExtensions = self.GetRequiredVulkanExtensions();
             auto extensionList = requiredExtensions
                 | std::ranges::views::transform([](auto&& s) { return s.c_str(); })
                 | std::ranges::to<std::vector<const char*>>();
 
-            //Create the Vulkan instance
+            // Create the Vulkan instance
             constexpr auto appInfo = vk::ApplicationInfo{
                 .pApplicationName = "Hello Triangle",
                 .applicationVersion = vk::MakeVersion(1, 0, 0),
@@ -157,7 +160,7 @@ export namespace VulkanTutorial
                 return;
 
             constexpr auto ToUint32 =
-                [](auto...v)static constexpr noexcept->std::uint32_t
+                [](auto...v) static constexpr noexcept -> std::uint32_t
                 {
                     return (static_cast<std::uint32_t>(v) | ...);
                 };
@@ -167,17 +170,29 @@ export namespace VulkanTutorial
             auto severityFlags = vk::DebugUtilsMessageSeverityFlagsEXT(severities);
 
             using MessageTypes = vk::DebugUtilsMessageTypeFlagBitsEXT;
-            auto messageTypes = ToUint32(
-                MessageTypes::eGeneral,
-                MessageTypes::ePerformance,
-                MessageTypes::eValidation
-            );
+            auto messageTypes = 
+                ToUint32(MessageTypes::eGeneral, MessageTypes::ePerformance, MessageTypes::eValidation);
             auto messageTypeFlags = vk::DebugUtilsMessageTypeFlagsEXT{ messageTypes };
+
+            constexpr auto LambdaDebugCallback = 
+                [](
+                    vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
+                    vk::DebugUtilsMessageTypeFlagsEXT type,
+                    const vk::DebugUtilsMessengerCallbackDataEXT* callbackData,
+                    void* userData
+                ) static -> vk::Bool32
+                {
+                std::println("a");
+                    if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
+                        std::println("Validation layer: {}", callbackData->pMessage);
+                    return false;
+                };
 
             auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT{
                 .messageSeverity = severityFlags,
                 .messageType = messageTypeFlags,
-				.pfnUserCallback = &MainApp::DebugCallback,
+				.pfnUserCallback = &self.DebugCallback,
+                .pUserData = reinterpret_cast<void**>(&self)
             };
             self.debugMessenger = self.instance.createDebugUtilsMessengerEXT(createInfo);
         }

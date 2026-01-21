@@ -30,6 +30,9 @@
     <ClCompile Include="vulkantutorial-mainapp.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkantutorial-formatters.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

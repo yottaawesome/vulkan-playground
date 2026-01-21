@@ -10,6 +10,7 @@ module;
 //#include <GLFW/glfw3native.h>
 
 export module vulkantutorial:libs;
+//import std; // ICE
 
 export namespace glfw
 {
@@ -50,6 +51,12 @@ export namespace vk
 		::vk::DebugUtilsMessageSeverityFlagsEXT,
 		::vk::Bool32,
 		::vk::DebugUtilsMessengerCreateInfoEXT,
+		::vk::PhysicalDevice,
+		::vk::PhysicalDeviceFeatures,
+		::vk::PhysicalDeviceProperties,
+		::vk::PhysicalDeviceLimits,
+		::vk::ExtensionProperties,
+		::vk::PhysicalDeviceType,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName
 		;
@@ -65,9 +72,9 @@ export namespace vk
 		using
 			::vk::raii::Instance,
 			::vk::raii::Context,
-			::vk::raii::DebugUtilsMessengerEXT
+			::vk::raii::DebugUtilsMessengerEXT,
+			::vk::raii::PhysicalDevice
 			;
 	}
 }
-
 

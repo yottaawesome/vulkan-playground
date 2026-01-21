@@ -1,6 +1,10 @@
 export module vulkantutorial;
-import std;
+export import std;
+export import :libs;
 export import :mainapp;
+export import :error;
+export import :util;
+export import :formatters;
 
 export auto main(int argc, char* argv[]) -> int
 try

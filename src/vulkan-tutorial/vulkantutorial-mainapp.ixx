@@ -79,7 +79,7 @@ export namespace VulkanTutorial
 			{
 				auto bestDevice = ScoredPhysicalDevice{ *std::move(supported) };
 				std::println("Selected physical device: {}", bestDevice);
-				self.physicalDevice = std::move(bestDevice).Device;
+				self.physicalDevice = std::move(bestDevice).Gpu.Device;
 			}
 			else
 			{

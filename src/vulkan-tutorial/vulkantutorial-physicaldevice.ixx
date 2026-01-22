@@ -13,13 +13,18 @@ export namespace VulkanTutorial
 			vk::KHRCreateRenderpass2ExtensionName
 		};
 
+	// A wrapper around vk::raii::PhysicalDevice that adds scoring and feature checks.
 	struct GraphicsProcessingUnit
 	{
 		vk::raii::PhysicalDevice Device = nullptr;
 
 		GraphicsProcessingUnit(vk::raii::PhysicalDevice device)
 			: Device(std::move(device))
+		{ }
+
+		auto operator->(this GraphicsProcessingUnit& self) -> vk::raii::PhysicalDevice&
 		{
+			return self.Device;
 		}
 
 		auto GetName(this const GraphicsProcessingUnit& self) -> std::string
@@ -27,21 +32,78 @@ export namespace VulkanTutorial
 			auto properties = self.Device.getProperties();
 			return std::string{ std::string_view{ properties.deviceName } };
 		}
+
+		operator bool(this const GraphicsProcessingUnit& self) noexcept
+		{
+			return *self.Device != nullptr;
+		}
+
+		auto ToString(this const GraphicsProcessingUnit& self) -> std::string
+		{
+			auto properties = self.Device.getProperties();
+			return std::format(
+				"Name: {}, Type: {}",
+				self.GetName(),
+				properties.deviceType
+			);
+		}
+
+		auto SupportsGraphicsQueue(this const GraphicsProcessingUnit& self) -> bool
+		{
+			return self.QueryFamilySupport(vk::QueueFlagBits::eGraphics);
+		}
+
+		auto SupportsRequiredExtensions(this const GraphicsProcessingUnit& self) -> bool
+		{
+			if (not self)
+				return false;
+
+			auto extensions = std::vector<vk::ExtensionProperties>{ self.Device.enumerateDeviceExtensionProperties() };
+			for (std::string_view required : RequiredDeviceExtensions)
+			{
+				bool supported = std::ranges::any_of(
+					extensions,
+					[required](const vk::ExtensionProperties& ext)
+					{
+						return ext.extensionName == required;
+					});
+				if (not supported)
+				{
+					std::println("Required device extension not supported on device {}: {}", self.GetName(), required);
+					return false;
+				}
+			}
+			return true;
+		}
+
+		auto QueryFamilySupport(
+			this const GraphicsProcessingUnit& self, 
+			vk::QueueFlagBits requested
+		) -> bool
+		{
+			auto queueFamilyProperties = std::vector{ self.Device.getQueueFamilyProperties() };
+			return std::any_of(
+				queueFamilyProperties.begin(),
+				queueFamilyProperties.end(),
+				[requested](const vk::QueueFamilyProperties& qfp)
+				{
+					return qfp.queueFlags & requested;
+				}
+			);
+		}
 	};
 
-	// A wrapper around vk::raii::PhysicalDevice that adds scoring and feature checks.
 	struct ScoredPhysicalDevice
 	{
-		vk::raii::PhysicalDevice Device = nullptr;
+		GraphicsProcessingUnit Gpu;
 
-		explicit ScoredPhysicalDevice(vk::raii::PhysicalDevice device)
-			: Device(std::move(device))
-		{
-		}
+		explicit ScoredPhysicalDevice(GraphicsProcessingUnit device)
+			: Gpu(std::move(device))
+		{ }
 
 		auto Score(this const ScoredPhysicalDevice& self) -> unsigned
 		{
-			auto properties = vk::PhysicalDeviceProperties{ self.Device.getProperties() };
+			auto properties = vk::PhysicalDeviceProperties{ self.Gpu.Device.getProperties() };
 			auto score = unsigned{};
 			if (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
 				return score += 1000;
@@ -50,10 +112,10 @@ export namespace VulkanTutorial
 
 		auto ToString(this const ScoredPhysicalDevice& self) -> std::string
 		{
-			auto properties = self.Device.getProperties();
+			auto properties = self.Gpu.Device.getProperties();
 			return std::format(
 				"Name: {}, Type: {}, Score: {}",
-				self.GetDeviceName(),
+				self.Gpu.GetName(),
 				properties.deviceType,
 				self.Score()
 			);
@@ -61,55 +123,26 @@ export namespace VulkanTutorial
 
 		auto SupportsRequiredFeatures(this const ScoredPhysicalDevice& self) -> bool
 		{
-			if (*self.Device == nullptr)
+			if (not self.Gpu)
 				return false;
-			auto features = vk::PhysicalDeviceFeatures{ self.Device.getFeatures() };
+			auto features = vk::PhysicalDeviceFeatures{ self.Gpu.Device.getFeatures() };
 			if (not features.geometryShader)
 			{
-				std::println("Device {} does not support geometry shaders.", self.GetDeviceName());
+				std::println("Device {} does not support geometry shaders.", self.Gpu.GetName());
 				return false;
 			}
 
-			auto queueFamilyProperties = std::vector{self.Device.getQueueFamilyProperties()};
-			bool graphicsQueueSupported = 
-				std::any_of(
-					queueFamilyProperties.begin(),
-					queueFamilyProperties.end(),
-					[](const vk::QueueFamilyProperties& qfp)
-					{
-						return qfp.queueFlags & vk::QueueFlagBits::eGraphics;
-					}
-				);
-			if (not graphicsQueueSupported)
+			auto queueFamilyProperties = std::vector{self.Gpu.Device.getQueueFamilyProperties()};
+			if (not self.Gpu.SupportsGraphicsQueue())
 			{
-				std::println("Queue family with graphics support not found on device {}.", self.GetDeviceName());
+				std::println("Queue family with graphics support not found on device {}.", self.Gpu.GetName());
 				return false;
 			}
 
-			auto extensions = std::vector<vk::ExtensionProperties>{ self.Device.enumerateDeviceExtensionProperties() };
-
-			for (std::string_view required : RequiredDeviceExtensions)
-			{
-				bool supported = std::ranges::any_of(
-					extensions, 
-					[required](const vk::ExtensionProperties& ext)
-					{
-						return ext.extensionName == required;
-					});
-				if (not supported)
-				{
-					std::println("Required device extension not supported on device {}: {}", self.GetDeviceName(), required);
-					return false;
-				}
-			}
+			if (not self.Gpu.SupportsRequiredExtensions())
+				return false;
 
 			return true;
-		}
-
-		auto GetDeviceName(this const ScoredPhysicalDevice& self) -> std::string
-		{
-			auto properties = self.Device.getProperties();
-			return std::string{ std::string_view{ properties.deviceName } };
 		}
 
 		auto GetDevice(this auto&& self) -> decltype(auto)
@@ -145,7 +178,7 @@ export namespace VulkanTutorial
 				devices.end(),
 				[](const auto& a, const auto& b) static noexcept
 				{
-					return a.Device.getProperties().deviceType > b.Device.getProperties().deviceType;
+					return a.Gpu.Device.getProperties().deviceType > b.Gpu.Device.getProperties().deviceType;
 				});
 		}
 

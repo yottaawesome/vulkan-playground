@@ -66,6 +66,7 @@ export namespace vk
 		::vk::ExtensionProperties,
 		::vk::QueueFamilyProperties,
 		::vk::PhysicalDeviceType,
+		::vk::QueueFlagBits,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,

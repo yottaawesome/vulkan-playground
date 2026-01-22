@@ -5,6 +5,7 @@ export import :mainapp;
 export import :error;
 export import :util;
 export import :formatters;
+export import :physicaldevice;
 
 export auto main(int argc, char* argv[]) -> int
 try

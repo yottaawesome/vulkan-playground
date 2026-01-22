@@ -4,84 +4,12 @@ import :libs;
 import :error;
 import :util;
 import :formatters;
+import :physicaldevice;
 
 export namespace VulkanTutorial
 {
 	constexpr auto Width = std::uint32_t{ 800 };
 	constexpr auto Height = std::uint32_t{ 600 };
-
-	struct PhysicalDeviceScore
-	{
-		vk::raii::PhysicalDevice Device = nullptr;
-
-		PhysicalDeviceScore(auto&& device)
-			: Device(std::forward<decltype(device)>(device)) 
-		{}
-
-		unsigned Score =
-			[device = Device]
-			{
-				auto properties = device.getProperties();
-				auto score = unsigned{};
-				if (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
-					return score += 1000;
-				return score;
-			}();
-
-		auto ToString(this const PhysicalDeviceScore& self) -> std::string 
-		{
-			auto properties = self.Device.getProperties();
-			return std::format(
-				"Name: {}, Type: {}, Score: {}",
-				std::string_view{ properties.deviceName },
-				properties.deviceType,
-				self.Score
-			);
-		}
-	};
-
-	template<typename TVectorFrom, typename TTypeTo>
-	concept VectorConvertible = 
-		std::convertible_to<typename std::remove_cvref_t<TVectorFrom>::value_type,
-		TTypeTo
-	>;
-
-	struct PhysicalDeviceList
-	{
-		std::vector<PhysicalDeviceScore> Devices;
-
-		PhysicalDeviceList(VectorConvertible<PhysicalDeviceScore> auto&& v)
-			: Devices(v | std::ranges::to<std::vector<PhysicalDeviceScore>>())
-		{
-			SortAscendingByScore();
-		}
-
-		void SortAscendingByScore(this PhysicalDeviceList& self) noexcept
-		{
-			std::sort(
-				self.Devices.begin(),
-				self.Devices.end(),
-				[](const auto& a, const auto& b) static noexcept
-				{
-					return a.Device.getProperties().deviceType > b.Device.getProperties().deviceType;
-				});
-		}
-
-		auto ToString(this const PhysicalDeviceList& self) -> std::string
-		{
-			auto result = std::format("Found {} devices:\n", self.Devices.size());
-			for (const PhysicalDeviceScore& value : self.Devices)
-			{
-				result += std::format(" -> Device: {}\n", value);
-			}
-			return result;
-		}
-
-		auto empty(this const PhysicalDeviceList& self) noexcept -> bool
-		{
-			return self.Devices.empty();
-		}
-	};
 
 	class MainApp
 	{
@@ -145,10 +73,17 @@ export namespace VulkanTutorial
 
 			auto deviceList = PhysicalDeviceList{ physicalDevices };
 			std::println("{}", deviceList);
-
-			PhysicalDeviceScore bestDevice = std::move(deviceList.Devices.front());
-			std::println("Selected physical device: {}", bestDevice);
-			self.physicalDevice = bestDevice.Device;
+			
+			if (std::optional supported = deviceList.FirstSupportedDevice(); supported)
+			{
+				PhysicalDeviceScore bestDevice{ *supported };
+				std::println("Selected physical device: {}", bestDevice);
+				self.physicalDevice = std::move(bestDevice).Device;
+			}
+			else
+			{
+				throw VulkanError("Failed to find a suitable GPU.");
+			}
 		}
 
 		void Cleanup(this MainApp& self)

@@ -74,9 +74,10 @@ export namespace VulkanTutorial
 			auto deviceList = PhysicalDeviceList{ physicalDevices };
 			std::println("{}", deviceList);
 			
-			if (std::optional supported = deviceList.FirstSupportedDevice(); supported)
+			if (std::optional supported = deviceList.FirstSupportedDevice(); 
+				supported)
 			{
-				PhysicalDeviceScore bestDevice{ *supported };
+				auto bestDevice = ScoredPhysicalDevice{ *std::move(supported) };
 				std::println("Selected physical device: {}", bestDevice);
 				self.physicalDevice = std::move(bestDevice).Device;
 			}

@@ -39,6 +39,14 @@ export namespace glfw
 		;
 }
 
+export namespace Vulkan
+{
+	using
+		::VkInstance,
+		::VkPhysicalDevice
+		;
+}
+
 export namespace vk
 {
 	using 
@@ -56,9 +64,14 @@ export namespace vk
 		::vk::PhysicalDeviceProperties,
 		::vk::PhysicalDeviceLimits,
 		::vk::ExtensionProperties,
+		::vk::QueueFamilyProperties,
 		::vk::PhysicalDeviceType,
 		::vk::ApiVersion14,
-		::vk::EXTDebugUtilsExtensionName
+		::vk::EXTDebugUtilsExtensionName,
+		::vk::KHRSwapchainExtensionName,
+		::vk::KHRSpirv14ExtensionName,
+		::vk::KHRSynchronization2ExtensionName,
+		::vk::KHRCreateRenderpass2ExtensionName
 		;
 
 	constexpr auto MakeVersion(int x, int y, int z) 

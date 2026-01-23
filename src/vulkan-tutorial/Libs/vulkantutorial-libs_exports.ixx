@@ -22,6 +22,7 @@ export namespace glfw
 		::glfwPollEvents,
 		::glfwDestroyWindow,
 		::glfwTerminate,
+		::glfwCreateWindowSurface,
 		::glfwCreateWindow,
 		::glfwGetRequiredInstanceExtensions,
 		::glfwCreateWindowSurface,
@@ -43,7 +44,12 @@ export namespace Vulkan
 {
 	using
 		::VkInstance,
-		::VkPhysicalDevice
+		::VkPhysicalDevice,
+		::VkSurfaceKHR,
+		::VkResult,
+		::VkDevice,
+		::VkQueue,
+		::vkGetDeviceQueue
 		;
 }
 
@@ -72,6 +78,7 @@ export namespace vk
 		::vk::PhysicalDeviceVulkan13Features,
 		::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
 		::vk::QueueFlagBits,
+		::vk::Result,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -93,7 +100,9 @@ export namespace vk
 			::vk::raii::Context,
 			::vk::raii::DebugUtilsMessengerEXT,
 			::vk::raii::PhysicalDevice,
-			::vk::raii::Device
+			::vk::raii::Device,
+			::vk::raii::SurfaceKHR,
+			::vk::raii::Queue
 			;
 	}
 }

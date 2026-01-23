@@ -32,7 +32,11 @@ export namespace VulkanTutorial::App
 		vk::raii::Instance instance = nullptr;
 		vk::raii::DebugUtilsMessengerEXT debugMessenger = nullptr;
 		Vulkanite::Device::PhysicalDevice physicalDevice;
-		vk::raii::Device device = nullptr;
+		Vulkanite::Device::LogicalDevice device = nullptr;
+		vk::raii::SurfaceKHR surface = nullptr;
+		constexpr static auto deviceExtensions = std::array{ vk::KHRSwapchainExtensionName };
+		vk::raii::Queue presentQueue = nullptr;
+		vk::raii::Queue graphicsQueue = nullptr;
 
 	private: // Core internal initialisation methods.
 		// The first step is to initialise the GLFW window.
@@ -51,6 +55,7 @@ export namespace VulkanTutorial::App
 		{
 			self.CreateInstance();
 			self.SetupDebugMessenger();
+			self.CreateSurface();
 			self.PickPhysicalDevice();
 			self.CreateLogicalDevice();
 			return self;
@@ -66,12 +71,28 @@ export namespace VulkanTutorial::App
 		}
 
 	private: // Internal methods.
+		void CreateSurface(this MainApp& self)
+		{
+			auto surface = Vulkan::VkSurfaceKHR{};
+			auto result = vk::Result{ glfw::glfwCreateWindowSurface(*self.instance, self.window, nullptr, &surface) };
+			if (result != vk::Result::eSuccess)
+				throw Error::VulkanError("Failed to create window surface.");
+			self.surface = vk::raii::SurfaceKHR{ self.instance, surface };
+		}
+
 		void CreateLogicalDevice(this MainApp& self)
 		{
-			auto index = std::optional{ self.physicalDevice.FindQueueFamilyIndex(vk::QueueFlagBits::eGraphics) };
-			if (not index)
+			auto graphicsIndex = std::optional{ self.physicalDevice.FindGraphicsQueueFamilyIndex() };
+			if (not graphicsIndex)
 				throw Error::VulkanError("Failed to find graphics queue family index.");
+			
+			auto presentIndex = std::optional{ self.physicalDevice.FindPresentQueueFamilyIndexForSurface(self.surface) };
+			if (not presentIndex)
+				throw Error::VulkanError("Failed to find present queue family index.");
 
+			// The tutorial is weird and uses a structure chain in
+			// one page https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/00_Setup/04_Logical_device_and_queues.html
+			// and then forgets about it in a subsequent link: https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/01_Presentation/00_Window_surface.html.
 			using StructureChain = vk::StructureChain<
 				vk::PhysicalDeviceFeatures2,
 				vk::PhysicalDeviceVulkan13Features,
@@ -83,11 +104,9 @@ export namespace VulkanTutorial::App
 				{.extendedDynamicState = true}
 			};
 
-			constexpr auto deviceExtensions = std::array{ vk::KHRSwapchainExtensionName };
-
 			auto queuePriority = float{ 0.5f };
 			auto deviceQueueCreateInfo = vk::DeviceQueueCreateInfo{
-				.queueFamilyIndex = *index,
+				.queueFamilyIndex = *graphicsIndex,
 				.queueCount = 1,
 				.pQueuePriorities = &queuePriority
 			};
@@ -102,10 +121,10 @@ export namespace VulkanTutorial::App
 				.enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
 				.ppEnabledExtensionNames = deviceExtensions.data()
 			};
-			 self.device = vk::raii::Device{
-				self.physicalDevice.Device,
-				deviceCreateInfo
-			};
+			self.device = 
+				self.physicalDevice.CreateLogicalDevice(deviceCreateInfo);
+			self.graphicsQueue = self.device.GetQueue(*graphicsIndex, 0);
+			self.presentQueue = self.device.GetQueue(*presentIndex, 0);
 		}
 
 		void PickPhysicalDevice(this MainApp& self)

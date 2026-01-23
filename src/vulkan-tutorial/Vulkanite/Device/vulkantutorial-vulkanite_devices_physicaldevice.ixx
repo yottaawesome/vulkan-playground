@@ -2,6 +2,7 @@ export module vulkantutorial:vulkanite_device_physicaldevice;
 import std;
 import :libs;
 import :concepts;
+import :vulkanite_device_logicaldevice;
 
 export namespace VulkanTutorial::Vulkanite::Device
 {
@@ -60,6 +61,25 @@ export namespace VulkanTutorial::Vulkanite::Device
 			return std::nullopt;
 		}
 
+		auto FindPresentQueueFamilyIndexForSurface(this const PhysicalDevice& self, vk::SurfaceKHR surface) -> std::optional<std::uint32_t>
+		{
+			if (not self)
+				return std::nullopt;
+			auto queueFamilyProperties = std::vector{ self.Device.getQueueFamilyProperties() };
+			for (const auto& [index, queueProps] : std::views::enumerate(queueFamilyProperties))
+			{
+				auto supportsPresent = self.Device.getSurfaceSupportKHR(
+					static_cast<std::uint32_t>(index),
+					surface
+				);
+				if (supportsPresent)
+					return static_cast<std::uint32_t>(index);
+			}
+			return std::nullopt;
+		}
+
+		// Query for a queue family that supports graphics operations.
+		// e.g vk::QueueFlagBits::eGraphics
 		auto FindGraphicsQueueFamilyIndex(this const PhysicalDevice& self) -> std::optional<std::uint32_t>
 		{
 			return self.FindQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
@@ -105,6 +125,14 @@ export namespace VulkanTutorial::Vulkanite::Device
 					return qfp.queueFlags & requested;
 				}
 			);
+		}
+
+		auto CreateLogicalDevice(
+			this const PhysicalDevice& self,
+			const vk::DeviceCreateInfo& createInfo
+		) -> LogicalDevice
+		{
+			return LogicalDevice{ vk::raii::Device{ self.Device, createInfo } };
 		}
 	};
 }

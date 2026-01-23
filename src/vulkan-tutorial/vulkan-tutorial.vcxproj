@@ -132,13 +132,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="vulkantutorial-error.ixx" />
-    <ClCompile Include="vulkantutorial-formatters.ixx" />
-    <ClCompile Include="vulkantutorial-mainapp.ixx" />
-    <ClCompile Include="vulkantutorial-physicaldevice.ixx" />
-    <ClCompile Include="vulkantutorial-util.ixx" />
+    <ClCompile Include="Concepts\vulkantutorial-concepts.ixx" />
+    <ClCompile Include="Devices\vulkantutorial-devices.ixx" />
+    <ClCompile Include="Error\vulkantutorial-error.ixx" />
+    <ClCompile Include="Libs\vulkantutorial-libs_exports.ixx" />
+    <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx" />
+    <ClCompile Include="App\vulkantutorial-app.ixx" />
+    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevice.ixx" />
+    <ClCompile Include="Util\vulkantutorial-util.ixx" />
     <ClCompile Include="vulkantutorial.ixx" />
-    <ClCompile Include="vulkantutorial-libs.ixx" />
+    <ClCompile Include="Libs\vulkantutorial-libs.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

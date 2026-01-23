@@ -9,7 +9,7 @@ module;
 //#define GLFW_EXPOSE_NATIVE_WIN32
 //#include <GLFW/glfw3native.h>
 
-export module vulkantutorial:libs;
+export module vulkantutorial:libs_exports;
 //import std; // ICE
 
 export namespace glfw
@@ -49,7 +49,7 @@ export namespace Vulkan
 
 export namespace vk
 {
-	using 
+	using
 		::vk::ApplicationInfo,
 		::vk::InstanceCreateInfo,
 		::vk::SystemError,
@@ -75,7 +75,7 @@ export namespace vk
 		::vk::KHRCreateRenderpass2ExtensionName
 		;
 
-	constexpr auto MakeVersion(int x, int y, int z) 
+	constexpr auto MakeVersion(int x, int y, int z)
 		noexcept -> unsigned
 	{
 		return VK_MAKE_VERSION(x, y, z);

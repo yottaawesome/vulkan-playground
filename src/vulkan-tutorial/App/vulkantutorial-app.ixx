@@ -1,12 +1,11 @@
-export module vulkantutorial:mainapp;
+export module vulkantutorial:app;
 import std;
 import :libs;
 import :error;
 import :util;
-import :formatters;
-import :physicaldevice;
+import :devices;
 
-export namespace VulkanTutorial
+export namespace VulkanTutorial::App
 {
 	constexpr auto Width = std::uint32_t{ 800 };
 	constexpr auto Height = std::uint32_t{ 600 };
@@ -69,21 +68,22 @@ export namespace VulkanTutorial
 		{
 			auto physicalDevices = self.instance.enumeratePhysicalDevices();
 			if (physicalDevices.empty())
-				throw VulkanError("Failed to find GPUs with Vulkan support.");
+				throw Error::VulkanError("Failed to find GPUs with Vulkan support.");
 
-			auto deviceList = PhysicalDeviceList{ physicalDevices };
+			auto deviceList = Devices::PhysicalDeviceList{ physicalDevices };
+			deviceList.FilterUnsupportedDevices();
 			std::println("{}", deviceList);
 			
 			if (std::optional supported = deviceList.FirstSupportedDevice(); 
 				supported)
 			{
-				auto bestDevice = ScoredPhysicalDevice{ *std::move(supported) };
+				auto bestDevice = Devices::ScoredPhysicalDevice{ *std::move(supported) };
 				std::println("Selected physical device: {}", bestDevice);
 				self.physicalDevice = std::move(bestDevice).Gpu.Device;
 			}
 			else
 			{
-				throw VulkanError("Failed to find a suitable GPU.");
+				throw Error::VulkanError("Failed to find a suitable GPU.");
 			}
 		}
 
@@ -113,7 +113,7 @@ export namespace VulkanTutorial
 			auto requiredExtensions =
 				std::span<const char* const>{ glfwExtensions, glfwExtensionCount }
 			| std::ranges::to<std::vector<std::string>>();
-			if (EnableValidationLayers)
+			if (Util::EnableValidationLayers)
 				requiredExtensions.push_back(vk::EXTDebugUtilsExtensionName);
 			for (const std::string_view extName : requiredExtensions)
 			{
@@ -125,7 +125,7 @@ export namespace VulkanTutorial
 					}
 				);
 				if (not supported)
-					throw VulkanError(std::format("Required extension not supported: {}", extName));
+					throw Error::VulkanError(std::format("Required extension not supported: {}", extName));
 			}
 			return requiredExtensions;
 		}
@@ -148,7 +148,7 @@ export namespace VulkanTutorial
 			auto requiredLayers = std::vector<std::string>{
 				//"VK_LAYER_LUNARG_api_dump" 
 			};
-			if constexpr (EnableValidationLayers)
+			if constexpr (Util::EnableValidationLayers)
 			{
 				requiredLayers.push_back("VK_LAYER_KHRONOS_validation");
 				//layers.push_back("VK_LAYER_LUNARG_api_dump");
@@ -165,7 +165,7 @@ export namespace VulkanTutorial
 					}
 				);
 				if (not supported)
-					throw VulkanError(std::format("Required layer not supported: {}", requiredLayer));
+					throw Error::VulkanError(std::format("Required layer not supported: {}", requiredLayer));
 			}
 
 			return requiredLayers;
@@ -207,7 +207,7 @@ export namespace VulkanTutorial
 
 		void SetupDebugMessenger(this MainApp& self)
 		{
-			if (not EnableValidationLayers)
+			if (not Util::EnableValidationLayers)
 				return;
 
 			constexpr auto ToUint32 =

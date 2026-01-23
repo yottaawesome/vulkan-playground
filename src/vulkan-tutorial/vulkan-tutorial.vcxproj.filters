@@ -18,22 +18,31 @@
     <ClCompile Include="vulkantutorial.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkantutorial-libs.ixx">
+    <ClCompile Include="Libs\vulkantutorial-libs.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkantutorial-error.ixx">
+    <ClCompile Include="Error\vulkantutorial-error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkantutorial-util.ixx">
+    <ClCompile Include="Util\vulkantutorial-util.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkantutorial-mainapp.ixx">
+    <ClCompile Include="App\vulkantutorial-app.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkantutorial-formatters.ixx">
+    <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkantutorial-physicaldevice.ixx">
+    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevice.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Devices\vulkantutorial-devices.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Libs\vulkantutorial-libs_exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Concepts\vulkantutorial-concepts.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

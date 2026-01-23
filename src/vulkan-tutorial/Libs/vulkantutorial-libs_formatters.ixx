@@ -1,23 +1,7 @@
-export module vulkantutorial:formatters;
+export module vulkantutorial:libs_formatters;
 import std;
-import :libs;
-
-export namespace VulkanTutorial
-{
-	template<typename T>
-	concept Printable = requires(T t)
-	{
-		{ t.ToString() } -> std::convertible_to<std::string>;
-	};
-
-	struct Test
-	{
-		constexpr auto ToString() const -> std::string
-		{
-			return "Test";
-		}
-	};
-}
+import :concepts;
+import :libs_exports;
 
 export namespace std
 {

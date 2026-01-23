@@ -1,7 +1,7 @@
 export module vulkantutorial:error;
 import std;
 
-export namespace VulkanTutorial
+export namespace VulkanTutorial::Error
 {
 	struct VulkanError : std::runtime_error
 	{

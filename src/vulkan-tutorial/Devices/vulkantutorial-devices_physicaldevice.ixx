@@ -1,9 +1,8 @@
-export module vulkantutorial:physicaldevice;
+export module vulkantutorial:devices_physicaldevice;
 import std;
 import :libs;
-import :formatters;
 
-export namespace VulkanTutorial
+export namespace VulkanTutorial::Devices
 {
 	constexpr auto RequiredDeviceExtensions = 
 		std::array{
@@ -165,10 +164,25 @@ export namespace VulkanTutorial
 		PhysicalDeviceList(const std::vector<vk::raii::PhysicalDevice>& pd)
 		{
 			Devices = pd 
-				| std::ranges::views::transform([](auto&& pd) { return ScoredPhysicalDevice{ pd }; }) 
+				| std::ranges::views::transform(
+					[](auto&& pd) static { return ScoredPhysicalDevice{ pd }; })
 				| std::ranges::to<std::vector<ScoredPhysicalDevice>>();
 
 			SortAscendingByScore(Devices);
+		}
+
+		void FilterUnsupportedDevices() noexcept
+		{
+			std::erase_if(
+				Devices,
+				[](const ScoredPhysicalDevice& deviceScore) static noexcept
+				{
+					auto supportsFeatures = bool{ deviceScore.SupportsRequiredFeatures() };
+					if (not supportsFeatures)
+						std::println("Device {} does not support required features.", deviceScore.Gpu.GetName());
+					return not supportsFeatures;
+				}
+			);
 		}
 
 		static void SortAscendingByScore(std::ranges::range auto&& devices) noexcept

@@ -1,16 +1,16 @@
 export module vulkantutorial;
 export import std;
 export import :libs;
-export import :mainapp;
+export import :app;
 export import :error;
 export import :util;
-export import :formatters;
-export import :physicaldevice;
+export import :devices;
+export import :concepts;
 
 export auto main(int argc, char* argv[]) -> int
 try
 {
-    VulkanTutorial::MainApp app;
+    VulkanTutorial::App::MainApp app;
     app.Run();
     return 0;
 }

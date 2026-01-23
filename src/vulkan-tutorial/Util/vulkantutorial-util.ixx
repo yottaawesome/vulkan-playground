@@ -1,6 +1,6 @@
 export module vulkantutorial:util;
 
-export namespace VulkanTutorial
+export namespace VulkanTutorial::Util
 {
 	constexpr bool IsDebug = 
 #ifdef _DEBUG	

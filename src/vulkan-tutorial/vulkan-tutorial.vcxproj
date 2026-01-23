@@ -134,11 +134,13 @@
   <ItemGroup>
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx" />
     <ClCompile Include="Devices\vulkantutorial-devices.ixx" />
+    <ClCompile Include="Devices\vulkantutorial-devices_graphicsprocessingunit.ixx" />
+    <ClCompile Include="Devices\vulkantutorial-devices_scoredphysicaldevice.ixx" />
     <ClCompile Include="Error\vulkantutorial-error.ixx" />
     <ClCompile Include="Libs\vulkantutorial-libs_exports.ixx" />
     <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx" />
     <ClCompile Include="App\vulkantutorial-app.ixx" />
-    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevice.ixx" />
+    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevicelist.ixx" />
     <ClCompile Include="Util\vulkantutorial-util.ixx" />
     <ClCompile Include="vulkantutorial.ixx" />
     <ClCompile Include="Libs\vulkantutorial-libs.ixx" />

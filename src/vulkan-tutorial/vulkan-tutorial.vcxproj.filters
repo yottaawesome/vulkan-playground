@@ -33,7 +33,7 @@
     <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevice.ixx">
+    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevicelist.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Devices\vulkantutorial-devices.ixx">
@@ -43,6 +43,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Devices\vulkantutorial-devices_graphicsprocessingunit.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Devices\vulkantutorial-devices_scoredphysicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

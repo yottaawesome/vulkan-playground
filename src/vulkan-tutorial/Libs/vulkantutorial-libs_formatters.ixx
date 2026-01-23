@@ -46,7 +46,7 @@ export namespace std
 		}
 	};
 
-	template<VulkanTutorial::Printable T>
+	template<VulkanTutorial::Concepts::Printable T>
 	struct formatter<T> : formatter<string_view>
 	{
 		auto format(const T& value, format_context& ctx) const

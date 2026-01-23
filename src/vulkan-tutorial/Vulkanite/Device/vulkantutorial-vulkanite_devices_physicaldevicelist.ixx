@@ -1,8 +1,8 @@
-export module vulkantutorial:devices_physicaldevicelist;
+export module vulkantutorial:vulkanite_device_physicaldevicelist;
 import std;
-import :devices_scoredphysicaldevice;
+import :vulkanite_device_scoredphysicaldevice;
 
-export namespace VulkanTutorial::Devices
+export namespace VulkanTutorial::Vulkanite::Device
 {
 	template<typename TVectorFrom, typename TTypeTo>
 	concept VectorConvertible = 

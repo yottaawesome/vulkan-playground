@@ -33,10 +33,10 @@
     <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Devices\vulkantutorial-devices_physicaldevicelist.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevicelist.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Devices\vulkantutorial-devices.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Libs\vulkantutorial-libs_exports.ixx">
@@ -45,10 +45,13 @@
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Devices\vulkantutorial-devices_graphicsprocessingunit.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Devices\vulkantutorial-devices_scoredphysicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_scoredphysicaldevice.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Vulkanite\vulkantutorial-vulkanite.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

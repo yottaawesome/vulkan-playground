@@ -1,16 +1,24 @@
-export module vulkantutorial:devices_scoredphysicaldevice;
+export module vulkantutorial:vulkanite_device_scoredphysicaldevice;
 import std;
 import :libs;
-import :devices_graphicsprocessingunit;
+import :vulkanite_device_physicaldevice;
 
-export namespace VulkanTutorial::Devices
+export namespace VulkanTutorial::Vulkanite::Device
 {
+	constexpr auto RequiredDeviceExtensions =
+		std::array{
+			vk::KHRSwapchainExtensionName,
+			vk::KHRSpirv14ExtensionName,
+			vk::KHRSynchronization2ExtensionName,
+			vk::KHRCreateRenderpass2ExtensionName
+	};
+
 	// A wrapper around vk::raii::PhysicalDevice that adds scoring and feature checks.
 	struct ScoredPhysicalDevice
 	{
-		GraphicsProcessingUnit Gpu;
+		PhysicalDevice Gpu;
 
-		explicit ScoredPhysicalDevice(GraphicsProcessingUnit device)
+		explicit ScoredPhysicalDevice(PhysicalDevice device)
 			: Gpu(std::move(device))
 		{
 		}
@@ -53,7 +61,7 @@ export namespace VulkanTutorial::Devices
 				return false;
 			}
 
-			if (not self.Gpu.SupportsRequiredExtensions())
+			if (not self.Gpu.SupportsExtensions(RequiredDeviceExtensions))
 				return false;
 
 			return true;
@@ -62,6 +70,11 @@ export namespace VulkanTutorial::Devices
 		auto GetDevice(this auto&& self) -> decltype(auto)
 		{
 			return std::forward_list<decltype(self)>(self.Device);
+		}
+
+		auto ToGraphicsProcessingUnit(this auto&& self) -> decltype(auto)
+		{
+			return std::forward_like<decltype(self)>(self.Gpu);
 		}
 	};
 }

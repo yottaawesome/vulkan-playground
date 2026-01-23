@@ -4,7 +4,7 @@ export import :libs;
 export import :app;
 export import :error;
 export import :util;
-export import :devices;
+export import :vulkanite;
 export import :concepts;
 
 export auto main(int argc, char* argv[]) -> int

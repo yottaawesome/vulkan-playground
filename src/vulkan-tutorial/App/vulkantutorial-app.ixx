@@ -3,7 +3,7 @@ import std;
 import :libs;
 import :error;
 import :util;
-import :devices;
+import :vulkanite;
 
 export namespace VulkanTutorial::App
 {
@@ -31,7 +31,8 @@ export namespace VulkanTutorial::App
 		vk::raii::Context context;
 		vk::raii::Instance instance = nullptr;
 		vk::raii::DebugUtilsMessengerEXT debugMessenger = nullptr;
-		vk::raii::PhysicalDevice physicalDevice = nullptr;
+		Vulkanite::Device::PhysicalDevice physicalDevice;
+		vk::raii::Device device = nullptr;
 
 	private: // Core internal initialisation methods.
 		// The first step is to initialise the GLFW window.
@@ -51,6 +52,7 @@ export namespace VulkanTutorial::App
 			self.CreateInstance();
 			self.SetupDebugMessenger();
 			self.PickPhysicalDevice();
+			self.CreateLogicalDevice();
 			return self;
 		}
 
@@ -64,22 +66,64 @@ export namespace VulkanTutorial::App
 		}
 
 	private: // Internal methods.
+		void CreateLogicalDevice(this MainApp& self)
+		{
+			auto index = std::optional{ self.physicalDevice.FindQueueFamilyIndex(vk::QueueFlagBits::eGraphics) };
+			if (not index)
+				throw Error::VulkanError("Failed to find graphics queue family index.");
+
+			using StructureChain = vk::StructureChain<
+				vk::PhysicalDeviceFeatures2,
+				vk::PhysicalDeviceVulkan13Features,
+				vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
+			>;
+			auto featureChain = StructureChain{
+				{},
+				{.dynamicRendering = true},
+				{.extendedDynamicState = true}
+			};
+
+			constexpr auto deviceExtensions = std::array{ vk::KHRSwapchainExtensionName };
+
+			auto queuePriority = float{ 0.5f };
+			auto deviceQueueCreateInfo = vk::DeviceQueueCreateInfo{
+				.queueFamilyIndex = *index,
+				.queueCount = 1,
+				.pQueuePriorities = &queuePriority
+			};
+			// Previous versions of Vulkan made a distinction between
+			// instance and device validation layers, but this is no 
+			// longer the case, and the associated members of the 
+			// struct are now ignored by newer implementations.
+			auto deviceCreateInfo = vk::DeviceCreateInfo{
+				.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
+				.queueCreateInfoCount = 1,
+				.pQueueCreateInfos = &deviceQueueCreateInfo,
+				.enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
+				.ppEnabledExtensionNames = deviceExtensions.data()
+			};
+			 self.device = vk::raii::Device{
+				self.physicalDevice.Device,
+				deviceCreateInfo
+			};
+		}
+
 		void PickPhysicalDevice(this MainApp& self)
 		{
 			auto physicalDevices = self.instance.enumeratePhysicalDevices();
 			if (physicalDevices.empty())
 				throw Error::VulkanError("Failed to find GPUs with Vulkan support.");
 
-			auto deviceList = Devices::PhysicalDeviceList{ physicalDevices };
+			auto deviceList = Vulkanite::Device::PhysicalDeviceList{ physicalDevices };
 			deviceList.FilterUnsupportedDevices();
 			std::println("{}", deviceList);
 			
 			if (std::optional supported = deviceList.FirstSupportedDevice(); 
 				supported)
 			{
-				auto bestDevice = Devices::ScoredPhysicalDevice{ *std::move(supported) };
+				auto bestDevice = Vulkanite::Device::ScoredPhysicalDevice{ *std::move(supported) };
 				std::println("Selected physical device: {}", bestDevice);
-				self.physicalDevice = std::move(bestDevice).Gpu.Device;
+				self.physicalDevice = std::move(bestDevice).ToGraphicsProcessingUnit();
 			}
 			else
 			{

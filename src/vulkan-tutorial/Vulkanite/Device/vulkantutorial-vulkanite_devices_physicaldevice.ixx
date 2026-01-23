@@ -1,42 +1,38 @@
-export module vulkantutorial:devices_graphicsprocessingunit;
+export module vulkantutorial:vulkanite_device_physicaldevice;
 import std;
 import :libs;
+import :concepts;
 
-export namespace VulkanTutorial::Devices
+export namespace VulkanTutorial::Vulkanite::Device
 {
-	constexpr auto RequiredDeviceExtensions =
-		std::array{
-			vk::KHRSwapchainExtensionName,
-			vk::KHRSpirv14ExtensionName,
-			vk::KHRSynchronization2ExtensionName,
-			vk::KHRCreateRenderpass2ExtensionName
-	};
-	struct GraphicsProcessingUnit
+	struct PhysicalDevice
 	{
 		vk::raii::PhysicalDevice Device = nullptr;
 
-		GraphicsProcessingUnit(vk::raii::PhysicalDevice device)
+		constexpr PhysicalDevice() = default;
+
+		PhysicalDevice(vk::raii::PhysicalDevice device)
 			: Device(std::move(device))
 		{
 		}
 
-		auto operator->(this GraphicsProcessingUnit& self) -> vk::raii::PhysicalDevice&
+		auto operator->(this PhysicalDevice& self) -> vk::raii::PhysicalDevice&
 		{
 			return self.Device;
 		}
 
-		auto GetName(this const GraphicsProcessingUnit& self) -> std::string
+		auto GetName(this const PhysicalDevice& self) -> std::string
 		{
 			auto properties = self.Device.getProperties();
 			return std::string{ std::string_view{ properties.deviceName } };
 		}
 
-		operator bool(this const GraphicsProcessingUnit& self) noexcept
+		operator bool(this const PhysicalDevice& self) noexcept
 		{
 			return *self.Device != nullptr;
 		}
 
-		auto ToString(this const GraphicsProcessingUnit& self) -> std::string
+		auto ToString(this const PhysicalDevice& self) -> std::string
 		{
 			auto properties = self.Device.getProperties();
 			return std::format(
@@ -46,18 +42,39 @@ export namespace VulkanTutorial::Devices
 			);
 		}
 
-		auto SupportsGraphicsQueue(this const GraphicsProcessingUnit& self) -> bool
+		auto SupportsGraphicsQueue(this const PhysicalDevice& self) -> bool
 		{
 			return self.QueryFamilySupport(vk::QueueFlagBits::eGraphics);
 		}
 
-		auto SupportsRequiredExtensions(this const GraphicsProcessingUnit& self) -> bool
+		auto FindQueueFamilyIndex(this const PhysicalDevice& self, vk::QueueFlagBits requested) -> std::optional<std::uint32_t>
+		{
+			if (not self)
+				return std::nullopt;
+			auto queueFamilyProperties = std::vector<vk::QueueFamilyProperties>{ 
+				self.Device.getQueueFamilyProperties() 
+			};
+			for (const auto& [index, queueProps] : std::views::enumerate(queueFamilyProperties))
+				if (queueProps.queueFlags & requested)
+					return static_cast<std::uint32_t>(index);
+			return std::nullopt;
+		}
+
+		auto FindGraphicsQueueFamilyIndex(this const PhysicalDevice& self) -> std::optional<std::uint32_t>
+		{
+			return self.FindQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
+		}
+
+		auto SupportsExtensions(
+			this const PhysicalDevice& self,
+			const std::ranges::range auto& requiredExtensions
+		) -> bool
 		{
 			if (not self)
 				return false;
 
 			auto extensions = std::vector<vk::ExtensionProperties>{ self.Device.enumerateDeviceExtensionProperties() };
-			for (std::string_view required : RequiredDeviceExtensions)
+			for (std::string_view required : requiredExtensions)
 			{
 				bool supported = std::ranges::any_of(
 					extensions,
@@ -75,7 +92,7 @@ export namespace VulkanTutorial::Devices
 		}
 
 		auto QueryFamilySupport(
-			this const GraphicsProcessingUnit& self,
+			this const PhysicalDevice& self,
 			vk::QueueFlagBits requested
 		) -> bool
 		{

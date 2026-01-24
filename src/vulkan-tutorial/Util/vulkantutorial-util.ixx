@@ -6,6 +6,9 @@ export namespace VulkanTutorial::Util
 	template<size_t VSize, typename TChar>
 	struct FixedString
 	{
+		using View = std::basic_string_view<TChar>;
+		using String = std::basic_string<TChar>;
+
 		TChar Buffer[VSize]{};
 
 		constexpr FixedString(const TChar (&str)[VSize]) noexcept
@@ -13,15 +16,49 @@ export namespace VulkanTutorial::Util
 			std::copy_n(str, VSize, Buffer);
 		}
 
-		constexpr auto ToView() const noexcept -> std::basic_string_view<TChar>
+		constexpr auto ToView(this const FixedString& self) noexcept -> View
 		{
-			return std::basic_string_view<TChar>{ Buffer, VSize - 1 };
+			return View{ self.Buffer, VSize - 1 };
 		}
 
-		constexpr auto ToString() const noexcept -> std::basic_string<TChar>
+		constexpr auto ToString(this const FixedString& self) noexcept -> String
 		{
-			return std::basic_string<TChar>{ Buffer, VSize - 1 };
+			return String{ self.Buffer, VSize - 1 };
 		}
+
+		constexpr auto Size(this const FixedString& self) noexcept -> size_t
+		{
+			return VSize - 1;
+		}
+
+		struct Iterator
+		{
+			const TChar* Ptr;
+			constexpr auto operator*() const noexcept -> const TChar&
+			{
+				return *Ptr;
+			}
+			constexpr auto operator++() noexcept -> Iterator&
+			{
+				++Ptr;
+				return *this;
+			}
+			constexpr auto operator!=(const Iterator& other) const noexcept -> bool
+			{
+				return Ptr != other.Ptr;
+			}
+		};
+
+		constexpr auto begin(this const FixedString& self) noexcept -> Iterator
+		{
+			return Iterator{ self.Buffer };
+		}
+		constexpr auto end(this const FixedString& self) noexcept -> Iterator
+		{
+			return Iterator{ self.Buffer + VSize - 1 };
+		}
+
+		constexpr auto operator<=>(this const FixedString& self, const FixedString& other) noexcept = default;
 	};
 	template<size_t VSize>
 	FixedString(const char(&)[VSize]) -> FixedString<VSize, char>;

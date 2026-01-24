@@ -38,14 +38,14 @@ export namespace VulkanTutorial::Util
 			{
 				return *Ptr;
 			}
-			constexpr auto operator++() noexcept -> Iterator&
+			constexpr auto operator++(this Iterator& self) noexcept -> Iterator&
 			{
-				++Ptr;
-				return *this;
+				++self.Ptr;
+				return self;
 			}
-			constexpr auto operator!=(const Iterator& other) const noexcept -> bool
+			constexpr auto operator!=(this const Iterator& self, const Iterator& other) noexcept -> bool
 			{
-				return Ptr != other.Ptr;
+				return self.Ptr != other.Ptr;
 			}
 		};
 

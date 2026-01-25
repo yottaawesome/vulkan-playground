@@ -57,6 +57,12 @@
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_logicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Util\vulkantutorial-util_fixedstring.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Util\vulkantutorial-util_build.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

@@ -133,6 +133,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx" />
+    <ClCompile Include="Util\vulkantutorial-util_build.ixx" />
+    <ClCompile Include="Util\vulkantutorial-util_fixedstring.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_device.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevice.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_scoredphysicaldevice.ixx" />

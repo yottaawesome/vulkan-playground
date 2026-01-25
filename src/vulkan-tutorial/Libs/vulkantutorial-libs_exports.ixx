@@ -79,6 +79,7 @@ export namespace vk
 		::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
 		::vk::QueueFlagBits,
 		::vk::Result,
+		::vk::SurfaceCapabilitiesKHR,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,

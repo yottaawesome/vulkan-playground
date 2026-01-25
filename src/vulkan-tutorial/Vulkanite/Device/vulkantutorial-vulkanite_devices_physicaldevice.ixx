@@ -14,12 +14,11 @@ export namespace VulkanTutorial::Vulkanite::Device
 
 		PhysicalDevice(vk::raii::PhysicalDevice device)
 			: Device(std::move(device))
-		{
-		}
+		{ }
 
-		auto operator->(this PhysicalDevice& self) -> vk::raii::PhysicalDevice&
+		auto operator->(this PhysicalDevice& self) -> vk::raii::PhysicalDevice*
 		{
-			return self.Device;
+			return &self.Device;
 		}
 
 		auto GetName(this const PhysicalDevice& self) -> std::string
@@ -48,7 +47,10 @@ export namespace VulkanTutorial::Vulkanite::Device
 			return self.QueryFamilySupport(vk::QueueFlagBits::eGraphics);
 		}
 
-		auto FindQueueFamilyIndex(this const PhysicalDevice& self, vk::QueueFlagBits requested) -> std::optional<std::uint32_t>
+		auto FindQueueFamilyIndex(
+			this const PhysicalDevice& self, 
+			vk::QueueFlagBits requested
+		) -> std::optional<std::uint32_t>
 		{
 			if (not self)
 				return std::nullopt;
@@ -61,7 +63,10 @@ export namespace VulkanTutorial::Vulkanite::Device
 			return std::nullopt;
 		}
 
-		auto FindPresentQueueFamilyIndexForSurface(this const PhysicalDevice& self, vk::SurfaceKHR surface) -> std::optional<std::uint32_t>
+		auto FindPresentQueueFamilyIndexForSurface(
+			this const PhysicalDevice& self, 
+			vk::SurfaceKHR surface
+		) -> std::optional<std::uint32_t>
 		{
 			if (not self)
 				return std::nullopt;
@@ -80,7 +85,8 @@ export namespace VulkanTutorial::Vulkanite::Device
 
 		// Query for a queue family that supports graphics operations.
 		// e.g vk::QueueFlagBits::eGraphics
-		auto FindGraphicsQueueFamilyIndex(this const PhysicalDevice& self) -> std::optional<std::uint32_t>
+		auto FindGraphicsQueueFamilyIndex(this const PhysicalDevice& self) 
+			-> std::optional<std::uint32_t>
 		{
 			return self.FindQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
 		}
@@ -133,6 +139,12 @@ export namespace VulkanTutorial::Vulkanite::Device
 		) -> LogicalDevice
 		{
 			return LogicalDevice{ vk::raii::Device{ self.Device, createInfo } };
+		}
+
+		auto GetFeatures(this const PhysicalDevice& self) 
+			-> vk::PhysicalDeviceFeatures
+		{
+			return self ? self.Device.getFeatures() : vk::PhysicalDeviceFeatures{};
 		}
 	};
 }

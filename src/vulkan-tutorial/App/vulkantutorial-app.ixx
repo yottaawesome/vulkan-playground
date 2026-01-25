@@ -110,6 +110,7 @@ export namespace VulkanTutorial::App
 				.queueCount = 1,
 				.pQueuePriorities = &queuePriority
 			};
+
 			// Previous versions of Vulkan made a distinction between
 			// instance and device validation layers, but this is no 
 			// longer the case, and the associated members of the 
@@ -125,6 +126,29 @@ export namespace VulkanTutorial::App
 				self.physicalDevice.CreateLogicalDevice(deviceCreateInfo);
 			self.graphicsQueue = self.device.GetQueue(*graphicsIndex, 0);
 			self.presentQueue = self.device.GetQueue(*presentIndex, 0);
+
+			auto surfaceCapabilities = std::vector<vk::SurfaceCapabilitiesKHR>{
+				self.physicalDevice->getSurfaceCapabilitiesKHR(self.surface)
+			};
+			auto availableFormats = std::vector<vk::SurfaceFormatKHR>{
+				self.physicalDevice->getSurfaceFormatsKHR(self.surface)
+			};
+			auto availablePresentModes = std::vector<vk::PresentModeKHR>{
+				self.physicalDevice->getSurfacePresentModesKHR(self.surface)
+			};
+		}
+
+		auto ChooseSwapSurfaceFormat(
+			const std::vector<vk::SurfaceFormatKHR>& availableFormats
+		) -> vk::SurfaceFormatKHR
+		{
+			for (const auto& availableFormat : availableFormats) 
+				if (availableFormat.format == vk::Format::eB8G8R8A8Srgb 
+					and availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) 
+				{
+					return availableFormat;
+				}
+			return availableFormats[0];
 		}
 
 		void PickPhysicalDevice(this MainApp& self)

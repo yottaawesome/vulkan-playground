@@ -80,6 +80,37 @@ export namespace VulkanTutorial::App
 			self.surface = vk::raii::SurfaceKHR{ self.instance, surface };
 		}
 
+		auto ChooseSwapPresentMode(
+			this MainApp&,
+			const std::vector<vk::PresentModeKHR>& availablePresentModes
+		) -> vk::PresentModeKHR
+		{
+			// Only VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available.
+			// VK_PRESENT_MODE_FIFO_KHR is more important for mobile devices,
+			// where energy usage matters.
+			for (const auto& availablePresentMode : availablePresentModes) 
+				if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+					return availablePresentMode;
+			return vk::PresentModeKHR::eFifo;
+		}
+
+		// The swap extent is the resolution of the swap chain images
+		auto ChooseSwapExtent(
+			this MainApp& self, 
+			const vk::SurfaceCapabilitiesKHR& capabilities
+		) -> vk::Extent2D
+		{
+			if (capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+				return capabilities.currentExtent;
+			
+			int width{}, height{};
+			glfw::glfwGetFramebufferSize(self.window, &width, &height);
+			return { 
+				std::clamp<std::uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+				std::clamp<std::uint32_t>(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
+			};
+		}
+
 		void CreateLogicalDevice(this MainApp& self)
 		{
 			auto graphicsIndex = std::optional{ self.physicalDevice.FindGraphicsQueueFamilyIndex() };

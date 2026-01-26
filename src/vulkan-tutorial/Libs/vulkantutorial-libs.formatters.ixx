@@ -1,7 +1,7 @@
-export module vulkantutorial:libs_formatters;
+export module vulkantutorial:libs.formatters;
 import std;
 import :concepts;
-import :libs_exports;
+import :libs.exports;
 
 export namespace std
 {

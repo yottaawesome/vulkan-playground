@@ -1,2 +1,3 @@
 export module vulkantutorial:vulkanite;
-export import :vulkanite_device;
+export import :vulkanite.device;
+export import :vulkanite.window;

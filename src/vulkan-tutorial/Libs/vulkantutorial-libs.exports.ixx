@@ -9,7 +9,7 @@ module;
 //#define GLFW_EXPOSE_NATIVE_WIN32
 //#include <GLFW/glfw3native.h>
 
-export module vulkantutorial:libs_exports;
+export module vulkantutorial:libs.exports;
 //import std; // ICE
 
 export namespace glfw
@@ -76,6 +76,7 @@ export namespace vk
 		::vk::QueueFamilyProperties,
 		::vk::PhysicalDeviceType,
 		::vk::PhysicalDeviceVulkan13Features,
+		::vk::PhysicalDeviceVulkan14Features,
 		::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
 		::vk::QueueFlagBits,
 		::vk::Result,

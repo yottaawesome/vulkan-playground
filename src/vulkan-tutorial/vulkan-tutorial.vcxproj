@@ -133,19 +133,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx" />
-    <ClCompile Include="Util\vulkantutorial-util_build.ixx" />
-    <ClCompile Include="Util\vulkantutorial-util_fixedstring.ixx" />
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_device.ixx" />
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevice.ixx" />
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_scoredphysicaldevice.ixx" />
+    <ClCompile Include="Util\vulkantutorial-util.build.ixx" />
+    <ClCompile Include="Util\vulkantutorial-util.fixedstring.ixx" />
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.ixx" />
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevice.ixx" />
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.scoredphysicaldevice.ixx" />
     <ClCompile Include="Error\vulkantutorial-error.ixx" />
-    <ClCompile Include="Libs\vulkantutorial-libs_exports.ixx" />
-    <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx" />
+    <ClCompile Include="Libs\vulkantutorial-libs.exports.ixx" />
+    <ClCompile Include="Libs\vulkantutorial-libs.formatters.ixx" />
     <ClCompile Include="App\vulkantutorial-app.ixx" />
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevicelist.ixx" />
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevicelist.ixx" />
     <ClCompile Include="Util\vulkantutorial-util.ixx" />
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_logicaldevice.ixx" />
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.logicaldevice.ixx" />
     <ClCompile Include="Vulkanite\vulkantutorial-vulkanite.ixx" />
+    <ClCompile Include="Vulkanite\Window\vulkantutorial-vulkanite.window.ixx" />
     <ClCompile Include="vulkantutorial.ixx" />
     <ClCompile Include="Libs\vulkantutorial-libs.ixx" />
   </ItemGroup>

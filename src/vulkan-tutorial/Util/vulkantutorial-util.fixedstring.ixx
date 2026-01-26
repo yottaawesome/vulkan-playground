@@ -1,4 +1,4 @@
-export module vulkantutorial:util_fixedstring;
+export module vulkantutorial:util.fixedstring;
 import std;
 
 export namespace VulkanTutorial::Util

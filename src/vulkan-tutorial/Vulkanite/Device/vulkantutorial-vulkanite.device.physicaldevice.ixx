@@ -1,8 +1,8 @@
-export module vulkantutorial:vulkanite_device_physicaldevice;
+export module vulkantutorial:vulkanite.device.physicaldevice;
 import std;
 import :libs;
 import :concepts;
-import :vulkanite_device_logicaldevice;
+import :vulkanite.device.logicaldevice;
 
 export namespace VulkanTutorial::Vulkanite::Device
 {

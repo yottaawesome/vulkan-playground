@@ -3,5 +3,5 @@ module;
 #include <compare>
 
 export module vulkantutorial:libs;
-export import :libs_exports; 
-export import :libs_formatters;
+export import :libs.exports; 
+export import :libs.formatters;

@@ -30,37 +30,40 @@
     <ClCompile Include="App\vulkantutorial-app.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\vulkantutorial-libs_formatters.ixx">
+    <ClCompile Include="Libs\vulkantutorial-libs.formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevicelist.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevicelist.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_device.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\vulkantutorial-libs_exports.ixx">
+    <ClCompile Include="Libs\vulkantutorial-libs.exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_physicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_devices_scoredphysicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.scoredphysicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Vulkanite\vulkantutorial-vulkanite.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite_logicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.logicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\vulkantutorial-util_fixedstring.ixx">
+    <ClCompile Include="Util\vulkantutorial-util.fixedstring.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\vulkantutorial-util_build.ixx">
+    <ClCompile Include="Util\vulkantutorial-util.build.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Vulkanite\Window\vulkantutorial-vulkanite.window.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,4 +1,4 @@
-export module vulkantutorial:util_build;
+export module vulkantutorial:util.build;
 
 export namespace VulkanTutorial::Util
 {

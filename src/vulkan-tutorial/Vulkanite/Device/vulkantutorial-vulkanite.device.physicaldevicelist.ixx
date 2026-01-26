@@ -1,6 +1,6 @@
-export module vulkantutorial:vulkanite_device_physicaldevicelist;
+export module vulkantutorial:vulkanite.device.physicaldevicelist;
 import std;
-import :vulkanite_device_scoredphysicaldevice;
+import :vulkanite.device.scoredphysicaldevice;
 
 export namespace VulkanTutorial::Vulkanite::Device
 {

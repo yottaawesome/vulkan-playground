@@ -1,4 +1,4 @@
-export module vulkantutorial:vulkanite_device_logicaldevice;
+export module vulkantutorial:vulkanite.device.logicaldevice;
 import std;
 import :libs;
 

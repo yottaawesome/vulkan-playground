@@ -65,6 +65,7 @@ export namespace vk
 		::vk::DebugUtilsMessageSeverityFlagsEXT,
 		::vk::DeviceQueueCreateInfo,
 		::vk::Bool32,
+		::vk::ComponentSwizzle,
 		::vk::DebugUtilsMessengerCreateInfoEXT,
 		::vk::PhysicalDevice,
 		::vk::PhysicalDeviceFeatures,
@@ -73,6 +74,7 @@ export namespace vk
 		::vk::DeviceCreateInfo,
 		::vk::ExtensionProperties,
 		::vk::StructureChain,
+		::vk::SwapchainCreateInfoKHR,
 		::vk::QueueFamilyProperties,
 		::vk::PhysicalDeviceType,
 		::vk::PhysicalDeviceVulkan13Features,
@@ -80,7 +82,11 @@ export namespace vk
 		::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
 		::vk::QueueFlagBits,
 		::vk::Result,
+		::vk::ImageViewType,
+		::vk::ImageViewCreateInfo,
 		::vk::SurfaceCapabilitiesKHR,
+		::vk::SwapchainKHR,
+		::vk::SwapchainCreateFlagsKHR,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -104,7 +110,8 @@ export namespace vk
 			::vk::raii::PhysicalDevice,
 			::vk::raii::Device,
 			::vk::raii::SurfaceKHR,
-			::vk::raii::Queue
+			::vk::raii::Queue,
+			::vk::raii::ImageView
 			;
 	}
 }

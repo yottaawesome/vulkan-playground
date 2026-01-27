@@ -37,6 +37,13 @@ export namespace VulkanTutorial::App
 		constexpr static auto deviceExtensions = std::array{ vk::KHRSwapchainExtensionName };
 		vk::raii::Queue presentQueue = nullptr;
 		vk::raii::Queue graphicsQueue = nullptr;
+		vk::raii::SwapchainKHR swapChain = nullptr;
+		std::vector<vk::Image> swapChainImages;
+		vk::Format swapChainImageFormat = vk::Format::eUndefined;
+		vk::Extent2D swapChainExtent;
+		std::uint32_t graphicsFamily = 0; // official tutorial misses these
+		std::uint32_t presentFamily = 0;
+		std::vector<vk::raii::ImageView> swapChainImageViews;
 
 	private: // Core internal initialisation methods.
 		// The first step is to initialise the GLFW window.
@@ -58,6 +65,8 @@ export namespace VulkanTutorial::App
 			self.CreateSurface();
 			self.PickPhysicalDevice();
 			self.CreateLogicalDevice();
+			self.CreateSwapChain();
+			self.CreateImageViews();
 			return self;
 		}
 
@@ -71,6 +80,90 @@ export namespace VulkanTutorial::App
 		}
 
 	private: // Internal methods.
+		void CreateImageViews(this MainApp& self)
+		{
+			self.swapChainImageViews.clear();
+
+			auto imageViewCreateInfo = vk::ImageViewCreateInfo{
+				.viewType = vk::ImageViewType::e2D, 
+				.format = self.swapChainImageFormat,
+				.components { 
+					.r = vk::ComponentSwizzle::eIdentity,
+					.g = vk::ComponentSwizzle::eIdentity,
+					.b = vk::ComponentSwizzle::eIdentity,
+					.a = vk::ComponentSwizzle::eIdentity,
+				},
+				.subresourceRange { 
+					.aspectMask = vk::ImageAspectFlagBits::eColor, 
+					.baseMipLevel = 0,
+					.levelCount = 1, 
+					.baseArrayLayer = 0, 
+					.layerCount = 1 
+				}
+			};
+
+			for (auto image : self.swapChainImages) 
+			{
+				imageViewCreateInfo.image = image;
+				self.swapChainImageViews.emplace_back(self.device.Device, imageViewCreateInfo);
+			}
+		}
+
+		void CreateSwapChain(this MainApp& self)
+		{
+			auto surfaceCapabilities = vk::SurfaceCapabilitiesKHR{ 
+				self.physicalDevice->getSurfaceCapabilitiesKHR(self.surface)
+			};
+			auto swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(
+				self.physicalDevice->getSurfaceFormatsKHR(self.surface)
+			);
+			self.swapChainExtent = self.ChooseSwapExtent(surfaceCapabilities);
+			auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
+			minImageCount = (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount) ? surfaceCapabilities.maxImageCount : minImageCount;
+
+			uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+			if (surfaceCapabilities.maxImageCount > 0
+				and imageCount > surfaceCapabilities.maxImageCount)
+			{
+				imageCount = surfaceCapabilities.maxImageCount;
+			}
+			auto swapChainCreateInfo = vk::SwapchainCreateInfoKHR{
+				.flags = vk::SwapchainCreateFlagsKHR(),
+				.surface = self.surface,
+				.minImageCount = minImageCount,
+				.imageFormat = swapChainSurfaceFormat.format,
+				.imageColorSpace = swapChainSurfaceFormat.colorSpace,
+				.imageExtent = self.swapChainExtent,
+				.imageArrayLayers = 1,
+				.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+				.imageSharingMode = vk::SharingMode::eExclusive,
+				.preTransform = surfaceCapabilities.currentTransform,
+				.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+				.presentMode = self.ChooseSwapPresentMode(self.physicalDevice->getSurfacePresentModesKHR(self.surface)),
+				.clipped = true,
+				.oldSwapchain = nullptr
+			};
+
+			auto queueFamilyIndices = 
+				std::array{ self.graphicsFamily, self.presentFamily };
+
+			if (self.graphicsFamily != self.presentFamily) 
+			{
+				swapChainCreateInfo.imageSharingMode = vk::SharingMode::eConcurrent;
+				swapChainCreateInfo.queueFamilyIndexCount = 2;
+				swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+			}
+			else 
+			{
+				swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
+				swapChainCreateInfo.queueFamilyIndexCount = 0; // Optional
+				swapChainCreateInfo.pQueueFamilyIndices = nullptr; // Optional
+			}
+
+			self.swapChain = vk::raii::SwapchainKHR(self.device.Device, swapChainCreateInfo);
+			self.swapChainImages = self.swapChain.getImages();
+		}
+
 		void CreateSurface(this MainApp& self)
 		{
 			auto surface = Vulkan::VkSurfaceKHR{};
@@ -111,6 +204,8 @@ export namespace VulkanTutorial::App
 			};
 		}
 
+		
+
 		void CreateLogicalDevice(this MainApp& self)
 		{
 			auto graphicsIndex = std::optional{ self.physicalDevice.FindGraphicsQueueFamilyIndex() };
@@ -120,6 +215,9 @@ export namespace VulkanTutorial::App
 			auto presentIndex = std::optional{ self.physicalDevice.FindPresentQueueFamilyIndexForSurface(self.surface) };
 			if (not presentIndex)
 				throw Error::VulkanError("Failed to find present queue family index.");
+
+			self.graphicsFamily = *graphicsIndex;
+			self.presentFamily = *presentIndex;
 
 			// The tutorial is weird and uses a structure chain in
 			// one page https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/00_Setup/04_Logical_device_and_queues.html

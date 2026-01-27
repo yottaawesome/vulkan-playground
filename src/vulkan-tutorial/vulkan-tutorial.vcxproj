@@ -135,6 +135,7 @@
     <ClCompile Include="Concepts\vulkantutorial-concepts.ixx" />
     <ClCompile Include="Util\vulkantutorial-util.build.ixx" />
     <ClCompile Include="Util\vulkantutorial-util.fixedstring.ixx" />
+    <ClCompile Include="Util\vulkantutorial-util.functions.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevice.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.scoredphysicaldevice.ixx" />
@@ -151,6 +152,7 @@
     <ClCompile Include="Libs\vulkantutorial-libs.ixx" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" />
     <None Include="vcpkg.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

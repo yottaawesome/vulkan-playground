@@ -86,7 +86,9 @@ export namespace vk
 		::vk::ImageViewCreateInfo,
 		::vk::SurfaceCapabilitiesKHR,
 		::vk::SwapchainKHR,
+		::vk::ShaderModuleCreateInfo,
 		::vk::SwapchainCreateFlagsKHR,
+		::vk::PipelineShaderStageCreateInfo,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -111,6 +113,8 @@ export namespace vk
 			::vk::raii::Device,
 			::vk::raii::SurfaceKHR,
 			::vk::raii::Queue,
+			::vk::raii::ShaderModule,
+			::vk::raii::SwapchainKHR,
 			::vk::raii::ImageView
 			;
 	}

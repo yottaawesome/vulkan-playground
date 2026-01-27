@@ -39,7 +39,8 @@ export namespace VulkanTutorial::App
 		vk::raii::Queue graphicsQueue = nullptr;
 		vk::raii::SwapchainKHR swapChain = nullptr;
 		std::vector<vk::Image> swapChainImages;
-		vk::Format swapChainImageFormat = vk::Format::eUndefined;
+		//vk::Format swapChainImageFormat = vk::Format::eUndefined;
+		vk::SurfaceFormatKHR swapChainSurfaceFormat;
 		vk::Extent2D swapChainExtent;
 		std::uint32_t graphicsFamily = 0; // official tutorial misses these
 		std::uint32_t presentFamily = 0;
@@ -67,6 +68,7 @@ export namespace VulkanTutorial::App
 			self.CreateLogicalDevice();
 			self.CreateSwapChain();
 			self.CreateImageViews();
+			self.CreateGraphicsPipeline();
 			return self;
 		}
 
@@ -80,13 +82,41 @@ export namespace VulkanTutorial::App
 		}
 
 	private: // Internal methods.
+		// We must describe the graphics pipeline to Vulkan, so Vulkan knows how to best optimize it.
+		// Remember, that the pipeline is essentially immutable once created.
+		void CreateGraphicsPipeline(this MainApp& self)
+		{
+			auto shaderModule = vk::raii::ShaderModule{ self.CreateShaderModule(std::vector{ Util::ReadBinaryFile("shaders/slang.spv") }) };
+			// Here, we're binding the shader modules to the pipeline stages.
+			auto vertShaderStageInfo = vk::PipelineShaderStageCreateInfo{
+				.stage = vk::ShaderStageFlagBits::eVertex, // Vertex shader stage
+				.module = shaderModule,  
+				.pName = "vertMain" 
+			};
+			auto fragShaderStageInfo = vk::PipelineShaderStageCreateInfo{
+				.stage = vk::ShaderStageFlagBits::eFragment, // Fragment shader stage
+				.module = shaderModule, 
+				.pName = "fragMain" 
+			};
+			auto shaderStages = std::array{ vertShaderStageInfo, fragShaderStageInfo };
+		}
+
+		[[nodiscard]] 
+		auto CreateShaderModule(this MainApp& self, const std::vector<std::byte>& code) -> vk::raii::ShaderModule 
+		{
+			auto shaderModuleCreateInfo = vk::ShaderModuleCreateInfo{
+				.codeSize = code.size(),
+				.pCode = reinterpret_cast<const uint32_t*>(code.data())
+			};
+			return vk::raii::ShaderModule(self.device.Device, shaderModuleCreateInfo);
+		}
+
 		void CreateImageViews(this MainApp& self)
 		{
 			self.swapChainImageViews.clear();
-
 			auto imageViewCreateInfo = vk::ImageViewCreateInfo{
 				.viewType = vk::ImageViewType::e2D, 
-				.format = self.swapChainImageFormat,
+				.format = self.swapChainSurfaceFormat.format,
 				.components { 
 					.r = vk::ComponentSwizzle::eIdentity,
 					.g = vk::ComponentSwizzle::eIdentity,
@@ -101,7 +131,6 @@ export namespace VulkanTutorial::App
 					.layerCount = 1 
 				}
 			};
-
 			for (auto image : self.swapChainImages) 
 			{
 				imageViewCreateInfo.image = image;
@@ -109,30 +138,31 @@ export namespace VulkanTutorial::App
 			}
 		}
 
+		static auto ChooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const& surfaceCapabilities) -> uint32_t
+		{
+			auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
+			if (0 < surfaceCapabilities.maxImageCount) 
+				if (surfaceCapabilities.maxImageCount < minImageCount)
+					minImageCount = surfaceCapabilities.maxImageCount;
+			return minImageCount;
+		}
+
 		void CreateSwapChain(this MainApp& self)
 		{
-			auto surfaceCapabilities = vk::SurfaceCapabilitiesKHR{ 
-				self.physicalDevice->getSurfaceCapabilitiesKHR(self.surface)
-			};
-			auto swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(
-				self.physicalDevice->getSurfaceFormatsKHR(self.surface)
-			);
+			auto surfaceCapabilities = vk::SurfaceCapabilitiesKHR{ self.physicalDevice->getSurfaceCapabilitiesKHR(self.surface) };
 			self.swapChainExtent = self.ChooseSwapExtent(surfaceCapabilities);
-			auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
-			minImageCount = (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount) ? surfaceCapabilities.maxImageCount : minImageCount;
+			self.swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(self.physicalDevice->getSurfaceFormatsKHR(self.surface));
 
-			uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
-			if (surfaceCapabilities.maxImageCount > 0
-				and imageCount > surfaceCapabilities.maxImageCount)
-			{
+			std::uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+			if (surfaceCapabilities.maxImageCount > 0 and imageCount > surfaceCapabilities.maxImageCount)
 				imageCount = surfaceCapabilities.maxImageCount;
-			}
+
 			auto swapChainCreateInfo = vk::SwapchainCreateInfoKHR{
 				.flags = vk::SwapchainCreateFlagsKHR(),
 				.surface = self.surface,
-				.minImageCount = minImageCount,
-				.imageFormat = swapChainSurfaceFormat.format,
-				.imageColorSpace = swapChainSurfaceFormat.colorSpace,
+				.minImageCount = self.ChooseSwapMinImageCount(surfaceCapabilities),
+				.imageFormat = self.swapChainSurfaceFormat.format,
+				.imageColorSpace = self.swapChainSurfaceFormat.colorSpace,
 				.imageExtent = self.swapChainExtent,
 				.imageArrayLayers = 1,
 				.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
@@ -143,23 +173,6 @@ export namespace VulkanTutorial::App
 				.clipped = true,
 				.oldSwapchain = nullptr
 			};
-
-			auto queueFamilyIndices = 
-				std::array{ self.graphicsFamily, self.presentFamily };
-
-			if (self.graphicsFamily != self.presentFamily) 
-			{
-				swapChainCreateInfo.imageSharingMode = vk::SharingMode::eConcurrent;
-				swapChainCreateInfo.queueFamilyIndexCount = 2;
-				swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-			}
-			else 
-			{
-				swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
-				swapChainCreateInfo.queueFamilyIndexCount = 0; // Optional
-				swapChainCreateInfo.pQueueFamilyIndices = nullptr; // Optional
-			}
-
 			self.swapChain = vk::raii::SwapchainKHR(self.device.Device, swapChainCreateInfo);
 			self.swapChainImages = self.swapChain.getImages();
 		}
@@ -271,12 +284,13 @@ export namespace VulkanTutorial::App
 			const std::vector<vk::SurfaceFormatKHR>& availableFormats
 		) -> vk::SurfaceFormatKHR
 		{
+			if (availableFormats.empty())
+				throw Error::VulkanError("No available surface formats found.");
+
 			for (const auto& availableFormat : availableFormats) 
-				if (availableFormat.format == vk::Format::eB8G8R8A8Srgb 
-					and availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) 
-				{
-					return availableFormat;
-				}
+				if (availableFormat.format == vk::Format::eB8G8R8A8Srgb)
+					if (availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+						return availableFormat;
 			return availableFormats[0];
 		}
 

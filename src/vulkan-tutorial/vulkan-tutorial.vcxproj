@@ -146,6 +146,7 @@
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevicelist.ixx" />
     <ClCompile Include="Util\vulkantutorial-util.ixx" />
     <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.logicaldevice.ixx" />
+    <ClCompile Include="Vulkanite\Shaders\vulkantutorial-vulkanite.shaders.ixx" />
     <ClCompile Include="Vulkanite\vulkantutorial-vulkanite.ixx" />
     <ClCompile Include="Vulkanite\Window\vulkantutorial-vulkanite.window.ixx" />
     <ClCompile Include="vulkantutorial.ixx" />

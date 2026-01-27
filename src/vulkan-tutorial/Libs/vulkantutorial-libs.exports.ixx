@@ -89,6 +89,17 @@ export namespace vk
 		::vk::ShaderModuleCreateInfo,
 		::vk::SwapchainCreateFlagsKHR,
 		::vk::PipelineShaderStageCreateInfo,
+		::vk::PipelineVertexInputStateCreateInfo,
+		::vk::PipelineInputAssemblyStateCreateInfo,
+		::vk::PipelineViewportStateCreateInfo,
+		::vk::PipelineRasterizationStateCreateInfo,
+		::vk::PipelineMultisampleStateCreateInfo,
+		::vk::PipelineColorBlendAttachmentState,
+		::vk::PipelineColorBlendStateCreateInfo,
+		::vk::DynamicState,
+		::vk::PipelineDynamicStateCreateInfo,
+		::vk::ColorComponentFlagBits,
+		::vk::ColorComponentFlags,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -115,7 +126,8 @@ export namespace vk
 			::vk::raii::Queue,
 			::vk::raii::ShaderModule,
 			::vk::raii::SwapchainKHR,
-			::vk::raii::ImageView
+			::vk::raii::ImageView,
+			::vk::raii::PipelineLayout
 			;
 	}
 }

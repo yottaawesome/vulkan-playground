@@ -45,6 +45,7 @@ export namespace VulkanTutorial::App
 		std::uint32_t graphicsFamily = 0; // official tutorial misses these
 		std::uint32_t presentFamily = 0;
 		std::vector<vk::raii::ImageView> swapChainImageViews;
+		vk::raii::PipelineLayout pipelineLayout = nullptr;
 
 	private: // Core internal initialisation methods.
 		// The first step is to initialise the GLFW window.
@@ -86,23 +87,124 @@ export namespace VulkanTutorial::App
 		// Remember, that the pipeline is essentially immutable once created.
 		void CreateGraphicsPipeline(this MainApp& self)
 		{
-			auto shaderModule = vk::raii::ShaderModule{ self.CreateShaderModule(std::vector{ Util::ReadBinaryFile("shaders/slang.spv") }) };
+			auto shaderModule = Vulkanite::Shaders::ShaderModule{
+				self.device.CreateShaderModule("shaders/slang.spv")
+			};
+
 			// Here, we're binding the shader modules to the pipeline stages.
 			auto vertShaderStageInfo = vk::PipelineShaderStageCreateInfo{
 				.stage = vk::ShaderStageFlagBits::eVertex, // Vertex shader stage
-				.module = shaderModule,  
+				.module = shaderModule.Get(),
 				.pName = "vertMain" 
 			};
 			auto fragShaderStageInfo = vk::PipelineShaderStageCreateInfo{
 				.stage = vk::ShaderStageFlagBits::eFragment, // Fragment shader stage
-				.module = shaderModule, 
+				.module = shaderModule.Get(),
 				.pName = "fragMain" 
 			};
 			auto shaderStages = std::array{ vertShaderStageInfo, fragShaderStageInfo };
+
+			// Purposefully left empty, as we're not using any vertex data for now.
+			// Describes the format of the vertex data that will be passed to the 
+			// vertex shader via bindings and attribute descriptions.
+			auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo{};
+			// Describes what kind of geometry will be drawn from the vertices and 
+			// if primitive restart should be enabled.
+			auto inputAssembly = vk::PipelineInputAssemblyStateCreateInfo{
+				.topology = vk::PrimitiveTopology::eTriangleList 
+			};
+			// A viewport basically describes the region of the framebuffer 
+			// that the output will be rendered to. This will almost always 
+			// be (0, 0) to (width, height). While viewports define the 
+			// transformation from the image to the framebuffer, scissor 
+			// rectangles define in which region pixels will actually be 
+			// stored. The rasterizer will discard any pixels outside the 
+			// scissored rectangles. They function like a filter rather 
+			// than a transformation. Viewport(s) and scissor rectangle(s) 
+			// can either be specified as a static part of the pipeline or 
+			// as a dynamic state set in the command buffer, which is the 
+			// norm now.
+			auto viewportState = vk::PipelineViewportStateCreateInfo{
+				.viewportCount = 1, 
+				.scissorCount = 1 
+			};
+			// The rasterizer takes the geometry shaped by the vertices 
+			// from the vertex shader and turns it into fragments to be 
+			// colored by the fragment shader. It also performs depth 
+			// testing, face culling and the scissor test, and it can 
+			// be configured to output fragments that fill entire 
+			// polygons or just the edges (wireframe rendering).
+			auto rasterizer = vk::PipelineRasterizationStateCreateInfo{
+				.depthClampEnable = false, 
+				.rasterizerDiscardEnable = false, 
+				.polygonMode = vk::PolygonMode::eFill, 
+				.cullMode = vk::CullModeFlagBits::eBack, 
+				.frontFace = vk::FrontFace::eClockwise, 
+				.depthBiasEnable = false, 
+				.depthBiasSlopeFactor = 1.0f, 
+				.lineWidth = 1.0f 
+			};
+			// The VkPipelineMultisampleStateCreateInfo struct configures 
+			// multisampling, which is one of the ways to perform 
+			// antialiasing. It works by combining the fragment shader 
+			// results of multiple polygons that rasterize to the same 
+			// pixel.
+			auto multisampling = vk::PipelineMultisampleStateCreateInfo{
+				.rasterizationSamples = vk::SampleCountFlagBits::e1, 
+				.sampleShadingEnable = false
+			};
+
+			constexpr auto colorWriteMask = 
+				[](auto...components) static constexpr->std::uint32_t
+				{
+					return (static_cast<std::uint32_t>(components) | ...);
+				}(vk::ColorComponentFlagBits::eR, vk::ColorComponentFlagBits::eG, vk::ColorComponentFlagBits::eB, vk::ColorComponentFlagBits::eA);
+			// After a fragment shader has returned a color, it needs 
+			// to be combined with the color that is already in the 
+			// framebuffer.This transformation is known as color 
+			// blending, and there are two ways to do it: Mix the old 
+			// and new value to produce a final color, or combine the 
+			// old and new value using a bitwise operation. There are 
+			// two types of structs to configure color blending.The 
+			// first struct, VkPipelineColorBlendAttachmentState 
+			// contains the configuration per attached framebuffer 
+			// and the second struct, 
+			// VkPipelineColorBlendStateCreateInfo contains the 
+			// global color blending settings
+			auto colorBlendAttachment = vk::PipelineColorBlendAttachmentState{
+				.blendEnable = false,
+				.colorWriteMask = vk::ColorComponentFlags{colorWriteMask}
+			};
+			auto colorBlending = vk::PipelineColorBlendStateCreateInfo{
+				.logicOpEnable = false, 
+				.logicOp = vk::LogicOp::eCopy, 
+				.attachmentCount = 1, 
+				.pAttachments = &colorBlendAttachment 
+			};
+
+			// While mostly immutable, some pipeline state can be flagged
+			// as recreatable without recreating the pipeline. This is 
+			// done via dynamic states and the dynamic state create info.
+			// This data is supplied at drawing time and this is often 
+			// done for viewport and scissor state.
+			constexpr auto dynamicStates = std::array{
+				vk::DynamicState::eViewport,
+				vk::DynamicState::eScissor 
+			};
+			vk::PipelineDynamicStateCreateInfo dynamicState{ 
+				.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), 
+				.pDynamicStates = dynamicStates.data() 
+			};
+
+			vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+			self.pipelineLayout = vk::raii::PipelineLayout(self.device.Device, pipelineLayoutInfo);
 		}
 
 		[[nodiscard]] 
-		auto CreateShaderModule(this MainApp& self, const std::vector<std::byte>& code) -> vk::raii::ShaderModule 
+		auto CreateShaderModule(
+			this MainApp& self, 
+			const std::vector<std::byte>& code
+		) -> vk::raii::ShaderModule 
 		{
 			auto shaderModuleCreateInfo = vk::ShaderModuleCreateInfo{
 				.codeSize = code.size(),
@@ -304,17 +406,13 @@ export namespace VulkanTutorial::App
 			deviceList.FilterUnsupportedDevices();
 			std::println("{}", deviceList);
 			
-			if (std::optional supported = deviceList.FirstSupportedDevice(); 
-				supported)
-			{
-				auto bestDevice = Vulkanite::Device::ScoredPhysicalDevice{ *std::move(supported) };
-				std::println("Selected physical device: {}", bestDevice);
-				self.physicalDevice = std::move(bestDevice).ToGraphicsProcessingUnit();
-			}
-			else
-			{
+			std::optional supported = deviceList.FirstSupportedDevice();
+			if (not supported)
 				throw Error::VulkanError("Failed to find a suitable GPU.");
-			}
+
+			auto bestDevice = Vulkanite::Device::ScoredPhysicalDevice{ *std::move(supported) };
+			std::println("Selected physical device: {}", bestDevice);
+			self.physicalDevice = std::move(bestDevice).ToGraphicsProcessingUnit();
 		}
 
 		void Cleanup(this MainApp& self)

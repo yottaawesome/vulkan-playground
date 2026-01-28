@@ -100,6 +100,9 @@ export namespace vk
 		::vk::PipelineDynamicStateCreateInfo,
 		::vk::ColorComponentFlagBits,
 		::vk::ColorComponentFlags,
+		::vk::PipelineRenderingCreateInfo,
+		::vk::GraphicsPipelineCreateInfo,
+		::vk::PhysicalDeviceVulkan11Features,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -127,7 +130,8 @@ export namespace vk
 			::vk::raii::ShaderModule,
 			::vk::raii::SwapchainKHR,
 			::vk::raii::ImageView,
-			::vk::raii::PipelineLayout
+			::vk::raii::PipelineLayout,
+			::vk::raii::Pipeline
 			;
 	}
 }

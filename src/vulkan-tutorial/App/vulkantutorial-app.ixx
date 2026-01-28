@@ -39,13 +39,13 @@ export namespace VulkanTutorial::App
 		vk::raii::Queue graphicsQueue = nullptr;
 		vk::raii::SwapchainKHR swapChain = nullptr;
 		std::vector<vk::Image> swapChainImages;
-		//vk::Format swapChainImageFormat = vk::Format::eUndefined;
 		vk::SurfaceFormatKHR swapChainSurfaceFormat;
 		vk::Extent2D swapChainExtent;
 		std::uint32_t graphicsFamily = 0; // official tutorial misses these
 		std::uint32_t presentFamily = 0;
 		std::vector<vk::raii::ImageView> swapChainImageViews;
 		vk::raii::PipelineLayout pipelineLayout = nullptr;
+		vk::raii::Pipeline graphicsPipeline = nullptr;
 
 	private: // Core internal initialisation methods.
 		// The first step is to initialise the GLFW window.
@@ -198,6 +198,37 @@ export namespace VulkanTutorial::App
 
 			vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 			self.pipelineLayout = vk::raii::PipelineLayout(self.device.Device, pipelineLayoutInfo);
+
+			// Dynamic rendering simplifies the rendering process by 
+			// eliminating the need for render pass and framebuffer objects.
+			// To use dynamic rendering, we need to specify the formats of the 
+			// attachments that will be used during rendering. This is done 
+			// through the vk::PipelineRenderingCreateInfo structure when 
+			// creating the graphics pipeline.
+			using StructureChain = vk::StructureChain<
+				vk::GraphicsPipelineCreateInfo,
+				vk::PipelineRenderingCreateInfo>;
+			auto pipelineCreateInfoChain = StructureChain{
+				{
+					.stageCount = 2,
+					.pStages = shaderStages.data(),
+					.pVertexInputState = &vertexInputInfo,
+					.pInputAssemblyState = &inputAssembly,
+					.pViewportState = &viewportState,
+					.pRasterizationState = &rasterizer,
+					.pMultisampleState = &multisampling,
+					.pColorBlendState = &colorBlending,
+					.pDynamicState = &dynamicState,
+					.layout = self.pipelineLayout,
+					.renderPass = nullptr // renderpass-less
+				},
+				{
+					.colorAttachmentCount = 1, 
+					.pColorAttachmentFormats = &self.swapChainSurfaceFormat.format
+				}
+			};
+
+			self.graphicsPipeline = vk::raii::Pipeline(self.device.Device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
 		}
 
 		[[nodiscard]] 
@@ -319,8 +350,6 @@ export namespace VulkanTutorial::App
 			};
 		}
 
-		
-
 		void CreateLogicalDevice(this MainApp& self)
 		{
 			auto graphicsIndex = std::optional{ self.physicalDevice.FindGraphicsQueueFamilyIndex() };
@@ -339,11 +368,13 @@ export namespace VulkanTutorial::App
 			// and then forgets about it in a subsequent link: https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/01_Presentation/00_Window_surface.html.
 			using StructureChain = vk::StructureChain<
 				vk::PhysicalDeviceFeatures2,
+				vk::PhysicalDeviceVulkan11Features,
 				vk::PhysicalDeviceVulkan13Features,
 				vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
 			>;
 			auto featureChain = StructureChain{
 				{},
+				{.shaderDrawParameters = true},
 				{.dynamicRendering = true},
 				{.extendedDynamicState = true}
 			};

@@ -9,6 +9,7 @@
     "stb",
     "tinygltf",
     "nlohmann-json",
-    "ktx"
+    "ktx",
+    "glslang"
   ]
 }

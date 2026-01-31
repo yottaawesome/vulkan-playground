@@ -46,8 +46,54 @@ export namespace VulkanTutorial::App
 		std::vector<vk::raii::ImageView> swapChainImageViews;
 		vk::raii::PipelineLayout pipelineLayout = nullptr;
 		vk::raii::Pipeline graphicsPipeline = nullptr;
+		vk::raii::CommandPool commandPool = nullptr;
+		vk::raii::CommandBuffer commandBuffer = nullptr;
 
 	private: // Core internal initialisation methods.
+		// Before we can start rendering to an image, we need to 
+		// transition its layout to one that is suitable for 
+		// rendering. In Vulkan, images can be in different 
+		// layouts that are optimized for different operations. 
+		// For example, an image can be in a layout that is 
+		// optimal for presenting to the screen, or in a layout 
+		// that is optimal for being used as a color attachment.
+		void TransitionImageLayout(
+			this MainApp& self,
+			uint32_t imageIndex,
+			vk::ImageLayout oldLayout,
+			vk::ImageLayout newLayout,
+			vk::AccessFlags2 srcAccessMask,
+			vk::AccessFlags2 dstAccessMask,
+			vk::PipelineStageFlags2 srcStageMask,
+			vk::PipelineStageFlags2 dstStageMask
+		) 
+		{
+			auto barrier = vk::ImageMemoryBarrier2{
+				.srcStageMask = srcStageMask,
+				.srcAccessMask = srcAccessMask,
+				.dstStageMask = dstStageMask,
+				.dstAccessMask = dstAccessMask,
+				.oldLayout = oldLayout,
+				.newLayout = newLayout,
+				.srcQueueFamilyIndex = Vulkan::QueueFamilyIgnored,
+				.dstQueueFamilyIndex = Vulkan::QueueFamilyIgnored,
+				.image = self.swapChainImages[imageIndex],
+				.subresourceRange = {
+					.aspectMask = vk::ImageAspectFlagBits::eColor,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
+			auto dependencyInfo = vk::DependencyInfo{
+				.dependencyFlags = {},
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &barrier
+			};
+			self.commandBuffer.pipelineBarrier2(dependencyInfo);
+		}
+
 		// The first step is to initialise the GLFW window.
 		auto InitWindow(this MainApp& self) -> MainApp&
 		{
@@ -70,6 +116,8 @@ export namespace VulkanTutorial::App
 			self.CreateSwapChain();
 			self.CreateImageViews();
 			self.CreateGraphicsPipeline();
+			self.CreateCommandPool();
+			self.CreateCommandBuffer();
 			return self;
 		}
 
@@ -83,6 +131,37 @@ export namespace VulkanTutorial::App
 		}
 
 	private: // Internal methods.
+		// Commands in Vulkan, like drawing operations and memory transfers, 
+		// are not executed directly using function calls. You have to 
+		// record all the operations you want to perform in command buffer 
+		// objects. The advantage of this is that when we are ready to tell 
+		// Vulkan what we want to do, all the commands are submitted 
+		// together. We have to create a command pool before we can create 
+		// command buffers. Command pools manage the memory that is used to 
+		// store the buffers and command buffers are allocated from them.
+		void CreateCommandPool(this MainApp& self)
+		{
+			auto poolInfo = vk::CommandPoolCreateInfo{
+				.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+				.queueFamilyIndex = self.graphicsFamily 
+			};
+			self.commandPool = vk::raii::CommandPool(self.device, poolInfo);
+		}
+
+		void CreateCommandBuffer(this MainApp& self)
+		{
+			// VK_COMMAND_BUFFER_LEVEL_PRIMARY: Can be submitted to a queue 
+			// for execution, but cannot be called from other command buffers.
+			// VK_COMMAND_BUFFER_LEVEL_SECONDARY : Cannot be submitted 
+			// directly, but can be called from primary command buffers.
+			auto allocInfo = vk::CommandBufferAllocateInfo{
+				.commandPool = self.commandPool, 
+				.level = vk::CommandBufferLevel::ePrimary, 
+				.commandBufferCount = 1 
+			};
+			self.commandBuffer = std::move(vk::raii::CommandBuffers(self.device, allocInfo).front());
+		}
+
 		// We must describe the graphics pipeline to Vulkan, so Vulkan knows how to best optimize it.
 		// Remember, that the pipeline is essentially immutable once created.
 		void CreateGraphicsPipeline(this MainApp& self)

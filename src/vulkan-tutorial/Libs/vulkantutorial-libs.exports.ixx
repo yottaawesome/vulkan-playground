@@ -52,6 +52,7 @@ export namespace Vulkan
 		::VkQueue,
 		::vkGetDeviceQueue
 		;
+	constexpr auto QueueFamilyIgnored = VK_QUEUE_FAMILY_IGNORED;
 }
 
 export namespace vk
@@ -103,7 +104,16 @@ export namespace vk
 		::vk::ColorComponentFlags,
 		::vk::PipelineRenderingCreateInfo,
 		::vk::GraphicsPipelineCreateInfo,
+		::vk::CommandPoolCreateInfo,
 		::vk::PhysicalDeviceVulkan11Features,
+		::vk::SurfaceFormatKHR,
+		::vk::CommandPoolCreateFlagBits,
+		::vk::CommandPoolCreateFlags,
+		::vk::CommandBufferLevel,
+		::vk::AccessFlags2,
+		::vk::PipelineStageFlags2,
+		::vk::ImageLayout,
+		::vk::ImageMemoryBarrier2,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -132,7 +142,9 @@ export namespace vk
 			::vk::raii::SwapchainKHR,
 			::vk::raii::ImageView,
 			::vk::raii::PipelineLayout,
-			::vk::raii::Pipeline
+			::vk::raii::Pipeline,
+			::vk::raii::CommandPool,
+			::vk::raii::CommandBuffers
 			;
 	}
 }

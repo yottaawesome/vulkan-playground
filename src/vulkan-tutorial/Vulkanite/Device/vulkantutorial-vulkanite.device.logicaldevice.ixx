@@ -10,9 +10,9 @@ export namespace VulkanTutorial::Vulkanite::Device
 	{
 		vk::raii::Device Device;
 
-		auto operator->(this LogicalDevice& self) noexcept -> vk::raii::Device&
+		auto operator->(this LogicalDevice& self) noexcept -> vk::raii::Device*
 		{
-			return self.Device;
+			return &self.Device;
 		}
 
 		operator bool(this const LogicalDevice& self) noexcept

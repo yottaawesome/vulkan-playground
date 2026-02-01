@@ -35,8 +35,7 @@ export namespace VulkanTutorial::App
 		Vulkanite::Device::LogicalDevice device = nullptr;
 		vk::raii::SurfaceKHR surface = nullptr;
 		constexpr static auto deviceExtensions = std::array{ vk::KHRSwapchainExtensionName };
-		vk::raii::Queue presentQueue = nullptr;
-		vk::raii::Queue graphicsQueue = nullptr;
+		vk::raii::Queue queue = nullptr;
 		vk::raii::SwapchainKHR swapChain = nullptr;
 		std::vector<vk::Image> swapChainImages;
 		vk::SurfaceFormatKHR swapChainSurfaceFormat;
@@ -48,8 +47,157 @@ export namespace VulkanTutorial::App
 		vk::raii::Pipeline graphicsPipeline = nullptr;
 		vk::raii::CommandPool commandPool = nullptr;
 		vk::raii::CommandBuffer commandBuffer = nullptr;
+		// Used for GPU synchronization.
+		vk::raii::Semaphore presentCompleteSemaphore = nullptr;
+		vk::raii::Semaphore renderFinishedSemaphore = nullptr;
+		// Used for CPU (host) synchronization.
+		vk::raii::Fence drawFence = nullptr;
 
 	private: // Core internal initialisation methods.
+		// The first step is to initialise the GLFW window.
+		auto InitWindow(this MainApp& self) -> MainApp&
+		{
+			glfw::glfwInit();
+			glfw::glfwWindowHint(glfw::ClientApi, glfw::NoApi);
+			glfw::glfwWindowHint(glfw::Resizable, false);
+			self.window = glfw::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
+			return self;
+		}
+
+		// We then need to initialise our connection 
+		// to Vulkan by creating a Vulkan instance.
+		auto InitVulkan(this MainApp& self) -> MainApp&
+		{
+			self.CreateInstance();
+			self.SetupDebugMessenger();
+			self.CreateSurface();
+			self.PickPhysicalDevice();
+			self.CreateLogicalDevice();
+			self.CreateSwapChain();
+			self.CreateImageViews();
+			self.CreateGraphicsPipeline();
+			self.CreateCommandPool();
+			self.CreateCommandBuffer();
+			self.CreateSyncObjects();
+			return self;
+		}
+
+		void RecordCommandBuffer(this MainApp& self, uint32_t imageIndex)
+		{
+			self.commandBuffer.begin({});
+			// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
+			self.TransitionImageLayout(
+				imageIndex,
+				vk::ImageLayout::eUndefined,
+				vk::ImageLayout::eColorAttachmentOptimal,
+				{},                                                        // srcAccessMask (no need to wait for previous operations)
+				vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
+				vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
+				vk::PipelineStageFlagBits2::eColorAttachmentOutput         // dstStage
+			);
+			vk::ClearValue              clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+			vk::RenderingAttachmentInfo attachmentInfo = {
+				.imageView = self.swapChainImageViews[imageIndex],
+				.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+				.loadOp = vk::AttachmentLoadOp::eClear,
+				.storeOp = vk::AttachmentStoreOp::eStore,
+				.clearValue = clearColor };
+			vk::RenderingInfo renderingInfo = {
+				.renderArea = {.offset = {0, 0}, .extent = self.swapChainExtent},
+				.layerCount = 1,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &attachmentInfo };
+
+			self.commandBuffer.beginRendering(renderingInfo);
+			self.commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *self.graphicsPipeline);
+			self.commandBuffer.setViewport(
+				0, 
+				vk::Viewport(
+					0.0f, 
+					0.0f, 
+					static_cast<float>(self.swapChainExtent.width), 
+					static_cast<float>(self.swapChainExtent.height), 0.0f, 1.0f
+				)
+			);
+			self.commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), self.swapChainExtent));
+			self.commandBuffer.draw(3, 1, 0, 0);
+			self.commandBuffer.endRendering();
+			// After rendering, transition the swapchain image to PRESENT_SRC
+			self.TransitionImageLayout(
+				imageIndex,
+				vk::ImageLayout::eColorAttachmentOptimal,
+				vk::ImageLayout::ePresentSrcKHR,
+				vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
+				{},                                                        // dstAccessMask
+				vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
+				vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
+			);
+			self.commandBuffer.end();
+		}
+
+		void DrawFrame(this MainApp& self)
+		{
+			self.queue.waitIdle();        // NOTE: for simplicity, wait for the queue to be idle before starting the frame
+			//// In the next chapter you see how to use multiple frames in flight and fences to sync
+			auto [result, imageIndex] = self.swapChain.acquireNextImage(
+				std::numeric_limits<std::uint32_t>::max(), 
+				*self.presentCompleteSemaphore, 
+				nullptr
+			);
+			self.RecordCommandBuffer(imageIndex);
+
+			self.device.Device.resetFences(*self.drawFence);
+			vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+			const vk::SubmitInfo submitInfo{ 
+				.waitSemaphoreCount = 1, 
+				.pWaitSemaphores = &*self.presentCompleteSemaphore, 
+				.pWaitDstStageMask = &waitDestinationStageMask, 
+				.commandBufferCount = 1, 
+				.pCommandBuffers = &*self.commandBuffer, 
+				.signalSemaphoreCount = 1, 
+				.pSignalSemaphores = &*self.renderFinishedSemaphore 
+			};
+			self.queue.submit(submitInfo, *self.drawFence);
+			result = self.device.Device.waitForFences(
+				*self.drawFence, 
+				true, 
+				std::numeric_limits<std::uint32_t>::max()
+			);
+			if (result != vk::Result::eSuccess)
+				throw std::runtime_error("Failed to wait for fence!");
+			
+			const vk::PresentInfoKHR presentInfoKHR{
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = &*self.renderFinishedSemaphore,
+				.swapchainCount = 1, 
+				.pSwapchains = &*self.swapChain,
+				.pImageIndices = &imageIndex 
+			};
+			result = self.queue.presentKHR(presentInfoKHR);
+			switch (result)
+			{
+			case vk::Result::eSuccess:
+				break;
+			case vk::Result::eSuboptimalKHR:
+				std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
+				break;
+			default:
+				break;        // an unexpected result is returned!
+			}
+		}
+
+		auto MainLoop(this MainApp& self) -> MainApp&
+		{
+			while (not glfw::glfwWindowShouldClose(self.window))
+			{
+				glfw::glfwPollEvents();
+				self.DrawFrame();
+			}
+			self.device->waitIdle();
+			return self;
+		}
+
+	private: // Internal methods.
 		// Before we can start rendering to an image, we need to 
 		// transition its layout to one that is suitable for 
 		// rendering. In Vulkan, images can be in different 
@@ -66,7 +214,7 @@ export namespace VulkanTutorial::App
 			vk::AccessFlags2 dstAccessMask,
 			vk::PipelineStageFlags2 srcStageMask,
 			vk::PipelineStageFlags2 dstStageMask
-		) 
+		)
 		{
 			auto barrier = vk::ImageMemoryBarrier2{
 				.srcStageMask = srcStageMask,
@@ -94,43 +242,18 @@ export namespace VulkanTutorial::App
 			self.commandBuffer.pipelineBarrier2(dependencyInfo);
 		}
 
-		// The first step is to initialise the GLFW window.
-		auto InitWindow(this MainApp& self) -> MainApp&
+		void CreateSyncObjects(this MainApp& self)
 		{
-			glfw::glfwInit();
-			glfw::glfwWindowHint(glfw::ClientApi, glfw::NoApi);
-			glfw::glfwWindowHint(glfw::Resizable, false);
-			self.window = glfw::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
-			return self;
+			self.presentCompleteSemaphore = vk::raii::Semaphore(self.device, vk::SemaphoreCreateInfo{});
+			self.renderFinishedSemaphore = vk::raii::Semaphore(self.device, vk::SemaphoreCreateInfo{});
+			self.drawFence = vk::raii::Fence{
+				self.device,
+				vk::FenceCreateInfo{
+					.flags = vk::FenceCreateFlagBits::eSignaled
+				}
+			};
 		}
 
-		// We then need to initialise our connection 
-		// to Vulkan by creating a Vulkan instance.
-		auto InitVulkan(this MainApp& self) -> MainApp&
-		{
-			self.CreateInstance();
-			self.SetupDebugMessenger();
-			self.CreateSurface();
-			self.PickPhysicalDevice();
-			self.CreateLogicalDevice();
-			self.CreateSwapChain();
-			self.CreateImageViews();
-			self.CreateGraphicsPipeline();
-			self.CreateCommandPool();
-			self.CreateCommandBuffer();
-			return self;
-		}
-
-		auto MainLoop(this MainApp& self) -> MainApp&
-		{
-			while (not glfw::glfwWindowShouldClose(self.window))
-			{
-				glfw::glfwPollEvents();
-			}
-			return self;
-		}
-
-	private: // Internal methods.
 		// Commands in Vulkan, like drawing operations and memory transfers, 
 		// are not executed directly using function calls. You have to 
 		// record all the operations you want to perform in command buffer 
@@ -454,7 +577,7 @@ export namespace VulkanTutorial::App
 			auto featureChain = StructureChain{
 				{},
 				{.shaderDrawParameters = true},
-				{.dynamicRendering = true},
+				{.synchronization2 = true, .dynamicRendering = true},
 				{.extendedDynamicState = true}
 			};
 
@@ -478,8 +601,7 @@ export namespace VulkanTutorial::App
 			};
 			self.device = 
 				self.physicalDevice.CreateLogicalDevice(deviceCreateInfo);
-			self.graphicsQueue = self.device.GetQueue(*graphicsIndex, 0);
-			self.presentQueue = self.device.GetQueue(*presentIndex, 0);
+			self.queue = self.device.GetQueue(*graphicsIndex, 0);
 
 			auto surfaceCapabilities = std::vector<vk::SurfaceCapabilitiesKHR>{
 				self.physicalDevice->getSurfaceCapabilitiesKHR(self.surface)

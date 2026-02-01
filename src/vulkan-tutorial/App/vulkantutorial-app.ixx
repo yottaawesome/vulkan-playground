@@ -146,8 +146,8 @@ export namespace VulkanTutorial::App
 			);
 			self.RecordCommandBuffer(imageIndex);
 
-			self.device.Device.resetFences(*self.drawFence);
-			vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+			self.device->resetFences(*self.drawFence);
+			auto waitDestinationStageMask = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 			const vk::SubmitInfo submitInfo{ 
 				.waitSemaphoreCount = 1, 
 				.pWaitSemaphores = &*self.presentCompleteSemaphore, 
@@ -158,7 +158,7 @@ export namespace VulkanTutorial::App
 				.pSignalSemaphores = &*self.renderFinishedSemaphore 
 			};
 			self.queue.submit(submitInfo, *self.drawFence);
-			result = self.device.Device.waitForFences(
+			result = self.device->waitForFences(
 				*self.drawFence, 
 				true, 
 				std::numeric_limits<std::uint32_t>::max()
@@ -166,7 +166,7 @@ export namespace VulkanTutorial::App
 			if (result != vk::Result::eSuccess)
 				throw std::runtime_error("Failed to wait for fence!");
 			
-			const vk::PresentInfoKHR presentInfoKHR{
+			const auto presentInfoKHR = vk::PresentInfoKHR{
 				.waitSemaphoreCount = 1,
 				.pWaitSemaphores = &*self.renderFinishedSemaphore,
 				.swapchainCount = 1, 
@@ -399,7 +399,7 @@ export namespace VulkanTutorial::App
 			};
 
 			vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-			self.pipelineLayout = vk::raii::PipelineLayout(self.device.Device, pipelineLayoutInfo);
+			self.pipelineLayout = vk::raii::PipelineLayout(self.device, pipelineLayoutInfo);
 
 			// Dynamic rendering simplifies the rendering process by 
 			// eliminating the need for render pass and framebuffer objects.
@@ -430,7 +430,7 @@ export namespace VulkanTutorial::App
 				}
 			};
 
-			self.graphicsPipeline = vk::raii::Pipeline(self.device.Device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
+			self.graphicsPipeline = vk::raii::Pipeline(self.device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
 		}
 
 		[[nodiscard]] 
@@ -443,7 +443,7 @@ export namespace VulkanTutorial::App
 				.codeSize = code.size(),
 				.pCode = reinterpret_cast<const uint32_t*>(code.data())
 			};
-			return vk::raii::ShaderModule(self.device.Device, shaderModuleCreateInfo);
+			return vk::raii::ShaderModule(self.device, shaderModuleCreateInfo);
 		}
 
 		void CreateImageViews(this MainApp& self)
@@ -469,7 +469,7 @@ export namespace VulkanTutorial::App
 			for (auto image : self.swapChainImages) 
 			{
 				imageViewCreateInfo.image = image;
-				self.swapChainImageViews.emplace_back(self.device.Device, imageViewCreateInfo);
+				self.swapChainImageViews.emplace_back(self.device, imageViewCreateInfo);
 			}
 		}
 
@@ -508,7 +508,7 @@ export namespace VulkanTutorial::App
 				.clipped = true,
 				.oldSwapchain = nullptr
 			};
-			self.swapChain = vk::raii::SwapchainKHR(self.device.Device, swapChainCreateInfo);
+			self.swapChain = vk::raii::SwapchainKHR(self.device, swapChainCreateInfo);
 			self.swapChainImages = self.swapChain.getImages();
 		}
 

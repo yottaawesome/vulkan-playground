@@ -72,6 +72,9 @@
     <ClCompile Include="Vulkanite\Shaders\vulkantutorial-vulkanite.shaders.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Vulkanite\Sync\vulkanite-sync.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

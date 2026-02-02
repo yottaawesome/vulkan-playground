@@ -166,6 +166,11 @@ export namespace VulkanTutorial::App
 			if (result != vk::Result::eSuccess)
 				throw std::runtime_error("Failed to wait for fence!");
 			
+			// The last step of drawing a frame is submitting the 
+			// result back to the swap chain to have it eventually 
+			// show up on the screen. Presentation is configured 
+			// through a vk::PresentInfoKHR structure at the end 
+			// of the drawFrame function.
 			const auto presentInfoKHR = vk::PresentInfoKHR{
 				.waitSemaphoreCount = 1,
 				.pWaitSemaphores = &*self.renderFinishedSemaphore,

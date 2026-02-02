@@ -3,6 +3,7 @@ import std;
 import :libs;
 import :vulkanite.shaders;
 import :util;
+import :vulkanite.sync;
 
 export namespace VulkanTutorial::Vulkanite::Device
 {
@@ -23,6 +24,14 @@ export namespace VulkanTutorial::Vulkanite::Device
 		operator vk::raii::Device&(this LogicalDevice& self) noexcept
 		{
 			return self.Device;
+		}
+
+		auto CreateSemaphore(
+			this const LogicalDevice& self,
+			const vk::SemaphoreCreateInfo& createInfo = {}
+		) -> Sync::Semaphore
+		{
+			return Sync::Semaphore{ vk::raii::Semaphore(self.Device, createInfo) };
 		}
 
 		auto CreateShaderModule(

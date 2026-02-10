@@ -18,61 +18,61 @@
     <ClCompile Include="vulkantutorial.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\vulkantutorial-libs.ixx">
+    <ClCompile Include="Libs\libs.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Error\vulkantutorial-error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\vulkantutorial-util.ixx">
+    <ClCompile Include="Util\util.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="App\vulkantutorial-app.ixx">
+    <ClCompile Include="App\app.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\vulkantutorial-libs.formatters.ixx">
+    <ClCompile Include="Libs\libs.formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevicelist.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkanite.device.physicaldevicelist.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkanite.device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\vulkantutorial-libs.exports.ixx">
+    <ClCompile Include="Libs\libs.exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Concepts\vulkantutorial-concepts.ixx">
+    <ClCompile Include="Concepts\concepts.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.physicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkanite.device.physicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.scoredphysicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkanite.device.scoredphysicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\vulkantutorial-vulkanite.ixx">
+    <ClCompile Include="Vulkanite\vulkanite.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkantutorial-vulkanite.device.logicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\vulkanite.device.logicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\vulkantutorial-util.fixedstring.ixx">
+    <ClCompile Include="Util\util.fixedstring.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\vulkantutorial-util.build.ixx">
+    <ClCompile Include="Util\util.build.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Window\vulkantutorial-vulkanite.window.ixx">
+    <ClCompile Include="Vulkanite\Window\vulkanite.window.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\vulkantutorial-util.functions.ixx">
+    <ClCompile Include="Util\util.functions.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Shaders\vulkantutorial-vulkanite.shaders.ixx">
+    <ClCompile Include="Vulkanite\Shaders\vulkanite.shaders.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Sync\vulkanite-sync.ixx">
+    <ClCompile Include="Vulkanite\Sync\sync.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

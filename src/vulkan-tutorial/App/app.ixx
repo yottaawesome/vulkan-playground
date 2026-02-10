@@ -155,14 +155,14 @@ export namespace VulkanTutorial::App
 				vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
 				vk::PipelineStageFlagBits2::eColorAttachmentOutput         // dstStage
 			);
-			vk::ClearValue              clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-			vk::RenderingAttachmentInfo attachmentInfo = {
+			auto clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+			auto attachmentInfo = vk::RenderingAttachmentInfo{
 				.imageView = self.swapChainImageViews[imageIndex],
 				.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 				.loadOp = vk::AttachmentLoadOp::eClear,
 				.storeOp = vk::AttachmentStoreOp::eStore,
 				.clearValue = clearColor };
-			vk::RenderingInfo renderingInfo = {
+			auto renderingInfo = vk::RenderingInfo{
 				.renderArea = {.offset = {0, 0}, .extent = self.swapChainExtent},
 				.layerCount = 1,
 				.colorAttachmentCount = 1,
@@ -172,12 +172,12 @@ export namespace VulkanTutorial::App
 			self.frame.CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *self.graphicsPipeline);
 			self.frame.CommandBuffer.setViewport(
 				0, 
-				vk::Viewport(
-					0.0f, 
-					0.0f, 
-					static_cast<float>(self.swapChainExtent.width), 
+				vk::Viewport{
+					0.0f,
+					0.0f,
+					static_cast<float>(self.swapChainExtent.width),
 					static_cast<float>(self.swapChainExtent.height), 0.0f, 1.0f
-				)
+				}
 			);
 			self.frame.CommandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), self.swapChainExtent));
 			self.frame.CommandBuffer.draw(3, 1, 0, 0);

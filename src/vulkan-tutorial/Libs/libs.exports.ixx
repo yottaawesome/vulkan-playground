@@ -1,8 +1,9 @@
 module;
 
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
-#include <vulkan/vulkan_raii.hpp>
+#define VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #include <glslang/Public/ShaderLang.h>
 #define GLFW_INCLUDE_VULKAN
 //#define VK_USE_PLATFORM_WIN32_KHR

@@ -9,64 +9,7 @@ export namespace VulkanTutorial::App
 {
 	constexpr auto Width = std::uint32_t{ 800 };
 	constexpr auto Height = std::uint32_t{ 600 };
-
-	struct Frame
-	{
-		vk::raii::CommandBuffer CommandBuffer = nullptr;
-		vk::raii::Semaphore PresentCompleteSemaphore = nullptr;
-		vk::raii::Semaphore RenderFinishedSemaphore = nullptr;
-		vk::raii::Fence InFlightFence = nullptr;
-	};
-
-	template<size_t VNumFrames, typename TFrame>
-	struct InflightFrames
-	{
-		std::uint32_t CurrentFrameIndex = 0;
-		std::array<TFrame, VNumFrames> Frames{};
-
-		constexpr auto Reset(this InflightFrames& self) -> void
-		{
-			self.CurrentFrameIndex = 0;
-		}
-
-		constexpr auto operator++(this InflightFrames& self, int) -> InflightFrames&
-		{
-			self.Advance();
-			return self;
-		}
-
-		constexpr auto Advance(this InflightFrames& self) -> std::uint32_t
-		{
-			self.CurrentFrameIndex = (self.CurrentFrameIndex + 1) % VNumFrames;
-			return self.CurrentFrameIndex;
-		}
-
-		constexpr auto CurrentFrame(this InflightFrames& self) -> TFrame&
-		{
-			return self.Frames[self.CurrentFrameIndex];
-		}
-
-		constexpr auto CurrentIndex(this InflightFrames& self) -> std::uint32_t
-		{
-			return self.CurrentFrameIndex;
-		}
-
-		constexpr auto MaxFrames(this const InflightFrames& self) -> std::uint64_t
-		{
-			return VNumFrames;
-		}
-	};
-
-	static_assert(
-		[] {
-			struct TFrame{};
-			InflightFrames<2, TFrame> frames;
-			frames++;
-			if (frames.CurrentIndex() != 1)
-				return false;
-			return true;
-		}()
-	);
+	constexpr int MaxFramesInFlight = 2;
 
 	class MainApp
 	{
@@ -105,22 +48,26 @@ export namespace VulkanTutorial::App
 		vk::raii::Pipeline graphicsPipeline = nullptr;
 		vk::raii::CommandPool commandPool = nullptr;
 
-		Frame frame{};
-		//vk::raii::CommandBuffer commandBuffer = nullptr;
-		//// Used for GPU synchronization.
-		//vk::raii::Semaphore presentCompleteSemaphore = nullptr;
-		//vk::raii::Semaphore renderFinishedSemaphore = nullptr;
-		//// Used for CPU (host) synchronization.
-		//vk::raii::Fence drawFence = nullptr;
+		std::vector<vk::raii::CommandBuffer> commandBuffers;
+		std::vector<vk::raii::Semaphore> presentCompleteSemaphores;
+		std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
+		std::vector<vk::raii::Fence> inFlightFences;
+		std::uint32_t frameIndex = 0;
+		bool framebufferResized = false;
 
 	private: // Core internal initialisation methods.
 		// The first step is to initialise the GLFW window.
 		auto InitWindow(this MainApp& self) -> MainApp&
 		{
 			glfw::glfwInit();
+
 			glfw::glfwWindowHint(glfw::ClientApi, glfw::NoApi);
 			glfw::glfwWindowHint(glfw::Resizable, false);
+
 			self.window = glfw::glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
+			glfw::glfwSetWindowUserPointer(self.window, &self);
+			glfw::glfwSetFramebufferSizeCallback(self.window, FramebufferResizeCallback);
+
 			return self;
 		}
 
@@ -137,14 +84,56 @@ export namespace VulkanTutorial::App
 			self.CreateImageViews();
 			self.CreateGraphicsPipeline();
 			self.CreateCommandPool();
-			self.CreateCommandBuffer();
+			self.CreateCommandBuffers();
 			self.CreateSyncObjects();
 			return self;
 		}
 
+		auto MainLoop(this MainApp& self) -> MainApp&
+		{
+			while (not glfw::glfwWindowShouldClose(self.window))
+			{
+				glfw::glfwPollEvents();
+				self.DrawFrame();
+			}
+			self.device->waitIdle();
+			return self;
+		}
+
+	private: // Internal methods.
+		static void FramebufferResizeCallback(glfw::GLFWwindow* window, int width, int height)
+		{
+			auto app = reinterpret_cast<MainApp*>(glfw::glfwGetWindowUserPointer(window));
+			app->framebufferResized = true;
+		}
+
+		void RecreateSwapChain(this MainApp& self)
+		{
+			int width = 0, height = 0;
+			glfwGetFramebufferSize(self.window, &width, &height);
+			while (width == 0 or height == 0)
+			{
+				glfwGetFramebufferSize(self.window, &width, &height);
+				glfw::glfwWaitEvents();
+			}
+
+			self.device->waitIdle();
+
+			self.CleanupSwapChain();
+			self.CreateSwapChain();
+			self.CreateImageViews();
+		}
+
+		void CleanupSwapChain(this MainApp& self)
+		{
+			self.swapChainImageViews.clear();
+			self.swapChain = nullptr;
+		}
+
 		void RecordCommandBuffer(this MainApp& self, uint32_t imageIndex)
 		{
-			self.frame.CommandBuffer.begin({});
+			auto& commandBuffer = self.commandBuffers[self.frameIndex];
+			commandBuffer.begin({});
 			// Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
 			self.TransitionImageLayout(
 				imageIndex,
@@ -168,10 +157,10 @@ export namespace VulkanTutorial::App
 				.colorAttachmentCount = 1,
 				.pColorAttachments = &attachmentInfo };
 
-			self.frame.CommandBuffer.beginRendering(renderingInfo);
-			self.frame.CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *self.graphicsPipeline);
-			self.frame.CommandBuffer.setViewport(
-				0, 
+			commandBuffer.beginRendering(renderingInfo);
+			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *self.graphicsPipeline);
+			commandBuffer.setViewport(
+				0,
 				vk::Viewport{
 					0.0f,
 					0.0f,
@@ -179,9 +168,9 @@ export namespace VulkanTutorial::App
 					static_cast<float>(self.swapChainExtent.height), 0.0f, 1.0f
 				}
 			);
-			self.frame.CommandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), self.swapChainExtent));
-			self.frame.CommandBuffer.draw(3, 1, 0, 0);
-			self.frame.CommandBuffer.endRendering();
+			commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), self.swapChainExtent));
+			commandBuffer.draw(3, 1, 0, 0);
+			commandBuffer.endRendering();
 			// After rendering, transition the swapchain image to PRESENT_SRC
 			self.TransitionImageLayout(
 				imageIndex,
@@ -192,77 +181,83 @@ export namespace VulkanTutorial::App
 				vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
 				vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
 			);
-			self.frame.CommandBuffer.end();
+			commandBuffer.end();
 		}
 
 		void DrawFrame(this MainApp& self)
 		{
-			self.queue.waitIdle();        // NOTE: for simplicity, wait for the queue to be idle before starting the frame
-			//// In the next chapter you see how to use multiple frames in flight and fences to sync
-			auto [result, imageIndex] = self.swapChain.acquireNextImage(
-				std::numeric_limits<std::uint32_t>::max(), 
-				*self.frame.PresentCompleteSemaphore, 
-				nullptr
-			);
+			auto fenceResult = self.device->waitForFences(*self.inFlightFences[self.frameIndex], true, std::numeric_limits<std::uint64_t>::max());
+			if (fenceResult != vk::Result::eSuccess)
+			{
+				throw std::runtime_error("failed to wait for fence!");
+			}
+
+			auto [result, imageIndex] = self.swapChain.acquireNextImage(std::numeric_limits<std::uint64_t>::max(), *self.presentCompleteSemaphores[self.frameIndex], nullptr);
+			if (result == vk::Result::eErrorOutOfDateKHR)
+			{
+				self.RecreateSwapChain();
+				return;
+			}
+			if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+				throw std::runtime_error("failed to acquire swap chain image!");
+
+			self.device->resetFences(*self.inFlightFences[self.frameIndex]);
+			self.commandBuffers[self.frameIndex].reset();
 			self.RecordCommandBuffer(imageIndex);
 
-			self.device->resetFences(*self.frame.InFlightFence);
 			auto waitDestinationStageMask = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-			const vk::SubmitInfo submitInfo{ 
-				.waitSemaphoreCount = 1, 
-				.pWaitSemaphores = &*self.frame.PresentCompleteSemaphore, 
-				.pWaitDstStageMask = &waitDestinationStageMask, 
-				.commandBufferCount = 1, 
-				.pCommandBuffers = &*self.frame.CommandBuffer, 
-				.signalSemaphoreCount = 1, 
-				.pSignalSemaphores = &*self.frame.RenderFinishedSemaphore 
+			const auto submitInfo = vk::SubmitInfo{
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = &*self.presentCompleteSemaphores[self.frameIndex],
+				.pWaitDstStageMask = &waitDestinationStageMask,
+				.commandBufferCount = 1,
+				.pCommandBuffers = &*self.commandBuffers[self.frameIndex],
+				.signalSemaphoreCount = 1,
+				.pSignalSemaphores = &*self.renderFinishedSemaphores[imageIndex]
 			};
-			self.queue.submit(submitInfo, *self.frame.InFlightFence);
-			result = self.device->waitForFences(
-				*self.frame.InFlightFence, 
-				true, 
-				std::numeric_limits<std::uint32_t>::max()
-			);
-			if (result != vk::Result::eSuccess)
-				throw std::runtime_error("Failed to wait for fence!");
-			
-			// The last step of drawing a frame is submitting the 
-			// result back to the swap chain to have it eventually 
-			// show up on the screen. Presentation is configured 
-			// through a vk::PresentInfoKHR structure at the end 
-			// of the drawFrame function.
+			self.queue.submit(submitInfo, *self.inFlightFences[self.frameIndex]);
+
 			const auto presentInfoKHR = vk::PresentInfoKHR{
 				.waitSemaphoreCount = 1,
-				.pWaitSemaphores = &*self.frame.RenderFinishedSemaphore,
-				.swapchainCount = 1, 
+				.pWaitSemaphores = &*self.renderFinishedSemaphores[imageIndex],
+				.swapchainCount = 1,
 				.pSwapchains = &*self.swapChain,
-				.pImageIndices = &imageIndex 
+				.pImageIndices = &imageIndex
 			};
-			result = self.queue.presentKHR(presentInfoKHR);
-			switch (result)
+			// TODO 2026-02-16: hack to work around the fact that 
+			// vk::raii::Queue::presentKHR throws an exception on 
+			// suboptimal or out of date swapchain, as the current
+			// Vulkan vcpkg port do not have the following change:
+			// https://github.com/KhronosGroup/Vulkan-Hpp/pull/2312
+			// Opened an issue with the vcpkg team to update the
+			// vulkan package port: 
+			// https://github.com/microsoft/vcpkg/issues/50038
+			try
 			{
-			case vk::Result::eSuccess:
-				break;
-			case vk::Result::eSuboptimalKHR:
-				std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
-				break;
-			default:
-				break;        // an unexpected result is returned!
+				result = self.queue.presentKHR(presentInfoKHR);
 			}
+			catch (const vk::SystemError& e)
+			{
+				if (e.code() == vk::Result::eErrorOutOfDateKHR)
+				{
+					self.RecreateSwapChain();
+					return;
+				}
+				throw;
+			}
+			if ((result == vk::Result::eSuboptimalKHR) or (result == vk::Result::eErrorOutOfDateKHR) or self.framebufferResized)
+			{
+				self.framebufferResized = false;
+				self.RecreateSwapChain();
+			}
+			else if (result != vk::Result::eSuccess)
+			{
+				// There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
+				std::abort();
+			}
+			self.frameIndex = (self.frameIndex + 1) % MaxFramesInFlight;
 		}
 
-		auto MainLoop(this MainApp& self) -> MainApp&
-		{
-			while (not glfw::glfwWindowShouldClose(self.window))
-			{
-				glfw::glfwPollEvents();
-				self.DrawFrame();
-			}
-			self.device->waitIdle();
-			return self;
-		}
-
-	private: // Internal methods.
 		// Before we can start rendering to an image, we need to 
 		// transition its layout to one that is suitable for 
 		// rendering. In Vulkan, images can be in different 
@@ -304,19 +299,21 @@ export namespace VulkanTutorial::App
 				.imageMemoryBarrierCount = 1,
 				.pImageMemoryBarriers = &barrier
 			};
-			self.frame.CommandBuffer.pipelineBarrier2(dependencyInfo);
+			self.commandBuffers[self.frameIndex].pipelineBarrier2(dependencyInfo);
 		}
 
 		void CreateSyncObjects(this MainApp& self)
 		{
-			self.frame.PresentCompleteSemaphore = vk::raii::Semaphore(self.device, vk::SemaphoreCreateInfo{});
-			self.frame.RenderFinishedSemaphore = vk::raii::Semaphore(self.device, vk::SemaphoreCreateInfo{});
-			self.frame.InFlightFence = vk::raii::Fence{
-				self.device,
-				vk::FenceCreateInfo{
-					.flags = vk::FenceCreateFlagBits::eSignaled
-				}
-			};
+			for (size_t i = 0; i < self.swapChainImages.size(); i++)
+			{
+				self.renderFinishedSemaphores.emplace_back(self.device, vk::SemaphoreCreateInfo());
+			}
+
+			for (size_t i = 0; i < MaxFramesInFlight; i++)
+			{
+				self.presentCompleteSemaphores.emplace_back(self.device, vk::SemaphoreCreateInfo());
+				self.inFlightFences.emplace_back(self.device, vk::FenceCreateInfo{ .flags = vk::FenceCreateFlagBits::eSignaled });
+			}
 		}
 
 		// Commands in Vulkan, like drawing operations and memory transfers, 
@@ -336,18 +333,18 @@ export namespace VulkanTutorial::App
 			self.commandPool = vk::raii::CommandPool(self.device, poolInfo);
 		}
 
-		void CreateCommandBuffer(this MainApp& self)
+		void CreateCommandBuffers(this MainApp& self)
 		{
 			// VK_COMMAND_BUFFER_LEVEL_PRIMARY: Can be submitted to a queue 
 			// for execution, but cannot be called from other command buffers.
 			// VK_COMMAND_BUFFER_LEVEL_SECONDARY : Cannot be submitted 
 			// directly, but can be called from primary command buffers.
-			auto allocInfo = vk::CommandBufferAllocateInfo{
-				.commandPool = self.commandPool, 
+			vk::CommandBufferAllocateInfo allocInfo{ 
+				.commandPool = *self.commandPool, 
 				.level = vk::CommandBufferLevel::ePrimary, 
-				.commandBufferCount = 1 
+				.commandBufferCount = MaxFramesInFlight 
 			};
-			self.frame.CommandBuffer = std::move(vk::raii::CommandBuffers(self.device, allocInfo).front());
+			self.commandBuffers = vk::raii::CommandBuffers(self.device, allocInfo);
 		}
 
 		// We must describe the graphics pipeline to Vulkan, so Vulkan knows how to best optimize it.
@@ -714,6 +711,7 @@ export namespace VulkanTutorial::App
 
 		void Cleanup(this MainApp& self)
 		{
+			self.CleanupSwapChain();
 			glfw::glfwDestroyWindow(self.window);
 			glfw::glfwTerminate();
 		}

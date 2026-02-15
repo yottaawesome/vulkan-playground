@@ -245,7 +245,9 @@ export namespace VulkanTutorial::App
 				}
 				throw;
 			}
-			if ((result == vk::Result::eSuboptimalKHR) or (result == vk::Result::eErrorOutOfDateKHR) or self.framebufferResized)
+			if ((result == vk::Result::eSuboptimalKHR) 
+				or (result == vk::Result::eErrorOutOfDateKHR) 
+				or self.framebufferResized)
 			{
 				self.framebufferResized = false;
 				self.RecreateSwapChain();

@@ -224,27 +224,9 @@ export namespace VulkanTutorial::App
 				.pSwapchains = &*self.swapChain,
 				.pImageIndices = &imageIndex
 			};
-			// TODO 2026-02-16: hack to work around the fact that 
-			// vk::raii::Queue::presentKHR throws an exception on 
-			// suboptimal or out of date swapchain, as the current
-			// Vulkan vcpkg port do not have the following change:
-			// https://github.com/KhronosGroup/Vulkan-Hpp/pull/2312
-			// Opened an issue with the vcpkg team to update the
-			// vulkan package port: 
-			// https://github.com/microsoft/vcpkg/issues/50038
-			try
-			{
-				result = self.queue.presentKHR(presentInfoKHR);
-			}
-			catch (const vk::SystemError& e)
-			{
-				if (e.code() == vk::Result::eErrorOutOfDateKHR)
-				{
-					self.RecreateSwapChain();
-					return;
-				}
-				throw;
-			}
+
+			result = self.queue.presentKHR(presentInfoKHR);
+
 			if ((result == vk::Result::eSuboptimalKHR) 
 				or (result == vk::Result::eErrorOutOfDateKHR) 
 				or self.framebufferResized)

@@ -18,6 +18,8 @@ namespace Win32
 			0,
 			nullptr
 		);
+		if (size == 0)
+			return std::format("Unknown error code {}", errorCode);
 		auto message = std::string(messageBuffer, size);
 		LocalFree(messageBuffer);
 		return message;
@@ -37,17 +39,50 @@ namespace Win32
 			0,
 			nullptr
 		);
+		if (size == 0)
+			return std::format(L"Unknown error code {}", errorCode);
 		auto message = std::wstring(messageBuffer, size);
 		LocalFree(messageBuffer);
 		return message;
 	}
 
+	struct Win32ErrorCode
+	{
+		const DWORD Code = 0;
+		auto ToString(this const Win32ErrorCode& self) -> std::string
+		{
+			return ErrorCodeToAnsi(self.Code);
+		}
+	};
+
 	struct Error : std::runtime_error
 	{
-		DWORD Code = 0;
-		Error() noexcept = default;
-		explicit Error(DWORD code) noexcept
-			: std::runtime_error{ ErrorCodeToAnsi(code) }
+		const DWORD Code = 0;
+
+		explicit Error(
+			DWORD code, 
+			std::string_view message = "An exception occurred",
+			const std::source_location& loc = std::source_location::current()
+		) noexcept
+			: std::runtime_error{ Format(code, message, loc) }
+			, Code(code)
 		{}
+
+		static auto Format(
+			DWORD code, 
+			std::string_view message, 
+			const std::source_location& loc
+		) -> std::string
+		{
+			return std::format(
+				"{} {} (code {}) at {}:{}:{}", 
+				message,
+				ErrorCodeToAnsi(code), 
+				code, 
+				loc.file_name(), 
+				loc.line(), 
+				loc.column()
+			);
+		}
 	};
 }

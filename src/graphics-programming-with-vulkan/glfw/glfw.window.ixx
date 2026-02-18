@@ -8,10 +8,10 @@ namespace glfw
 	struct WindowFactory
 	{
 		std::string Title = "Vulkan";
-		std::uint32_t ClientApi = glfw::WindowHints::NoApi;
+		std::int32_t ClientApi = glfw::WindowHints::NoApi;
+		std::int32_t Width = 800;
+		std::int32_t Height = 600;
 		bool Resizable = false;
-		std::uint32_t Width = 800;
-		std::uint32_t Height = 600;
 
 		auto Create(this const WindowFactory& self) -> GlfwWindowUniquePtr
 		{

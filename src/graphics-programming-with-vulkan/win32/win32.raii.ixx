@@ -6,5 +6,5 @@ import :win32.exports;
 namespace Win32
 {
 	using HInstanceUniquePtr = Raii::DirectUniquePtr<HINSTANCE, FreeLibrary>;
-	using HandleUniquePtr = Raii::DirectUniquePtr<HANDLE, CloseHandle>;
+	using HandleUniquePtr = Raii::IndirectUniquePtr<HANDLE, CloseHandle>;
 }

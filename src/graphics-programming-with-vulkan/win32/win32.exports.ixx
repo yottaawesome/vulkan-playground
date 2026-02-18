@@ -12,7 +12,29 @@ export namespace Win32
 		::LPWSTR,
 		::UINT,
 		::HANDLE,
+		::SECURITY_DESCRIPTOR,
+		::SECURITY_ATTRIBUTES,
+		::DWORD,
+		::HRESULT,
+		::LocalFree,
+		::GetLastError,
+		::FormatMessageA,
+		::FormatMessageW,
+		::CreateEventW,
+		::ResetEvent,
+		::SetEvent,
+		::OpenEventW,
 		::FreeLibrary,
 		::CloseHandle
 		;
+
+	namespace FormatMessageFlags
+	{
+		enum : DWORD
+		{
+			AllocateBuffer = FORMAT_MESSAGE_ALLOCATE_BUFFER,
+			FromSystem = FORMAT_MESSAGE_FROM_SYSTEM,
+			IgnoreInserts = FORMAT_MESSAGE_IGNORE_INSERTS
+		};
+	}
 }

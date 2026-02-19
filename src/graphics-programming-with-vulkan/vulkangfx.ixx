@@ -4,3 +4,4 @@ export import :win32;
 export import :glfw;
 export import :glm;
 export import :gsl;
+export import :vulkan;

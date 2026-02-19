@@ -140,12 +140,16 @@
     <ClCompile Include="glfw\glfw.monitor.ixx" />
     <ClCompile Include="glm\glm.exports.ixx" />
     <ClCompile Include="glm\glm.ixx" />
+    <ClCompile Include="graphics\graphics.ixx" />
+    <ClCompile Include="graphics\graphics.coregraphics.ixx" />
     <ClCompile Include="gsl\gsl.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vulkangfx.ixx" />
     <ClCompile Include="glfw\glfw.raii.ixx" />
     <ClCompile Include="glfw\glfw.window.ixx" />
     <ClCompile Include="raii\raii.ixx" />
+    <ClCompile Include="vulkan\vulkan.exports.ixx" />
+    <ClCompile Include="vulkan\vulkan.ixx" />
     <ClCompile Include="win32\win32.error.ixx" />
     <ClCompile Include="win32\win32.event.ixx" />
     <ClCompile Include="win32\win32.exports.ixx" />

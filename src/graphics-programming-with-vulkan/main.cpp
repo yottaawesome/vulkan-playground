@@ -18,7 +18,7 @@ try
 	auto [windowWidth, windowHeight] = window.GetContentAreaDimensions();
 	window.SetPosition((monitorWidth - windowWidth) / 2, (monitorHeight - windowHeight) / 2);
 
-	while (not window.ShouldClose())
+	while (window.StillOpen())
 	{
 		glfw::glfwPollEvents();
 	}

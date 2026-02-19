@@ -89,9 +89,19 @@ export namespace glfw
 			return window.get();
 		}
 
+		auto GetUniquePtr(this auto&& self) -> GlfwWindowUniquePtr
+		{
+			return std::forward_like<decltype(self)>(self.window);
+		}
+
 		auto ShouldClose(this const Window& self) -> bool
 		{
 			return glfw::glfwWindowShouldClose(self.window.get());
+		}
+
+		auto StillOpen(this const Window& self) -> bool
+		{
+			return not self.ShouldClose();
 		}
 
 	private:

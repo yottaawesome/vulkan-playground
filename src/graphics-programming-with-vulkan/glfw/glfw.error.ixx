@@ -4,6 +4,25 @@ import :glfw.exports;
 
 export namespace glfw
 {
+	struct SimpleError
+	{
+		int Code = 0;
+		std::string Description;
+
+		SimpleError()
+		{
+			Code = 0;
+			const char* description;
+			Code = glfw::glfwGetError(&description);
+			Description = description ? description : "Unknown error";
+		}
+
+		SimpleError(int code, const char* description)
+			: Code(code), Description(description ? description : "Unknown error")
+		{
+		}
+	};
+
 	// https://www.glfw.org/docs/3.3/intro_guide.html#error_handling
 	class Error : public std::runtime_error
 	{

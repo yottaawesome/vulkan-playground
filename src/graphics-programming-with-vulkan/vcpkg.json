@@ -1,10 +1,11 @@
 {
   "name": "gpvw",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "dependencies": [
     "vulkan",
     "glfw3",
     "glm",
-    "glslang"
+    "glslang",
+    "ms-gsl"
   ]
 }

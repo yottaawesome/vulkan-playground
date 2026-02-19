@@ -9,6 +9,18 @@ export namespace glfw
 {
 	using
 		::GLFWwindow,
+		::GLFWmonitor,
+		::GLFWvidmode,
+		::glfwGetMonitorWorkarea,
+		::glfwGetMonitorPos,
+		::glfwGetFramebufferSize,
+		::glfwSetWindowSize,
+		::glfwGetPrimaryMonitor,
+		::glfwGetWindowPos,
+		::glfwGetMonitors,
+		::glfwSetWindowPos,
+		::glfwGetVideoMode,
+		::glfwGetWindowSize,
 		::glfwInit,
 		::glfwGetError,
 		::glfwInitHint,

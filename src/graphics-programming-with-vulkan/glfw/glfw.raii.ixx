@@ -3,7 +3,7 @@ import std;
 import :raii;
 import :glfw.exports;
 
-namespace glfw
+export namespace glfw
 {
 	using GlfwWindowUniquePtr = Raii::DirectUniquePtr<glfw::GLFWwindow, glfw::glfwDestroyWindow>;
 

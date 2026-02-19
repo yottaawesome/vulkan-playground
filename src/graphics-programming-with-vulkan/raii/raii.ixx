@@ -14,6 +14,6 @@ namespace Raii
 
 	template <typename T, auto VDeleteFn, auto...VArgs>
 	using DirectUniquePtr = std::unique_ptr<T, Deleter<VDeleteFn, VArgs...>>;
-	template <typename T, auto VDeleteFn>
-	using IndirectUniquePtr = std::unique_ptr<std::remove_pointer_t<T>, Deleter<VDeleteFn>>;
+	template <typename T, auto VDeleteFn, auto...VArgs>
+	using IndirectUniquePtr = std::unique_ptr<std::remove_pointer_t<T>, Deleter<VDeleteFn, VArgs...>>;
 }

@@ -1,14 +1,7 @@
-module;
-
-#include <vulkan/vulkan.hpp>
-
+// Due to the fact that the Vulkan headers export under different 
+// namespaces (none for raw header, vk for Vulkan.hpp, vk::raii, etc), 
+// we export our extension and utility types in the Vulkan namespace.
 export module vulkangfx:vulkan;
 export import :vulkan.exports;
-
-// Raw vulkan types and functions, not vk:: types.
-export namespace vulkan
-{
-	using
-		::VkInstance
-	;
-}
+export import :vulkan.error;
+export import :vulkan.raii;

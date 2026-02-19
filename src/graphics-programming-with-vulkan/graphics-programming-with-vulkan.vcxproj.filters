@@ -78,6 +78,12 @@
     <ClCompile Include="graphics\graphics.coregraphics.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan\vulkan.error.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.raii.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

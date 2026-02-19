@@ -18,6 +18,9 @@ try
 	auto [windowWidth, windowHeight] = window.GetContentAreaDimensions();
 	window.SetPosition((monitorWidth - windowWidth) / 2, (monitorHeight - windowHeight) / 2);
 
+	auto coreVulkan = Graphics::CoreVulkan{ &window };
+	coreVulkan.Initialise();
+
 	while (window.StillOpen())
 	{
 		glfw::glfwPollEvents();

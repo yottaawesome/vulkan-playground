@@ -2,6 +2,7 @@ export module vulkangfx:glfw.window;
 import std;
 import :glfw.exports;
 import :glfw.raii;
+import :glfw.error;
 
 namespace glfw
 {
@@ -20,7 +21,7 @@ namespace glfw
 			glfw::glfwWindowHint(glfw::WindowHints::Resizable, self.Resizable);
 			auto window = glfw::glfwCreateWindow(self.Width, self.Height, self.Title.c_str(), nullptr, nullptr);
 			if (not window)
-				throw std::runtime_error("Failed to create GLFW window");
+				throw Error("Failed to create GLFW window");
 			return GlfwWindowUniquePtr{ window };
 		}
 

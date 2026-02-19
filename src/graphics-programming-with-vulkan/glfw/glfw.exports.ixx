@@ -10,6 +10,7 @@ export namespace glfw
 	using
 		::GLFWwindow,
 		::glfwInit,
+		::glfwGetError,
 		::glfwInitHint,
 		::glfwWindowShouldClose,
 		::glfwWindowHint,

@@ -136,12 +136,13 @@
   <ItemGroup>
     <ClCompile Include="glfw\glfw.error.ixx" />
     <ClCompile Include="glfw\glfw.exports.ixx" />
+    <ClCompile Include="glfw\glfw.functions.ixx" />
     <ClCompile Include="glfw\glfw.ixx" />
     <ClCompile Include="glfw\glfw.monitor.ixx" />
     <ClCompile Include="glm\glm.exports.ixx" />
     <ClCompile Include="glm\glm.ixx" />
     <ClCompile Include="graphics\graphics.ixx" />
-    <ClCompile Include="graphics\graphics.coregraphics.ixx" />
+    <ClCompile Include="graphics\graphics.corevulkan.ixx" />
     <ClCompile Include="gsl\gsl.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vulkangfx.ixx" />

@@ -1,2 +1,2 @@
 export module vulkangfx:graphics;
-export import :graphics.coregraphics;
+export import :graphics.corevulkan;

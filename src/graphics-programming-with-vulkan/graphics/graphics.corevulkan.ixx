@@ -1,7 +1,8 @@
-export module vulkangfx:graphics.coregraphics;
+export module vulkangfx:graphics.corevulkan;
 import std;
 import :vulkan;
 import :glfw;
+import :gsl;
 
 export namespace Graphics
 {
@@ -34,13 +35,14 @@ export namespace Graphics
 			auto applicationInfo = vkr::VkApplicationInfo{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
 				.pNext = nullptr,
-				.pApplicationName = "Hello Triangle",
+				.pApplicationName = "Graphics Programming with Vulkan and C++",
 				.applicationVersion = vkr::MakeVersion(1, 0, 0),
-				.pEngineName = "No Engine",
+				.pEngineName = "Vulkangeance",
 				.engineVersion = vkr::MakeVersion(1, 0, 0),
 				.apiVersion = static_cast<std::uint32_t>(vkr::Versions::Vulkan14)
 			};
 
+			auto extensions = gsl::span<gsl::czstring>{glfw::GetRequiredVulkanExtensions()};
 			auto createInfo = vkr::VkInstanceCreateInfo{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 				.pNext = nullptr,
@@ -48,15 +50,12 @@ export namespace Graphics
 				.pApplicationInfo = &applicationInfo,
 				.enabledLayerCount = 0,
 				.ppEnabledLayerNames = nullptr,
-				.enabledExtensionCount = 0,
-				.ppEnabledExtensionNames = nullptr
+				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
+				.ppEnabledExtensionNames = extensions.data()
 			};
 			auto result = Vulkan::Result{
-				vkr::vkCreateInstance(
-					&createInfo,
-					nullptr,
-					std::out_ptr(self.instance)
-				)};
+				vkr::vkCreateInstance(&createInfo, nullptr, std::out_ptr(self.instance))
+			};
 			if (not result)
 				throw Vulkan::VulkanError{result, "Failed to create Vulkan instance."};
 

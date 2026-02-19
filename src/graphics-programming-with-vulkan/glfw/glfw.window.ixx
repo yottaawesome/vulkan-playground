@@ -3,6 +3,7 @@ import std;
 import :glfw.exports;
 import :glfw.raii;
 import :glfw.error;
+import :gsl;
 
 // Note that glfw windows have two coordinate systems: virtual screen and content area.
 // Both use the same units, which is screen coordinates, which is not necessarily
@@ -103,6 +104,8 @@ export namespace glfw
 		{
 			return not self.ShouldClose();
 		}
+
+		
 
 	private:
 		glfw::GlfwWindowUniquePtr window = nullptr;

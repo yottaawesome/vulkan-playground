@@ -75,13 +75,16 @@
     <ClCompile Include="graphics\graphics.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="graphics\graphics.coregraphics.ixx">
+    <ClCompile Include="graphics\graphics.corevulkan.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.raii.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glfw\glfw.functions.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

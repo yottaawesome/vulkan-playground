@@ -9,6 +9,7 @@ export namespace gsl
 {
 	using 
 		gsl::not_null,
-		gsl::span
+		gsl::span,
+		gsl::czstring
 		;
 }

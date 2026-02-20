@@ -1,4 +1,4 @@
-import  std;
+import std;
 import vulkangfx;
 
 auto wWinMain(
@@ -31,5 +31,10 @@ try
 catch (const std::exception& ex)
 {
 	Win32::MessageBoxA(nullptr, ex.what(), "Error", Win32::MessageBoxFlags::Critical | Win32::MessageBoxFlags::Ok);
+	return -1;
+}
+catch(...)
+{
+	Win32::MessageBoxA(nullptr, "An unknown error occurred.", "Error", Win32::MessageBoxFlags::Critical | Win32::MessageBoxFlags::Ok);
 	return -1;
 }

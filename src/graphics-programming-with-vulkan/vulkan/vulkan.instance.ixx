@@ -158,4 +158,42 @@ export namespace Vulkan::Instance
 		}
 		return { .Extensions=ext };
 	}
+
+	auto EnumerateInstanceLayers() -> std::vector<vkr::VkLayerProperties>
+	{
+		auto count = std::uint32_t{};
+		auto result = Vulkan::Result{
+			vkr::vkEnumerateInstanceLayerProperties(&count, nullptr)
+		};
+		if (not result)
+			throw Vulkan::VulkanError{ result, "Failed to enumerate instance layer properties." };
+		auto properties = std::vector<vkr::VkLayerProperties>{ count };
+		result = Vulkan::Result{
+			vkr::vkEnumerateInstanceLayerProperties(&count, properties.data())
+		};
+		if (not result)
+			throw Vulkan::VulkanError{ result, "Failed to enumerate instance layer properties." };
+		return properties;
+	}
+
+	auto EvaluateLayerSupport(
+		std::vector<const char*> requiredLayers
+	) -> std::vector<std::string_view>
+	{
+		auto supportedLayers = EnumerateInstanceLayers();
+		auto unsupported = std::vector<std::string_view>{};
+		for (const char* layer : requiredLayers)
+		{
+			bool supported = std::ranges::any_of(
+				supportedLayers,
+				[layer](const auto& prop)
+				{
+					return layer == std::string_view{ prop.layerName };
+				}
+			);
+			if (not supported)
+				unsupported.push_back(layer);
+		}
+		return unsupported;
+	}
 }

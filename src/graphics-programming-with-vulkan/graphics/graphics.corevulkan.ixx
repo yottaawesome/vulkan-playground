@@ -30,10 +30,27 @@ export namespace Graphics
 
 		// Order of initialisation.
 	private:
-		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
+		static auto GetRequiredExtensions() -> std::vector<const char*>
 		{
 			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
-			auto requiredExtensions = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
+			auto vector = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
+			vector.push_back("VK_EXT_debug_utils");
+			return vector;
+		}
+
+		static auto GetRequiredLayers() -> std::vector<const char*>
+		{
+			constexpr bool enableValidationLayers = true;
+			auto layers = std::vector<const char*>{};
+			if constexpr (enableValidationLayers)
+				layers.push_back("VK_LAYER_KHRONOS_validation");
+			return layers;
+		}
+
+		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
+		{
+			auto requiredExtensions = self.GetRequiredExtensions();
+			auto requiredLayers = self.GetRequiredLayers();
 
 			auto extensionSupport = Vulkan::Instance::EvaluateExtensionSupport(requiredExtensions);
 			if (not extensionSupport.AllSupported())
@@ -42,6 +59,16 @@ export namespace Graphics
 				auto message = std::format(
 					"Not all required Vulkan extensions are supported. Unsupported extensions: {}",
 					std::ranges::views::join_with(unsupported, ", ") | std::ranges::to<std::string>()
+				);
+				throw std::runtime_error(message);
+			}
+
+			auto layerSupport = Vulkan::Instance::EvaluateLayerSupport(requiredLayers);
+			if (not layerSupport.empty())
+			{
+				auto message = std::format(
+					"Not all required Vulkan layers are supported. Unsupported layers: {}",
+					std::ranges::views::join_with(layerSupport, ", ") | std::ranges::to<std::string>()
 				);
 				throw std::runtime_error(message);
 			}
@@ -56,6 +83,7 @@ export namespace Graphics
 				},
 				.InstanceInfo = {
 					.Flags = 0,
+					.EnabledLayerNames = requiredLayers,
 					.EnabledExtensionNames = requiredExtensions,
 				}
 			};

@@ -5,3 +5,4 @@ export module vulkangfx:vulkan;
 export import :vulkan.exports;
 export import :vulkan.error;
 export import :vulkan.raii;
+export import :vulkan.instance;

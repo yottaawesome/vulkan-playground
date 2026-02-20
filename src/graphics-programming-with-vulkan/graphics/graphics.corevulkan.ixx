@@ -32,33 +32,34 @@ export namespace Graphics
 	private:
 		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
 		{
-			auto applicationInfo = vkr::VkApplicationInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
-				.pNext = nullptr,
-				.pApplicationName = "Graphics Programming with Vulkan and C++",
-				.applicationVersion = vkr::MakeVersion(1, 0, 0),
-				.pEngineName = "Vulkangeance",
-				.engineVersion = vkr::MakeVersion(1, 0, 0),
-				.apiVersion = static_cast<std::uint32_t>(vkr::Versions::Vulkan14)
-			};
+			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
+			auto requiredExtensions = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
 
-			auto extensions = gsl::span<gsl::czstring>{glfw::GetRequiredVulkanExtensions()};
-			auto createInfo = vkr::VkInstanceCreateInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.pApplicationInfo = &applicationInfo,
-				.enabledLayerCount = 0,
-				.ppEnabledLayerNames = nullptr,
-				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
-				.ppEnabledExtensionNames = extensions.data()
-			};
-			auto result = Vulkan::Result{
-				vkr::vkCreateInstance(&createInfo, nullptr, std::out_ptr(self.instance))
-			};
-			if (not result)
-				throw Vulkan::VulkanError{result, "Failed to create Vulkan instance."};
+			auto extensionSupport = Vulkan::Instance::EvaluateExtensionSupport(requiredExtensions);
+			if (not extensionSupport.AllSupported())
+			{
+				auto unsupported = extensionSupport.ListUnsupportedExtensions();
+				auto message = std::format(
+					"Not all required Vulkan extensions are supported. Unsupported extensions: {}",
+					std::ranges::views::join_with(unsupported, ", ") | std::ranges::to<std::string>()
+				);
+				throw std::runtime_error(message);
+			}
 
+			auto instanceFactory = Vulkan::Instance::Factory{
+				.ApplicationInfo = {
+					.ApplicationName = "Graphics Programming with Vulkan and C++",
+					.ApplicationVersion = vkr::MakeVersion(1, 0, 0),
+					.EngineName = "Vulkangeance",
+					.EngineVersion = vkr::MakeVersion(1, 0, 0),
+					.ApiVersion = static_cast<std::uint32_t>(vkr::Versions::Vulkan14)
+				},
+				.InstanceInfo = {
+					.Flags = 0,
+					.EnabledExtensionNames = requiredExtensions,
+				}
+			};
+			self.instance = instanceFactory();
 			return self;
 		}
 

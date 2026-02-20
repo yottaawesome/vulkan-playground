@@ -2,7 +2,7 @@ export module vulkangfx:win32.error;
 import std;
 import :win32.exports;
 
-namespace Win32
+export namespace Win32
 {
 	auto ErrorCodeToAnsi(Win32::DWORD errorCode) -> std::string
 	{

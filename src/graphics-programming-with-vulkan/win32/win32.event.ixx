@@ -17,7 +17,8 @@ export namespace Win32
 		{
 			auto handle = Win32::HANDLE{
 				CreateEventW(
-					SecurityAttributes.has_value() ? std::to_address(SecurityAttributes.operator->()) : nullptr,
+					//Can also use std::to_address(SecurityAttributes.operator->())
+					SecurityAttributes.has_value() ? &*SecurityAttributes : nullptr,
 					ManualReset,
 					InitialState,
 					Name.empty() ? nullptr : Name.c_str()

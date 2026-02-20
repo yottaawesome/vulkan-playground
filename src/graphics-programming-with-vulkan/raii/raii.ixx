@@ -1,7 +1,7 @@
 export module vulkangfx:raii;
 import std;
 
-namespace Raii
+export namespace Raii
 {
 	template <auto VDeleteFn, auto...VArgs>
 	struct Deleter

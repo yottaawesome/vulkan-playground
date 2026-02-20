@@ -27,7 +27,7 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 ├── :glfw                           GLFW wrappers
 │   ├── :glfw.exports               [ground-level] raw GLFW symbol re-exports
 │   ├── :glfw.error                 depends on :glfw.exports
-│   ├── :glfw.raii                  depends on :raii, :glfw.exports
+│   ├── :glfw.raii                  depends on :raii, :glfw.exports, :glfw.error
 │   ├── :glfw.window                depends on :glfw.exports, :glfw.raii, :glfw.error
 │   ├── :glfw.monitor               depends on :glfw.exports, :glfw.error
 │   └── :glfw.functions             depends on :glfw.exports, :gsl

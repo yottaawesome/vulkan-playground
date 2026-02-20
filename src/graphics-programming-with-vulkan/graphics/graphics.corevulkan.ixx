@@ -9,9 +9,9 @@ export namespace Graphics
 	class CoreVulkan
 	{
 	public:
-		CoreVulkan(glfw::Window* window)
-			: window(window ? window : throw std::runtime_error("GLFW window pointer cannot be null."))
-		{ }
+		explicit CoreVulkan(gsl::not_null<glfw::Window*> window)	
+			: window(window)
+		{ }		
 
 		void Initialise(this CoreVulkan& self)
 		{

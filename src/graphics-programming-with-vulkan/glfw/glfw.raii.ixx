@@ -2,6 +2,7 @@ export module vulkangfx:glfw.raii;
 import std;
 import :raii;
 import :glfw.exports;
+import :glfw.error;
 
 export namespace glfw
 {
@@ -15,10 +16,11 @@ export namespace glfw
 		}
 		Context(const Context&) = delete;
 		Context& operator=(const Context&) = delete;
-		
+
 		Context()
 		{
-			glfw::glfwInit();
+			if (not glfw::glfwInit())
+				throw glfw::Error("Failed to initialise GLFW.");
 		}
 	};
 }

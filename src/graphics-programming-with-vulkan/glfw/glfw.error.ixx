@@ -26,30 +26,38 @@ export namespace glfw
 	// https://www.glfw.org/docs/3.3/intro_guide.html#error_handling
 	class Error : public std::runtime_error
 	{
+		struct ErrorInfo
+		{
+			int Code = 0;
+			std::string Description;
+			std::string FormattedMessage;
+		};
+
 	public:
 		Error(std::string_view message, const std::source_location &loc = std::source_location::current())
-			: std::runtime_error(Format(message, loc)) 
+			: Error(QueryError(message, loc))
 		{}
 
-		auto Format(
-			this Error& self, 
-			std::string_view message, 
+	private:
+		Error(ErrorInfo info)
+			: std::runtime_error(std::move(info.FormattedMessage))
+			, errorCode(info.Code)
+			, errorDescription(std::move(info.Description))
+		{}
+
+		static auto QueryError(
+			std::string_view message,
 			const std::source_location& loc
-		) -> std::string
+		) -> ErrorInfo
 		{
 			const char* description;
-			self.errorCode = glfwGetError(&description);
-			self.errorDescription = description 
-				? description : "Unknown error";
-			return std::format("{} -- {} at {}:{}:{}",
-				message, 
-				self.errorDescription, 
-				loc.file_name(), 
-				loc.line(), 
-				loc.column()
-			);
+			auto code = glfwGetError(&description);
+			auto desc = std::string{ description ? description : "Unknown error" };
+			auto formatted = std::format("{} -- {} at {}:{}:{}",
+				message, desc, loc.file_name(), loc.line(), loc.column());
+			return { code, std::move(desc), std::move(formatted) };
 		}
-	private:
+
 		int errorCode = 0;
 		std::string errorDescription;
 	};

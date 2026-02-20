@@ -3,7 +3,7 @@ import std;
 import :raii;
 import :win32.exports;
 
-namespace Win32
+export namespace Win32
 {
 	using HInstanceUniquePtr = Raii::DirectUniquePtr<HINSTANCE, FreeLibrary>;
 	using HandleUniquePtr = Raii::IndirectUniquePtr<HANDLE, CloseHandle>;

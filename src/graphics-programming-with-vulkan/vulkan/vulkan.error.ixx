@@ -23,7 +23,7 @@ export namespace Vulkan
 			return self.Value != vkr::VkResult::VK_SUCCESS;
 		}
 
-		constexpr auto Describe(this const Result& self) noexcept -> std::string_view
+		auto Describe(this const Result& self) noexcept -> std::string_view
 		{
 			return vkr::VkResultToString(self.Value);
 		}

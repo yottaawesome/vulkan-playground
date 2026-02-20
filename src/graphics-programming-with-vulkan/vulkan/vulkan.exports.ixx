@@ -62,7 +62,7 @@ export namespace vkr
 		std::uint32_t patch
 	) noexcept -> std::uint32_t
 	{
-		// First parameterr is variant.
+		// First parameter is variant.
 		// See: https://docs.vulkan.org/refpages/latest/refpages/source/VK_MAKE_API_VERSION.html
 		return VK_MAKE_API_VERSION(0, major, minor, patch);
 	}
@@ -79,11 +79,13 @@ export namespace vkr
 	constexpr auto VkSuccess = VkResult{ VK_SUCCESS };
 }
 
+// TODO: Left empty for now.
 export namespace vk
 {
 	
 }
 
+// TODO: Left empty for now.
 export namespace vk::raii
 {
 	

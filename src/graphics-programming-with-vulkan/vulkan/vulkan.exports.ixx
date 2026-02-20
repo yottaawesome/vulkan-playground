@@ -77,6 +77,15 @@ export namespace vkr
 	};
 
 	constexpr auto VkSuccess = VkResult{ VK_SUCCESS };
+
+	namespace Extensions
+	{
+		constexpr auto EXTDebugUtilsExtensionName = "VK_EXT_debug_utils";
+	}
+	namespace Layers
+	{
+		constexpr auto KhronosValidationLayerName = "VK_LAYER_KHRONOS_validation";
+	}
 }
 
 // TODO: Left empty for now.

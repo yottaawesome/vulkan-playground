@@ -34,7 +34,7 @@ export namespace Graphics
 		{
 			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
 			auto vector = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
-			vector.push_back("VK_EXT_debug_utils");
+			vector.push_back(vkr::Extensions::EXTDebugUtilsExtensionName);
 			return vector;
 		}
 
@@ -43,14 +43,14 @@ export namespace Graphics
 			constexpr bool enableValidationLayers = true;
 			auto layers = std::vector<const char*>{};
 			if constexpr (enableValidationLayers)
-				layers.push_back("VK_LAYER_KHRONOS_validation");
+				layers.push_back(vkr::Layers::KhronosValidationLayerName);
 			return layers;
 		}
 
 		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
 		{
-			auto requiredExtensions = self.GetRequiredExtensions();
-			auto requiredLayers = self.GetRequiredLayers();
+			auto requiredExtensions = std::vector{ self.GetRequiredExtensions() };
+			auto requiredLayers = std::vector{ self.GetRequiredLayers() };
 
 			auto extensionSupport = Vulkan::Instance::EvaluateExtensionSupport(requiredExtensions);
 			if (not extensionSupport.AllSupported())

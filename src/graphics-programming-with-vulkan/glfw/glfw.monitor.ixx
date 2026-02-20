@@ -8,7 +8,7 @@ export namespace glfw
 	class Monitor
 	{
 	public:
-		Monitor(
+		explicit Monitor(
 			GLFWmonitor* monitor = [] -> GLFWmonitor*
 			{
 				auto primary = glfw::glfwGetPrimaryMonitor();
@@ -59,8 +59,10 @@ export namespace glfw
 		static auto GetAllMonitors() -> std::vector<Monitor>
 		{
 			int count = 0;
-			auto monitors = std::span{ glfwGetMonitors(&count), static_cast<std::uint64_t>(count) };
-			return monitors | std::ranges::to<std::vector<Monitor>>();
+			auto monitors = std::span{ glfwGetMonitors(&count), static_cast<std::uint64_t>(std::max(count, 0)) };
+			return monitors 
+				| std::ranges::views::transform([](GLFWmonitor* monitor) { return Monitor(monitor); })
+				| std::ranges::to<std::vector<Monitor>>();
 		}
 
 	private:

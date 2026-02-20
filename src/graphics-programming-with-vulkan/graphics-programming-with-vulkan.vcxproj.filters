@@ -100,5 +100,7 @@
     <None Include="gsl\README.md" />
     <None Include="win32\README.md" />
     <None Include="glfw\README.md" />
+    <None Include="vulkan\README.md" />
+    <None Include="graphics\README.md" />
   </ItemGroup>
 </Project>

@@ -24,12 +24,22 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │   ├── :win32.raii                 depends on :raii, :win32.exports
 │   └── :win32.event                depends on :win32.exports, :win32.raii, :win32.error
 │
-└── :glfw                           GLFW wrappers
-    ├── :glfw.exports               [ground-level] raw GLFW symbol re-exports
-    ├── :glfw.error                 depends on :glfw.exports
-    ├── :glfw.raii                  depends on :raii, :glfw.exports
-    ├── :glfw.window                depends on :glfw.exports, :glfw.raii, :glfw.error
-    └── :glfw.monitor               depends on :glfw.exports, :glfw.error
+├── :glfw                           GLFW wrappers
+│   ├── :glfw.exports               [ground-level] raw GLFW symbol re-exports
+│   ├── :glfw.error                 depends on :glfw.exports
+│   ├── :glfw.raii                  depends on :raii, :glfw.exports
+│   ├── :glfw.window                depends on :glfw.exports, :glfw.raii, :glfw.error
+│   ├── :glfw.monitor               depends on :glfw.exports, :glfw.error
+│   └── :glfw.functions             depends on :glfw.exports, :gsl
+│
+├── :vulkan                         Vulkan API wrappers
+│   ├── :vulkan.exports             [ground-level] raw Vulkan symbol re-exports
+│   ├── :vulkan.error               depends on :vulkan.exports
+│   ├── :vulkan.raii                depends on :raii, :vulkan.exports
+│   └── :vulkan.instance            depends on :vulkan.exports, :vulkan.error, :vulkan.raii
+│
+└── :graphics                       High-level graphics orchestration
+    └── :graphics.corevulkan        depends on :vulkan, :glfw, :gsl
 ```
 
 `main.cpp` is the application entry point and imports the `vulkangfx` module.
@@ -40,13 +50,15 @@ The partitions are organized into dependency layers. Lower layers must not
 depend on higher layers.
 
 ```
-Layer 3 — Application         main.cpp
+Layer 4 — Application         main.cpp
                                 │
-Layer 2 — Primary module       vulkangfx
+Layer 3 — Primary module       vulkangfx
                                 │
-Layer 1 — Composite partitions :glfw, :win32
+Layer 2 — High-level           :graphics
                                 │
-Layer 0 — Ground-level         :raii, :glm, :gsl, :win32.exports, :glfw.exports
+Layer 1 — Composite partitions :glfw, :win32, :vulkan
+                                │
+Layer 0 — Ground-level         :raii, :glm, :gsl, :win32.exports, :glfw.exports, :vulkan.exports
 ```
 
 ### Ground-level partitions
@@ -73,6 +85,8 @@ Each subsystem lives in its own directory with a consistent structure:
 | `gsl/`   | `:gsl`   | GSL library re-exports |
 | `win32/`  | `:win32`  | Win32 API types, error handling, RAII wrappers, events |
 | `glfw/`   | `:glfw`   | GLFW window/monitor management, error handling, RAII wrappers |
+| `vulkan/` | `:vulkan` | Vulkan API types, instance creation, error handling, RAII wrappers |
+| `graphics/` | `:graphics` | High-level Vulkan initialization and rendering orchestration |
 
 ## Conventions
 

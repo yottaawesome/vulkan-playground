@@ -22,6 +22,7 @@ window management, monitor queries, RAII resource wrappers, and error handling.
 | `:glfw.raii`      | internal     | `GlfwWindowUniquePtr`, `glfw::Context`           |
 | `:glfw.window`    | internal     | `WindowFactory`, `Window`                        |
 | `:glfw.monitor`   | internal     | `Monitor` (primary, position, work area, video mode) |
+| `:glfw.functions`  | internal     | Vulkan-related helpers (`GetRequiredVulkanExtensions`) |
 
 ## Threading
 

@@ -107,56 +107,42 @@ export namespace Vulkan::Instance
 		return properties;
 	}
 
-	struct ExtensionSupport
+	struct UnsupportedExtensions
 	{
-		std::string_view ExtensionName;
-		bool Supported = false;
-	};
-
-	struct AllExtensionSupport
-	{
-		std::vector<ExtensionSupport> Extensions;
-
-		auto AllSupported(
-			this const AllExtensionSupport& self
+		std::vector<std::string_view> Names;
+		auto HasUnsupported(
+			this const UnsupportedExtensions& self
 		) noexcept -> bool
 		{
-			return std::ranges::all_of(self.Extensions, [](const auto& ext) { return ext.Supported; });
-		}
-
-		auto ListUnsupportedExtensions(
-			this const AllExtensionSupport& self
-		) noexcept -> std::vector<std::string_view>
-		{
-			auto unsupported = std::vector<std::string_view>{};
-			for (const auto& ext : self.Extensions)
-				if (not ext.Supported)
-					unsupported.push_back(ext.ExtensionName);
-			return unsupported;
+			return not self.Names.empty();
 		}
 	};
 
 	auto EvaluateExtensionSupport(
 		std::vector<const char*> requiredExtensions
-	) -> AllExtensionSupport
+	) -> UnsupportedExtensions
 	{
-		auto ext = requiredExtensions
+		auto required = requiredExtensions
 			| std::ranges::views::transform(
-				[](const char* ext) { return ExtensionSupport{ std::string_view{ ext }, false }; })
+				[](const char* ext) { return std::string_view{ ext }; })
 			| std::ranges::to<std::vector>();
 
 		auto supportedExtensions = EnumerateSupportedExtensions();
-		for (auto& extSupport : ext)
+
+		auto unsupported = std::vector<std::string_view>{};
+		for (auto& extension : required)
 		{
-			extSupport.Supported = std::ranges::any_of(
+			bool supported = std::ranges::any_of(
 				supportedExtensions,
-				[&extSupport](const auto& prop)
+				[&extension](const auto& prop)
 				{
-					return extSupport.ExtensionName == std::string_view{ prop.extensionName };
+					return extension == std::string_view{ prop.extensionName };
 				}
 			);
+			if (not supported)
+				unsupported.push_back(extension);
 		}
-		return { .Extensions=ext };
+		return { .Names = unsupported };
 	}
 
 	auto EnumerateInstanceLayers() -> std::vector<vkr::VkLayerProperties>

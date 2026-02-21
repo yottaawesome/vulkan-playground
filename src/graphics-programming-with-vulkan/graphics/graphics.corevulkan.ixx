@@ -53,12 +53,11 @@ export namespace Graphics
 			auto requiredLayers = std::vector{ self.GetRequiredLayers() };
 
 			auto extensionSupport = Vulkan::Instance::EvaluateExtensionSupport(requiredExtensions);
-			if (not extensionSupport.AllSupported())
+			if (extensionSupport.HasUnsupported())
 			{
-				auto unsupported = extensionSupport.ListUnsupportedExtensions();
 				auto message = std::format(
 					"Not all required Vulkan extensions are supported. Unsupported extensions: {}",
-					std::ranges::views::join_with(unsupported, ", ") | std::ranges::to<std::string>()
+					std::ranges::views::join_with(extensionSupport.Names, ", ") | std::ranges::to<std::string>()
 				);
 				throw std::runtime_error(message);
 			}

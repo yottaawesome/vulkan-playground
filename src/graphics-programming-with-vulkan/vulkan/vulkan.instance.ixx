@@ -204,13 +204,13 @@ export namespace Vulkan::Instance
 			const char* pName
 		) -> TSignature
 		{
-			TSignature t = reinterpret_cast<TSignature>(vkGetInstanceProcAddr(self.Handle.get(), pName));
-			if (not t)
+			auto fn = reinterpret_cast<TSignature>(vkGetInstanceProcAddr(self.Handle.get(), pName));
+			if (not fn)
 				throw Vulkan::VulkanError{
 					vkr::VkResult::VK_ERROR_EXTENSION_NOT_PRESENT,
 					std::format("Failed to load function: {}", pName)
 				};
-			return t;
+			return fn;
 		}
 
 		void DestroyDebugUtilsMessengerEXT(

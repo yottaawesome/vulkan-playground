@@ -183,6 +183,13 @@ export namespace Vulkan::Instance
 		return unsupported;
 	}
 
+	using DebugMessengerCallback = auto(
+		vkr::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		vkr::VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+		const vkr::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData
+	)->vkr::VkBool32;
+
 	class MainInstance
 	{
 	public:
@@ -191,22 +198,52 @@ export namespace Vulkan::Instance
 		MainInstance(VkInstanceUniquePtr Handle) : Handle{ std::move(Handle) }
 		{}
 
-		auto SetupDebugMessenger(
-			this MainInstance& self, 
-			vkr::VkDebugUtilsMessengerCreateInfoEXT& createInfo
-		) -> vkr::VkDebugUtilsMessengerEXT
+		template<typename TSignature>
+		auto GetInstanceProcAddr(
+			this const MainInstance& self,
+			const char* pName
+		) -> TSignature
 		{
-			auto fn = reinterpret_cast<vkr::PFN_vkCreateDebugUtilsMessengerEXT>(
-				vkr::vkGetInstanceProcAddr(self.Handle.get(), "vkCreateDebugUtilsMessengerEXT")
-			);
-			if (not fn)
+			TSignature t = reinterpret_cast<TSignature>(vkGetInstanceProcAddr(self.Handle.get(), pName));
+			if (not t)
 				throw Vulkan::VulkanError{
 					vkr::VkResult::VK_ERROR_EXTENSION_NOT_PRESENT,
-					"Debug Utils Messenger extension not present."
+					std::format("Failed to load function: {}", pName)
+				};
+			return t;
+		}
+
+		void DestroyDebugUtilsMessengerEXT(
+			this const MainInstance& self,
+			vkr::VkDebugUtilsMessengerEXT debugMessenger
+		)
+		{
+			auto fn = self.GetInstanceProcAddr<vkr::PFN_vkDestroyDebugUtilsMessengerEXT>("vkDestroyDebugUtilsMessengerEXT");
+			fn(self.Handle.get(), debugMessenger, nullptr);
+		}
+
+		auto SetupDebugMessenger(
+			this MainInstance& self, 
+			int severity,
+			int types,
+			DebugMessengerCallback callback
+		) -> vkr::VkDebugUtilsMessengerEXT
+		{
+			if (not callback)
+				throw std::invalid_argument("Debug messenger callback cannot be null.");
+
+			auto fn = self.GetInstanceProcAddr<vkr::PFN_vkCreateDebugUtilsMessengerEXT>("vkCreateDebugUtilsMessengerEXT");
+			auto debugCreateInfo =
+				vkr::VkDebugUtilsMessengerCreateInfoEXT
+				{
+					.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+					.messageSeverity = static_cast<vkr::VkDebugUtilsMessageSeverityFlagsEXT>(severity),
+					.messageType = static_cast<vkr::VkDebugUtilsMessageTypeFlagsEXT>(types),
+					.pfnUserCallback = callback
 				};
 			
 			auto messenger = vkr::VkDebugUtilsMessengerEXT{};
-			auto result = Vulkan::Result{fn(self.Handle.get(), &createInfo, nullptr, &messenger)};
+			auto result = Vulkan::Result{fn(self.Handle.get(), &debugCreateInfo, nullptr, &messenger)};
 			if (not result)
 				throw Vulkan::VulkanError{ result, "Failed to create debug utils messenger." };
 			return messenger;

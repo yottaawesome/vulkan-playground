@@ -23,6 +23,8 @@ export namespace vkr
 		::VkQueue,
 		::VkWin32SurfaceCreateInfoKHR,
 		::VkSurfaceKHR,
+		::VkDebugUtilsMessageSeverityFlagsEXT,
+		::VkDebugUtilsMessageTypeFlagsEXT,
 		::VkResult,
 		::VkExtensionProperties,
 		::VkLayerProperties,
@@ -33,6 +35,7 @@ export namespace vkr
 		::VkDebugUtilsMessageTypeFlagBitsEXT,
 		::VkDebugUtilsMessengerCallbackDataEXT,
 		::VkDebugUtilsMessageTypeFlagsEXT,
+		::PFN_vkDestroyDebugUtilsMessengerEXT,
 		::VkBool32,
 		::vkCreateDebugUtilsMessengerEXT,
 		::vkGetInstanceProcAddr,
@@ -100,20 +103,12 @@ export namespace vkr
 		constexpr auto KhronosValidationLayerName = "VK_LAYER_KHRONOS_validation";
 	}
 
-	namespace DebugUtilsMessageSeverity
-	{
-		constexpr auto Verbose = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
-		constexpr auto Info = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-		constexpr auto Warning = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-		constexpr auto Error = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	}
-
 	namespace DebugUtilsMessageType
 	{
-		constexpr auto General = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-		constexpr auto Validation = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-		constexpr auto Performance = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	}	
+		constexpr VkDebugUtilsMessageTypeFlagBitsEXT General = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+		constexpr VkDebugUtilsMessageTypeFlagBitsEXT Validation = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+		constexpr VkDebugUtilsMessageTypeFlagBitsEXT Performance = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	}
 }
 
 // TODO: Left empty for now.

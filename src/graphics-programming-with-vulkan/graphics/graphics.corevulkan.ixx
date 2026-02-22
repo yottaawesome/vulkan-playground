@@ -9,6 +9,11 @@ export namespace Graphics
 	class CoreVulkan
 	{
 	public:
+		~CoreVulkan()
+		{
+			Teardown();
+		}
+
 		explicit CoreVulkan(gsl::not_null<glfw::Window*> window)	
 			: window(window)
 		{ }		
@@ -93,32 +98,27 @@ export namespace Graphics
 		auto AddDebugMessenger(this CoreVulkan& self) -> decltype(self)
 		{
 			// TODO: clean up the debug messenger when the instance is destroyed.
-			auto debugCreateInfo = 
-				vkr::VkDebugUtilsMessengerCreateInfoEXT
+			constexpr auto severity =
+				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+			constexpr auto types =
+				vkr::VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+				vkr::VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+				vkr::VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+			constexpr auto callback =
+				 [](
+					vkr::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+					vkr::VkDebugUtilsMessageTypeFlagsEXT messageTypes [[maybe_unused]],
+					const vkr::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+					void* pUserData [[maybe_unused]]
+				) static -> vkr::VkBool32
 				{
-					.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-					.messageSeverity =
-						vkr::DebugUtilsMessageSeverity::Verbose |
-						vkr::DebugUtilsMessageSeverity::Warning |
-						vkr::DebugUtilsMessageSeverity::Error,
-					.messageType =
-						vkr::DebugUtilsMessageType::General |
-						vkr::DebugUtilsMessageType::Validation |
-						vkr::DebugUtilsMessageType::Performance,
-					.pfnUserCallback = 
-						[](
-							vkr::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-							[[maybe_unused]] vkr::VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-							const vkr::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-							[[maybe_unused]] void* pUserData
-						) static -> vkr::VkBool32
-						{
-							if (messageSeverity >= vkr::DebugUtilsMessageSeverity::Warning)
-								std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
-							return vkr::False;
-						}
+					if (messageSeverity >= vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+						std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
+					return vkr::False;
 				};
-			self.instance.SetupDebugMessenger(debugCreateInfo);
+			self.debugMessenger = self.instance.SetupDebugMessenger(severity, types, callback);
 			return self;
 		}
 
@@ -179,13 +179,15 @@ export namespace Graphics
 		}
 
 	private:
-		auto Cleanup(this CoreVulkan& self) -> decltype(self)
+		auto Teardown(this CoreVulkan& self) -> decltype(self)
 		{
+			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);
 			return self;
 		}
 
 	private:
 		Vulkan::Instance::MainInstance instance;
 		glfw::Window* window = nullptr;
+		vkr::VkDebugUtilsMessengerEXT debugMessenger = nullptr;
 	};
 }

@@ -188,8 +188,9 @@ export namespace Vulkan::Instance
 		vkr::VkDebugUtilsMessageTypeFlagsEXT messageTypes,
 		const vkr::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData
-	)->vkr::VkBool32;
+	) -> vkr::VkBool32;
 
+	// TODO: should the instance manage the debug messenger's lifetime?
 	class MainInstance
 	{
 	public:
@@ -204,7 +205,7 @@ export namespace Vulkan::Instance
 			const char* pName
 		) -> TSignature
 		{
-			auto fn = reinterpret_cast<TSignature>(vkGetInstanceProcAddr(self.Handle.get(), pName));
+			auto fn = reinterpret_cast<TSignature>(vkr::vkGetInstanceProcAddr(self.Handle.get(), pName));
 			if (not fn)
 				throw Vulkan::VulkanError{
 					vkr::VkResult::VK_ERROR_EXTENSION_NOT_PRESENT,
@@ -218,6 +219,8 @@ export namespace Vulkan::Instance
 			vkr::VkDebugUtilsMessengerEXT debugMessenger
 		)
 		{
+			if (not debugMessenger)
+				return;
 			auto fn = self.GetInstanceProcAddr<vkr::PFN_vkDestroyDebugUtilsMessengerEXT>("vkDestroyDebugUtilsMessengerEXT");
 			fn(self.Handle.get(), debugMessenger, nullptr);
 		}

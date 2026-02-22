@@ -97,7 +97,6 @@ export namespace Graphics
 
 		auto AddDebugMessenger(this CoreVulkan& self) -> decltype(self)
 		{
-			// TODO: clean up the debug messenger when the instance is destroyed.
 			constexpr auto severity =
 				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -118,7 +117,7 @@ export namespace Graphics
 						std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
 					return vkr::False;
 				};
-			self.debugMessenger = self.instance.SetupDebugMessenger(severity, types, callback);
+			self.debugMessenger = self.instance.SetupDebugMessenger(severity, types, &self, callback);
 			return self;
 		}
 
@@ -178,7 +177,6 @@ export namespace Graphics
 			return self;
 		}
 
-	private:
 		auto Teardown(this CoreVulkan& self) -> decltype(self)
 		{
 			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);

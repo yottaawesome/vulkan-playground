@@ -226,6 +226,7 @@ export namespace Vulkan::Instance
 			this MainInstance& self, 
 			int severity,
 			int types,
+			void* userData,
 			DebugMessengerCallback callback
 		) -> vkr::VkDebugUtilsMessengerEXT
 		{
@@ -239,7 +240,8 @@ export namespace Vulkan::Instance
 					.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 					.messageSeverity = static_cast<vkr::VkDebugUtilsMessageSeverityFlagsEXT>(severity),
 					.messageType = static_cast<vkr::VkDebugUtilsMessageTypeFlagsEXT>(types),
-					.pfnUserCallback = callback
+					.pfnUserCallback = callback,
+					.pUserData = userData
 				};
 			
 			auto messenger = vkr::VkDebugUtilsMessengerEXT{};

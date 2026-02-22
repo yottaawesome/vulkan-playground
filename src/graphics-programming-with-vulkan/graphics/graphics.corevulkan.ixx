@@ -92,6 +92,33 @@ export namespace Graphics
 
 		auto AddDebugMessenger(this CoreVulkan& self) -> decltype(self)
 		{
+			// TODO: clean up the debug messenger when the instance is destroyed.
+			auto debugCreateInfo = 
+				vkr::VkDebugUtilsMessengerCreateInfoEXT
+				{
+					.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+					.messageSeverity =
+						vkr::DebugUtilsMessageSeverity::Verbose |
+						vkr::DebugUtilsMessageSeverity::Warning |
+						vkr::DebugUtilsMessageSeverity::Error,
+					.messageType =
+						vkr::DebugUtilsMessageType::General |
+						vkr::DebugUtilsMessageType::Validation |
+						vkr::DebugUtilsMessageType::Performance,
+					.pfnUserCallback = 
+						[](
+							vkr::VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+							[[maybe_unused]] vkr::VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+							const vkr::VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+							[[maybe_unused]] void* pUserData
+						) static -> vkr::VkBool32
+						{
+							if (messageSeverity >= vkr::DebugUtilsMessageSeverity::Warning)
+								std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
+							return vkr::False;
+						}
+				};
+			self.instance.SetupDebugMessenger(debugCreateInfo);
 			return self;
 		}
 
@@ -158,7 +185,7 @@ export namespace Graphics
 		}
 
 	private:
-		Vulkan::VkInstanceUniquePtr instance;
+		Vulkan::Instance::MainInstance instance;
 		glfw::Window* window = nullptr;
 	};
 }

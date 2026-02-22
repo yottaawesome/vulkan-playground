@@ -26,6 +26,16 @@ export namespace vkr
 		::VkResult,
 		::VkExtensionProperties,
 		::VkLayerProperties,
+		::VkDebugUtilsMessengerCreateInfoEXT,
+		::VkDebugUtilsMessengerEXT,
+		::PFN_vkCreateDebugUtilsMessengerEXT,
+		::VkDebugUtilsMessageSeverityFlagBitsEXT,
+		::VkDebugUtilsMessageTypeFlagBitsEXT,
+		::VkDebugUtilsMessengerCallbackDataEXT,
+		::VkDebugUtilsMessageTypeFlagsEXT,
+		::VkBool32,
+		::vkCreateDebugUtilsMessengerEXT,
+		::vkGetInstanceProcAddr,
 		::vkEnumerateInstanceExtensionProperties,
 		::vkEnumerateInstanceLayerProperties,
 		::vkCreateInstance,
@@ -39,6 +49,9 @@ export namespace vkr
 		::vkCreateWin32SurfaceKHR,
 		::vkDestroySurfaceKHR
 		;
+
+	constexpr auto False = VkBool32{ VK_FALSE };
+	constexpr auto True = VkBool32{ VK_TRUE };
 
 	// We don't use string_VkResult due to it being declared as static inline 
 	// in the header, which means it won't be exported from this module.
@@ -80,12 +93,27 @@ export namespace vkr
 
 	namespace Extensions
 	{
-		constexpr auto EXTDebugUtilsExtensionName = "VK_EXT_debug_utils";
+		constexpr auto EXTDebugUtilsExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 	}
 	namespace Layers
 	{
 		constexpr auto KhronosValidationLayerName = "VK_LAYER_KHRONOS_validation";
 	}
+
+	namespace DebugUtilsMessageSeverity
+	{
+		constexpr auto Verbose = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+		constexpr auto Info = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+		constexpr auto Warning = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		constexpr auto Error = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	}
+
+	namespace DebugUtilsMessageType
+	{
+		constexpr auto General = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+		constexpr auto Validation = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+		constexpr auto Performance = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	}	
 }
 
 // TODO: Left empty for now.

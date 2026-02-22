@@ -16,6 +16,8 @@ export module vulkantutorial:libs.exports;
 
 export namespace glfw
 {
+	// VKAPI_ATTR -> just an attribute.
+	// VKAPI_CALL -> stdcall: ignored on x64 and ARM.
 	using
 		::GLFWwindow,
 		::glfwInit,

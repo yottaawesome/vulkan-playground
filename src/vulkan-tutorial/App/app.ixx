@@ -832,7 +832,7 @@ export namespace VulkanTutorial::App
 				ToUint32(MessageTypes::eGeneral, MessageTypes::ePerformance, MessageTypes::eValidation);
 			auto messageTypeFlags = vk::DebugUtilsMessageTypeFlagsEXT{ messageTypes };
 
-			constexpr auto LambdaDebugCallback = 
+			constexpr [[maybe_unused]] auto LambdaDebugCallback = 
 				[](
 					vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
 					vk::DebugUtilsMessageTypeFlagsEXT type,

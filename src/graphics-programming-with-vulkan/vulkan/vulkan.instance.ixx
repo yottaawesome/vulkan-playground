@@ -182,4 +182,42 @@ export namespace Vulkan::Instance
 		}
 		return unsupported;
 	}
+
+	class MainInstance
+	{
+	public:
+		MainInstance() = default;
+
+		MainInstance(VkInstanceUniquePtr Handle) : Handle{ std::move(Handle) }
+		{}
+
+		auto SetupDebugMessenger(
+			this MainInstance& self, 
+			vkr::VkDebugUtilsMessengerCreateInfoEXT& createInfo
+		) -> vkr::VkDebugUtilsMessengerEXT
+		{
+			auto fn = reinterpret_cast<vkr::PFN_vkCreateDebugUtilsMessengerEXT>(
+				vkr::vkGetInstanceProcAddr(self.Handle.get(), "vkCreateDebugUtilsMessengerEXT")
+			);
+			if (not fn)
+				throw Vulkan::VulkanError{
+					vkr::VkResult::VK_ERROR_EXTENSION_NOT_PRESENT,
+					"Debug Utils Messenger extension not present."
+				};
+			
+			auto messenger = vkr::VkDebugUtilsMessengerEXT{};
+			auto result = Vulkan::Result{fn(self.Handle.get(), &createInfo, nullptr, &messenger)};
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to create debug utils messenger." };
+			return messenger;
+		}
+
+		auto GetHandle(this const MainInstance& self) noexcept -> VkInstance
+		{
+			return self.Handle.get();
+		}
+
+	private:
+		VkInstanceUniquePtr Handle;
+	};
 }

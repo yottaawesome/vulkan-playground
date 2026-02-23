@@ -155,15 +155,10 @@ export namespace StlHelpers
 			auto evenNumbers = numbers | std::ranges::views::filter([](int n) { return n % 2 == 0; });
 			auto squaredNumbers = numbers | std::ranges::views::transform([](int n) { return n * n; });
 
-			if(not std::ranges::equal(evenNumbers | std::ranges::to<std::vector>(), std::vector{2, 4}))
+			if (not std::ranges::equal(evenNumbers | std::ranges::to<std::vector>(), std::vector{2, 4}))
 				return false;
 			if (not std::ranges::equal(squaredNumbers | std::ranges::to<std::vector>(), std::vector{ 1, 4, 9, 16, 25 }))
 				return false;
-
-			/*if(not std::ranges::equal(evenNumbers.collection, std::vector{ 2, 4 }))
-				return false;
-			if (not std::ranges::equal(squaredNumbers.collection, std::vector{ 1, 4, 9, 16, 25 }))
-				return false;*/
 			return true;
 		}()
 	);

@@ -124,22 +124,7 @@ export namespace Graphics
 
 		auto CreateSurface(this CoreVulkan& self) -> decltype(self)
 		{
-			// TODO: add destruction of surface in teardown.
-			auto createInfo = vkr::VkWin32SurfaceCreateInfoKHR{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-				.hinstance = Win32::GetModuleHandleW(nullptr),
-				.hwnd = Win32::HWND{self.window->GetWin32Window()},
-			};
-			auto out = vkr::VkSurfaceKHR{};
-			auto result = Vulkan::Result{ vkr::vkCreateWin32SurfaceKHR(
-				self.instance.GetHandle(),
-				&createInfo,
-				nullptr,
-				&out
-			) };
-			if (not result)
-				throw Vulkan::VulkanError{ result, "Failed to create window surface." };
-			//self.surface = out;
+			self.surface = self.instance.CreateSurface(reinterpret_cast<Win32::HWND>(self.window->GetWin32Window()));
 			return self;
 		}
 
@@ -204,5 +189,6 @@ export namespace Graphics
 		Vulkan::Instance::MainInstance instance;
 		glfw::Window* window = nullptr;
 		vkr::VkDebugUtilsMessengerEXT debugMessenger = nullptr;
+		std::optional<Vulkan::Surface> surface;
 	};
 }

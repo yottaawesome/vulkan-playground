@@ -27,6 +27,16 @@ export namespace Vulkan
 		{
 			return vkr::VkResultToString(self.Value);
 		}
+
+		constexpr auto operator==(this Result& self, vkr::VkResult value) noexcept -> bool
+		{
+			return self.Value == value;
+		}
+
+		constexpr auto operator!=(this Result& self, vkr::VkResult value) noexcept -> bool
+		{
+			return self.Value != value;
+		}
 	};
 
 	class VulkanError : public std::runtime_error

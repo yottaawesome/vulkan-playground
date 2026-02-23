@@ -1,8 +1,10 @@
 export module vulkangfx:vulkan.instance;
 import std;
+import :win32;
 import :vulkan.exports;
 import :vulkan.error;
 import :vulkan.raii;
+import :vulkan.surface;
 
 export namespace Vulkan::Instance
 {
@@ -196,8 +198,30 @@ export namespace Vulkan::Instance
 	public:
 		MainInstance() = default;
 
-		MainInstance(VkInstanceUniquePtr Handle) : Handle{ std::move(Handle) }
+		MainInstance(VkInstanceUniquePtr Handle) 
+			: Handle{ std::move(Handle) }
 		{}
+
+		auto CreateSurface(
+			this const MainInstance& self, 
+			Win32::HWND window, 
+			Win32::HINSTANCE appInstance = Win32::GetModuleHandleW(nullptr)
+		) -> Surface
+		{
+			auto createInfo = vkr::VkWin32SurfaceCreateInfoKHR{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+				.hinstance = appInstance,
+				.hwnd = window,
+			};
+			auto surface = vkr::VkSurfaceKHR{};
+			auto result = Vulkan::Result{
+				vkr::vkCreateWin32SurfaceKHR(self.Handle.get(), &createInfo, nullptr, &surface)
+			};
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to create window surface." };
+
+			return Surface{ surface, self.Handle.get() };
+		}
 
 		template<typename TSignature>
 		auto GetInstanceProcAddr(

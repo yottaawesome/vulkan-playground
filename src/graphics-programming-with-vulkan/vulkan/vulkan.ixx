@@ -2,7 +2,9 @@
 // namespaces (none for raw header, vk for Vulkan.hpp, vk::raii, etc), 
 // we export our extension and utility types in the Vulkan namespace.
 export module vulkangfx:vulkan;
-export import :vulkan.exports;
 export import :vulkan.error;
-export import :vulkan.raii;
+export import :vulkan.exports;
 export import :vulkan.instance;
+export import :vulkan.physicaldevice;
+export import :vulkan.raii;
+export import :vulkan.surface;

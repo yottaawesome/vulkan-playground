@@ -90,6 +90,15 @@
     <ClCompile Include="vulkan\vulkan.instance.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan\vulkan.surface.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.physicaldevice.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stlhelpers\stlhelpers.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

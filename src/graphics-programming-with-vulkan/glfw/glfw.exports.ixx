@@ -1,7 +1,9 @@
 module;
 
 #define GLFW_INCLUDE_VULKAN
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 export module vulkangfx:glfw.exports;
 
@@ -32,7 +34,8 @@ export namespace glfw
 		::glfwGetRequiredInstanceExtensions,
 		::glfwGetPhysicalDevicePresentationSupport,
 		::glfwCreateWindowSurface,
-		::glfwTerminate
+		::glfwTerminate,
+		::glfwGetWin32Window
 		;
 
 	namespace WindowHints

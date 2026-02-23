@@ -16,6 +16,8 @@ export namespace Win32
 		::SECURITY_ATTRIBUTES,
 		::DWORD,
 		::HRESULT,
+		::HWND,
+		::GetModuleHandleW,
 		::LocalFree,
 		::GetLastError,
 		::FormatMessageA,

@@ -54,6 +54,11 @@ export namespace glfw
 				throw std::runtime_error("Window pointer cannot be null.");
 		}
 
+		auto GetWin32Window(this const Window& self) -> void*
+		{
+			return glfw::glfwGetWin32Window(self.window.get());
+		}
+
 		auto GetContentAreaDimensions(this const Window& self) -> std::pair<int, int>
 		{
 			int width, height;

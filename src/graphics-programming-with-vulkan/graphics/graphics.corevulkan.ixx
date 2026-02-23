@@ -3,6 +3,7 @@ import std;
 import :vulkan;
 import :glfw;
 import :gsl;
+import :win32;
 
 export namespace Graphics
 {
@@ -123,6 +124,22 @@ export namespace Graphics
 
 		auto CreateSurface(this CoreVulkan& self) -> decltype(self)
 		{
+			// TODO: add destruction of surface in teardown.
+			auto createInfo = vkr::VkWin32SurfaceCreateInfoKHR{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+				.hinstance = Win32::GetModuleHandleW(nullptr),
+				.hwnd = Win32::HWND{self.window->GetWin32Window()},
+			};
+			auto out = vkr::VkSurfaceKHR{};
+			auto result = Vulkan::Result{ vkr::vkCreateWin32SurfaceKHR(
+				self.instance.GetHandle(),
+				&createInfo,
+				nullptr,
+				&out
+			) };
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to create window surface." };
+			//self.surface = out;
 			return self;
 		}
 

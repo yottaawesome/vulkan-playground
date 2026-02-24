@@ -12,6 +12,9 @@ export namespace StlHelpers
 	template<std::ranges::range T>
 	struct Collection;
 
+	template<std::ranges::range T>
+	Collection(T&&) -> Collection<std::remove_cvref_t<T>>;
+
 	template<typename F>
 	struct FilterClosure { F predicate; };
 
@@ -35,6 +38,13 @@ export namespace StlHelpers
 		return {};
 	}
 
+	struct NullMutex
+	{
+		void lock(this const NullMutex&) noexcept { }
+		void unlock(this const NullMutex&) noexcept { }
+		auto try_lock(this const NullMutex&) noexcept -> bool { return true; }
+	};
+
 	template<std::ranges::range T>
 	struct Collection
 	{
@@ -56,9 +66,9 @@ export namespace StlHelpers
 			return std::end(self.collection);
 		}
 
-		constexpr auto empty() const noexcept -> bool
+		constexpr auto empty(this const Collection& self) noexcept -> bool
 		{
-			return std::empty(collection);
+			return std::empty(self.collection);
 		}
 
 		constexpr auto any_of(this const Collection& self, auto&& predicate) -> bool
@@ -116,16 +126,17 @@ export namespace StlHelpers
 			return Collection{ std::move(transformed) };
 		}
 
-		constexpr operator T& () noexcept
+		constexpr auto size(this const auto& self) noexcept -> decltype(std::ranges::size(self.collection))
 		{
-			return collection;
+			return std::ranges::size(self.collection);
 		}
 
-		constexpr operator const T& () const noexcept
+		constexpr auto underlying(this auto&& self) noexcept -> decltype(auto)
 		{
-			return collection;
+			return std::forward_like<decltype(self)>(self.collection);
 		}
 
+	private:
 		T collection;
 	};
 
@@ -151,6 +162,7 @@ export namespace StlHelpers
 
 	static_assert(
 		[] {
+			// Standard range pipe compatibility.
 			auto numbers = Collection{ std::vector{ 1, 2, 3, 4, 5 } };
 			auto evenNumbers = numbers | std::ranges::views::filter([](int n) { return n % 2 == 0; });
 			auto squaredNumbers = numbers | std::ranges::views::transform([](int n) { return n * n; });
@@ -159,6 +171,26 @@ export namespace StlHelpers
 				return false;
 			if (not std::ranges::equal(squaredNumbers | std::ranges::to<std::vector>(), std::vector{ 1, 4, 9, 16, 25 }))
 				return false;
+
+			// CTAD from lvalue (should copy, not create a reference member).
+			auto vec = std::vector{ 10, 20, 30 };
+			auto fromLvalue = Collection{ vec };
+			if (fromLvalue.size() != 3)
+				return false;
+
+			// Collection-preserving pipes.
+			auto evens = numbers
+				| StlHelpers::filter([](int n) { return n % 2 == 0; })
+				| StlHelpers::transform([](int n) { return n * 10; });
+			if (not std::ranges::equal(evens.underlying(), std::vector{ 20, 40 }))
+				return false;
+
+			// collect() materialises a range into a Collection.
+			auto source = std::vector{ 4, 5 };
+			auto collected = source | StlHelpers::collect();
+			if (not std::ranges::equal(collected.underlying(), std::vector{ 4, 5 }))
+				return false;
+
 			return true;
 		}()
 	);

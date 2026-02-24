@@ -41,8 +41,11 @@ export namespace vkr
 		::VkBool32,
 		::VkWin32SurfaceCreateInfoKHR,
 		::VkDeviceQueueCreateInfo,
+		::VkDeviceQueueCreateFlags,
+		::VkPhysicalDeviceFeatures,
 		::VkQueueFamilyProperties,
 		::VkQueueFlagBits,
+		::VkDeviceCreateFlags,
 		::vkCreateDevice,
 		::vkDestroyDevice,
 		::vkEnumeratePhysicalDevices,
@@ -63,6 +66,21 @@ export namespace vkr
 		::vkCreateWin32SurfaceKHR,
 		::vkDestroySurfaceKHR
 		;
+
+	auto VersionToString(std::uint32_t version) noexcept -> std::string
+	{
+		return std::format(
+			"{}.{}.{}",
+			VK_VERSION_MAJOR(version),
+			VK_VERSION_MINOR(version),
+			VK_VERSION_PATCH(version)
+		);
+	}
+
+	auto PhysicalDeviceTypeToString(vkr::VkPhysicalDeviceType type) noexcept -> const char*
+	{
+		return string_VkPhysicalDeviceType(type);
+	}
 
 	constexpr auto False = VkBool32{ VK_FALSE };
 	constexpr auto True = VkBool32{ VK_TRUE };

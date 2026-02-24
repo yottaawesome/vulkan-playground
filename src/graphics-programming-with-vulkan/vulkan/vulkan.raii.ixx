@@ -23,4 +23,5 @@ export namespace Vulkan
 		vkr::VkInstance instance;
 	};
 	using VkSurfaceUniquePtr = std::unique_ptr<vkr::VkSurfaceKHR, SurfaceDeleter>;
+
 }

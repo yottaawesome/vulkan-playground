@@ -135,13 +135,37 @@ export namespace Graphics
 				.FilterByGraphicsSupport()
 				.FilterByPhysicalDeviceType(vkr::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 			if (deviceList.Devices.empty())
-				throw std::runtime_error("Failed to find a GPU with graphics support.");
+				throw std::runtime_error("Failed to find a discrete GPU with graphics support.");
 			self.physicalDevice = deviceList.Devices.front();
 			return self;
 		}
 
 		auto CreateLogicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
+			if (not self.physicalDevice)
+				throw std::runtime_error("Physical device must be selected before creating logical device.");
+
+			auto graphicsQueueFamilyIndex = self.physicalDevice->GetGraphicsQueueFamilyIndex();
+			if (not graphicsQueueFamilyIndex)
+				throw std::runtime_error("Selected physical device does not support graphics queues.");
+
+			auto factory = Vulkan::LogicalDeviceFactory{
+				.Info = {
+					.QueueCreateInfos = {
+						{
+							.Flags = 0,
+							.QueueFamilyIndex = *graphicsQueueFamilyIndex,
+							.QueueCount = 1,
+							.QueuePriorities = {1.f}
+						}
+					},
+					.EnabledExtensions = {},
+					.EnabledFeatures = {} // TODO: enable features as needed.
+				},
+				.PhysicalDevice = self.physicalDevice->Handle,
+			};
+			self.device = factory();
+
 			return self;
 		}
 
@@ -197,7 +221,7 @@ export namespace Graphics
 		glfw::Window* window = nullptr;
 		vkr::VkDebugUtilsMessengerEXT debugMessenger = nullptr;
 		std::optional<Vulkan::Surface> surface;
-		Vulkan::PhysicalDevice physicalDevice;
-		Vulkan::LogicalDevice device;
+		std::optional<Vulkan::PhysicalDevice> physicalDevice;
+		std::optional<Vulkan::LogicalDevice> device;
 	};
 }

@@ -1,26 +1,19 @@
 export module vulkangfx:vulkan.physicaldevice;
 import std;
+import :raii;
 import :vulkan.exports;
 import :vulkan.error;
+import :vulkan.formatters;
 
 export namespace Vulkan
 {
-	struct LogicalDevice
-	{
-		LogicalDevice(
-			vkr::VkDeviceQueueCreateInfo* deviceQueueCreateInfos = nullptr,
-			std::vector<const char*> enabledExtensions = {}
-		)
-		{ }
-	};
-
 	struct PhysicalDevice
 	{
 		vkr::VkPhysicalDevice Handle;
-		auto CreateLogicalDevice(this const PhysicalDevice& self) -> LogicalDevice
-		{
-			return LogicalDevice{};
-		}
+
+		PhysicalDevice(vkr::VkPhysicalDevice handle)
+			: Handle(handle)
+		{ }
 
 		auto SupportsGraphicsQueue(this const PhysicalDevice& self) -> bool
 		{
@@ -57,6 +50,27 @@ export namespace Vulkan
 		auto GetType(this const PhysicalDevice& self) -> vkr::VkPhysicalDeviceType
 		{
 			return self.GetProperties().deviceType;
+		}
+
+		auto Describe(this const PhysicalDevice& self) -> std::string
+		{
+			auto properties = vkr::VkPhysicalDeviceProperties{ self.GetProperties() };
+			return std::format(
+				"{} (type: {}, API version: {}), {} MB of memory",
+				properties.deviceName,
+				self.GetType(),
+				vkr::VersionToString(properties.apiVersion),
+				properties.limits.maxMemoryAllocationCount / (1024 * 1024)
+			);
+		}
+
+		auto GetGraphicsQueueFamilyIndex(this const PhysicalDevice& self) -> std::optional<std::uint32_t>
+		{
+			auto queueFamilies = std::vector{ self.GetQueueFamilyProperties() };
+			for (std::uint32_t i = 0; i < queueFamilies.size(); ++i)
+				if (queueFamilies[i].queueFlags & vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
+					return i;
+			return std::nullopt;
 		}
 	};
 

@@ -99,6 +99,12 @@
     <ClCompile Include="stlhelpers\stlhelpers.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan\vulkan.formatters.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.logicaldevice.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

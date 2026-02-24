@@ -130,6 +130,13 @@ export namespace Graphics
 
 		auto PickPhysicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
+			auto deviceList = Vulkan::PhysicalDeviceList{ self.instance.GetHandle() };
+			deviceList = deviceList
+				.FilterByGraphicsSupport()
+				.FilterByPhysicalDeviceType(vkr::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+			if (deviceList.Devices.empty())
+				throw std::runtime_error("Failed to find a GPU with graphics support.");
+			self.physicalDevice = deviceList.Devices.front();
 			return self;
 		}
 
@@ -190,5 +197,7 @@ export namespace Graphics
 		glfw::Window* window = nullptr;
 		vkr::VkDebugUtilsMessengerEXT debugMessenger = nullptr;
 		std::optional<Vulkan::Surface> surface;
+		Vulkan::PhysicalDevice physicalDevice;
+		Vulkan::LogicalDevice device;
 	};
 }

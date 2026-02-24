@@ -14,8 +14,6 @@ export namespace Vulkan
 		{ }
 	};
 
-	
-
 	struct PhysicalDevice
 	{
 		vkr::VkPhysicalDevice Handle;
@@ -48,11 +46,27 @@ export namespace Vulkan
 			vkr::vkGetPhysicalDeviceQueueFamilyProperties(self.Handle, &count, properties.data());
 			return properties;
 		}
+
+		auto GetProperties(this const PhysicalDevice& self) -> vkr::VkPhysicalDeviceProperties
+		{
+			auto properties = vkr::VkPhysicalDeviceProperties{};
+			vkr::vkGetPhysicalDeviceProperties(self.Handle, &properties);
+			return properties;
+		}
+
+		auto GetType(this const PhysicalDevice& self) -> vkr::VkPhysicalDeviceType
+		{
+			return self.GetProperties().deviceType;
+		}
 	};
 
-	struct PhysicalDevieList
+	struct PhysicalDeviceList
 	{
-		PhysicalDevieList(vkr::VkInstance instanceToQuery)
+		PhysicalDeviceList(const std::vector<PhysicalDevice>& devices)
+			: Devices(devices)
+		{ }
+
+		PhysicalDeviceList(vkr::VkInstance instanceToQuery)
 		{
 			if (not instanceToQuery)
 				throw std::invalid_argument("Instance pointer cannot be null.");
@@ -80,6 +94,26 @@ export namespace Vulkan
 		constexpr auto end(this auto&& self) noexcept -> std::vector<PhysicalDevice>::iterator
 		{
 			return self.Devices.end();
+		}
+
+		auto FilterByGraphicsSupport(this const PhysicalDeviceList& self) -> PhysicalDeviceList
+		{
+			auto filtered = self.Devices
+				| std::ranges::views::filter([](const PhysicalDevice& device) { return device.SupportsGraphicsQueue(); })
+				| std::ranges::to<std::vector<PhysicalDevice>>();
+			return PhysicalDeviceList{ std::move(filtered) };
+		}
+
+		auto FilterByPhysicalDeviceType(this const PhysicalDeviceList& self, vkr::VkPhysicalDeviceType type) -> PhysicalDeviceList
+		{
+			auto filtered = self.Devices
+				| std::ranges::views::filter(
+					[type](const PhysicalDevice& device)
+					{
+						return device.GetType() == type;
+					})
+				| std::ranges::to<std::vector<PhysicalDevice>>();
+			return PhysicalDeviceList{ std::move(filtered) };
 		}
 
 		std::vector<PhysicalDevice> Devices;

@@ -15,8 +15,8 @@ export namespace Vulkan
 			struct DeviceQueueCreateInfo
 			{
 				vkr::VkDeviceQueueCreateFlags Flags;
-				uint32_t QueueFamilyIndex;
-				uint32_t QueueCount;
+				std::uint32_t QueueFamilyIndex;
+				std::uint32_t QueueCount;
 				std::vector<float> QueuePriorities{1.0f};
 
 				constexpr auto ToVulkanStruct(this const DeviceQueueCreateInfo& self) -> vkr::VkDeviceQueueCreateInfo

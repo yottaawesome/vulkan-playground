@@ -6,7 +6,7 @@ module.
 ## Dependency rules
 
 - `:graphics.*` partitions may depend on any composite or ground-level
-  partition (e.g. `:vulkan`, `:glfw`, `:gsl`).
+  partition (e.g. `:vulkan`, `:glfw`, `:gsl`, `:win32`).
 - This subsystem sits at **Layer 2** in the dependency hierarchy, above the
   composite partitions it consumes.
 

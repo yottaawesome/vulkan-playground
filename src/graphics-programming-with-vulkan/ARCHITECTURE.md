@@ -18,8 +18,11 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │
 ├── :gsl                            [ground-level] GSL library re-exports
 │
-├── :win32                          [ground-level] Win32 API re-exports and wrappers
-│   ├── :win32.exports
+├── :stlhelpers                     [ground-level, internal] STL helper utilities
+│                                   (not exported from primary module)
+│
+├── :win32                          Win32 API re-exports and wrappers
+│   ├── :win32.exports              [ground-level]
 │   ├── :win32.error                depends on :win32.exports
 │   ├── :win32.raii                 depends on :raii, :win32.exports
 │   └── :win32.event                depends on :win32.exports, :win32.raii, :win32.error
@@ -28,7 +31,7 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │   ├── :glfw.exports               [ground-level] raw GLFW symbol re-exports
 │   ├── :glfw.error                 depends on :glfw.exports
 │   ├── :glfw.raii                  depends on :raii, :glfw.exports, :glfw.error
-│   ├── :glfw.window                depends on :glfw.exports, :glfw.raii, :glfw.error
+│   ├── :glfw.window                depends on :glfw.exports, :glfw.raii, :glfw.error, :gsl
 │   ├── :glfw.monitor               depends on :glfw.exports, :glfw.error
 │   └── :glfw.functions             depends on :glfw.exports, :gsl
 │
@@ -36,10 +39,13 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │   ├── :vulkan.exports             [ground-level] raw Vulkan symbol re-exports
 │   ├── :vulkan.error               depends on :vulkan.exports
 │   ├── :vulkan.raii                depends on :raii, :vulkan.exports
-│   └── :vulkan.instance            depends on :vulkan.exports, :vulkan.error, :vulkan.raii
+│   ├── :vulkan.surface             depends on :vulkan.raii, :vulkan.error, :vulkan.exports
+│   ├── :vulkan.physicaldevice      depends on :vulkan.exports, :vulkan.error
+│   └── :vulkan.instance            depends on :vulkan.exports, :vulkan.error, :vulkan.raii,
+│                                              :vulkan.surface, :win32
 │
 └── :graphics                       High-level graphics orchestration
-    └── :graphics.corevulkan        depends on :vulkan, :glfw, :gsl
+    └── :graphics.corevulkan        depends on :vulkan, :glfw, :gsl, :win32
 ```
 
 `main.cpp` is the application entry point and imports the `vulkangfx` module.
@@ -56,9 +62,10 @@ Layer 3 — Primary module       vulkangfx
                                 │
 Layer 2 — High-level           :graphics
                                 │
-Layer 1 — Composite partitions :glfw, :win32, :vulkan
+Layer 1 — Subsystem composites :glfw, :win32, :vulkan
                                 │
-Layer 0 — Ground-level         :raii, :glm, :gsl, :win32.exports, :glfw.exports, :vulkan.exports
+Layer 0 — Ground-level         :raii, :glm, :gsl, :stlhelpers,
+                               :win32.exports, :glfw.exports, :vulkan.exports
 ```
 
 ### Ground-level partitions
@@ -68,25 +75,46 @@ utilities. They must not depend on any other `vulkangfx` partitions (only on
 `std` and the external libraries they wrap). Other partitions may freely depend
 on them.
 
+`:stlhelpers` is ground-level but is **not** exported from the primary module
+interface. It is available as an internal implementation partition.
+
+### Cross-subsystem dependencies
+
+Most sub-partitions only depend on siblings within their own subsystem and on
+ground-level partitions. The following partitions additionally depend on
+partitions from other subsystems:
+
+| Partition           | Cross-subsystem dependency | Reason |
+|---------------------|---------------------------|--------|
+| `:vulkan.instance`  | `:win32`                  | Win32 surface creation during instance setup |
+| `:glfw.window`      | `:gsl`                    | `gsl::not_null` for pointer contracts |
+| `:glfw.functions`   | `:gsl`                    | `gsl::not_null` for pointer contracts |
+
+These cross-subsystem edges mean `:vulkan` and `:glfw` are not fully
+self-contained — they sit at Layer 1 but have narrow, well-motivated reach-downs
+into ground-level partitions from other subsystems.
+
 ### Composite partitions
 
-Composite partitions (e.g. `:glfw`, `:win32`) aggregate and re-export their
-sub-partitions. They may depend on ground-level partitions and on sibling
-sub-partitions within their own subsystem.
+Composite partitions (e.g. `:glfw`, `:win32`, `:vulkan`) aggregate and re-export
+their sub-partitions. Their sub-partitions may depend on ground-level partitions
+and on sibling sub-partitions within their own subsystem (plus the documented
+cross-subsystem exceptions above).
 
 ## Subsystem directories
 
 Each subsystem lives in its own directory with a consistent structure:
 
-| Directory | Subsystem | Description |
-|-----------|-----------|-------------|
-| `raii/`   | `:raii`   | Generic RAII smart pointer utilities |
-| `glm/`   | `:glm`   | GLM math library re-exports |
-| `gsl/`   | `:gsl`   | GSL library re-exports |
-| `win32/`  | `:win32`  | Win32 API types, error handling, RAII wrappers, events |
-| `glfw/`   | `:glfw`   | GLFW window/monitor management, error handling, RAII wrappers |
-| `vulkan/` | `:vulkan` | Vulkan API types, instance creation, error handling, RAII wrappers |
-| `graphics/` | `:graphics` | High-level Vulkan initialization and rendering orchestration |
+| Directory      | Subsystem      | Description |
+|----------------|----------------|-------------|
+| `raii/`        | `:raii`        | Generic RAII smart pointer utilities |
+| `glm/`        | `:glm`         | GLM math library re-exports |
+| `gsl/`        | `:gsl`         | GSL library re-exports |
+| `stlhelpers/`  | `:stlhelpers`  | STL helpers — `Collection`, pipe adaptors, `NullMutex`, `ToVector` |
+| `win32/`       | `:win32`       | Win32 API types, error handling, RAII wrappers, events |
+| `glfw/`        | `:glfw`        | GLFW window/monitor management, error handling, RAII wrappers |
+| `vulkan/`      | `:vulkan`      | Vulkan API types, instance/surface/physical-device management, error handling, RAII wrappers |
+| `graphics/`    | `:graphics`    | High-level Vulkan initialization and rendering orchestration |
 
 ## Conventions
 

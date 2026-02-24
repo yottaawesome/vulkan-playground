@@ -24,9 +24,7 @@ export namespace Win32
 					Name.empty() ? nullptr : Name.c_str()
 				) };
 			if (not handle)
-			{
 				throw Error{ GetLastError() };
-			}
 			return HandleUniquePtr{ handle };
 		}
 	};

@@ -111,5 +111,6 @@
     <None Include="glfw\README.md" />
     <None Include="vulkan\README.md" />
     <None Include="graphics\README.md" />
+    <None Include="stlhelpers\README.md" />
   </ItemGroup>
 </Project>

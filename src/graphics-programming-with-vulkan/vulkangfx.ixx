@@ -6,3 +6,4 @@ export import :glm;
 export import :gsl;
 export import :vulkan;
 export import :graphics;
+export import :stlhelpers;

@@ -171,6 +171,7 @@
     <None Include="gsl\README.md" />
     <None Include="raii\README.md" />
     <None Include="README.md" />
+    <None Include="stlhelpers\README.md" />
     <None Include="vcpkg.json" />
     <None Include="vulkan\README.md" />
     <None Include="win32\README.md" />

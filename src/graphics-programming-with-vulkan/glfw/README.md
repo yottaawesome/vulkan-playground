@@ -9,8 +9,9 @@ window management, monitor queries, RAII resource wrappers, and error handling.
   `vulkangfx` partitions.
 - Other `:glfw.*` partitions may depend on `:glfw.exports`, `:raii`, and
   sibling `:glfw.*` partitions.
-- Partitions in this subsystem must not depend on partitions from other
-  subsystems (e.g. `:win32.*`, `:glm.*`).
+- **Exception:** `:glfw.window` and `:glfw.functions` additionally depend on
+  `:gsl` (for `gsl::not_null` pointer contracts). These are the only
+  cross-subsystem dependencies in this subsystem.
 
 ## Partitions
 
@@ -20,9 +21,9 @@ window management, monitor queries, RAII resource wrappers, and error handling.
 | `:glfw.exports`   | ground-level | Raw GLFW symbol re-exports, `WindowHints`, `InitHints` |
 | `:glfw.error`     | internal     | `glfw::Error` with `glfwGetError` integration    |
 | `:glfw.raii`      | internal     | `GlfwWindowUniquePtr`, `glfw::Context`           |
-| `:glfw.window`    | internal     | `WindowFactory`, `Window`                        |
+| `:glfw.window`    | internal     | `WindowFactory`, `Window` (depends on `:gsl`)    |
 | `:glfw.monitor`   | internal     | `Monitor` (primary, position, work area, video mode) |
-| `:glfw.functions`  | internal     | Vulkan-related helpers (`GetRequiredVulkanExtensions`) |
+| `:glfw.functions`  | internal     | Vulkan-related helpers (`GetRequiredVulkanExtensions`) (depends on `:gsl`) |
 
 ## Threading
 

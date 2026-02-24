@@ -61,4 +61,15 @@ export namespace glfw
 		int errorCode = 0;
 		std::string errorDescription;
 	};
+
+	// Signature is GLFWerrorfun
+	auto SetErrorCallback(auto&& callback) noexcept -> GLFWerrorfun
+	{
+		return glfw::glfwSetErrorCallback(callback);
+	}
+
+	auto GetErrorCallback() noexcept -> GLFWerrorfun
+	{
+		return glfw::glfwSetErrorCallback(nullptr);
+	}
 }

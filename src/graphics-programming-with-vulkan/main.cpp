@@ -10,6 +10,11 @@ auto wWinMain(
 try
 {
 	auto context = glfw::Context{};
+	glfw::SetErrorCallback(
+		[](int code, const char* description) noexcept
+		{
+			std::println("GLFW error {}: {}", code, description ? description : "Unknown error");
+		});
 	auto window = glfw::Window{ glfw::WindowFactory{}() };
 
 	auto primaryMonitor = glfw::Monitor{};

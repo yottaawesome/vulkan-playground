@@ -11,4 +11,6 @@ export namespace glfw
 		auto extensions = glfw::glfwGetRequiredInstanceExtensions(&extensionCount);
 		return { extensions, extensionCount };
 	}
+
+	
 }

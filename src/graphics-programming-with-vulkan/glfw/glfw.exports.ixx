@@ -13,6 +13,7 @@ export namespace glfw
 		::GLFWwindow,
 		::GLFWmonitor,
 		::GLFWvidmode,
+		::GLFWerrorfun,
 		::glfwGetMonitorWorkarea,
 		::glfwGetMonitorPos,
 		::glfwGetFramebufferSize,
@@ -35,7 +36,8 @@ export namespace glfw
 		::glfwGetPhysicalDevicePresentationSupport,
 		::glfwCreateWindowSurface,
 		::glfwTerminate,
-		::glfwGetWin32Window
+		::glfwGetWin32Window,
+		::glfwSetErrorCallback
 		;
 
 	namespace WindowHints

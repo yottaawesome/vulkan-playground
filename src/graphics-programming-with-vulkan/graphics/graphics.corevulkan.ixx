@@ -130,9 +130,10 @@ export namespace Graphics
 
 		auto PickPhysicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
-			auto deviceList = Vulkan::PhysicalDeviceList{ self.instance.GetHandle() };
+			auto deviceList = Vulkan::PhysicalDeviceList::Enumerate(self.instance.GetHandle());
+
 			deviceList = deviceList
-				.FilterByGraphicsSupport()
+				.FilterByQueueSupport(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT, vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT)
 				.FilterByPhysicalDeviceType(vkr::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 			if (deviceList.Devices.empty())
 				throw std::runtime_error("Failed to find a discrete GPU with graphics support.");

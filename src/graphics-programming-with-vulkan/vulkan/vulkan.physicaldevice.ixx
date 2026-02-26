@@ -20,6 +20,29 @@ export namespace Vulkan
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT);
 		}
 
+		auto SupportsComputeQueue(this const PhysicalDevice& self) -> bool
+		{
+			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT);
+		}
+
+		auto SupportsTransferQueue(this const PhysicalDevice& self) -> bool
+		{
+			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT);
+		}
+
+		auto SupportsSparseBindingQueue(this const PhysicalDevice& self) -> bool
+		{
+			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_SPARSE_BINDING_BIT);
+		}
+
+		auto SupportsQueues(
+			this const PhysicalDevice& self, 
+			std::convertible_to<vkr::VkQueueFlagBits> auto... args
+		) -> bool
+		{
+			return (self.SupportsQueueFamily(args) and ...);
+		}
+
 		auto SupportsQueueFamily(this const PhysicalDevice& self, vkr::VkQueueFlagBits requested) -> bool
 		{
 			auto queueFamilies = std::vector{ self.GetQueueFamilyProperties() };
@@ -80,24 +103,30 @@ export namespace Vulkan
 			: Devices(devices)
 		{ }
 
-		PhysicalDeviceList(vkr::VkInstance instanceToQuery)
+		constexpr auto operator[](this auto&& self, size_t x) -> decltype(auto)
 		{
-			if (not instanceToQuery)
-				throw std::invalid_argument("Instance pointer cannot be null.");
+			return std::forward_like<decltype(self)>(self.Devices[x]);
+		}
+
+		static auto Enumerate(vkr::VkInstance instance) -> PhysicalDeviceList
+		{
+			if (not instance)
+				throw std::invalid_argument("Instance handle cannot be null.");
 
 			auto deviceCount = std::uint32_t{};
-			auto result = Result{ vkr::vkEnumeratePhysicalDevices(instanceToQuery, &deviceCount, nullptr) };
-			if (not Result{ result })
-				throw VulkanError{ result, "Failed to enumerate physical devices." };
-			
-			auto deviceHandles = std::vector<vkr::VkPhysicalDevice>{ deviceCount };
-			result = Result{ vkr::vkEnumeratePhysicalDevices(instanceToQuery, &deviceCount, deviceHandles.data()) };
+			auto result = Result{ vkr::vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr) };
 			if (not result)
 				throw VulkanError{ result, "Failed to enumerate physical devices." };
 
-			Devices = deviceHandles 
+			auto deviceHandles = std::vector<vkr::VkPhysicalDevice>{ deviceCount };
+			result = Result{ vkr::vkEnumeratePhysicalDevices(instance, &deviceCount, deviceHandles.data()) };
+			if (not result)
+				throw VulkanError{ result, "Failed to enumerate physical devices." };
+
+			auto devices = deviceHandles 
 				| std::ranges::views::transform([](vkr::VkPhysicalDevice handle) { return PhysicalDevice{ handle }; })
 				| std::ranges::to<std::vector<PhysicalDevice>>();
+			return PhysicalDeviceList{ std::move(devices) };
 		}
 
 		constexpr auto begin(this auto&& self) noexcept -> std::vector<PhysicalDevice>::iterator
@@ -125,6 +154,21 @@ export namespace Vulkan
 					[type](const PhysicalDevice& device)
 					{
 						return device.GetType() == type;
+					})
+				| std::ranges::to<std::vector<PhysicalDevice>>();
+			return PhysicalDeviceList{ std::move(filtered) };
+		}
+
+		auto FilterByQueueSupport(
+			this const PhysicalDeviceList& self, 
+			std::convertible_to<vkr::VkQueueFlagBits> auto... required
+		) -> PhysicalDeviceList
+		{
+			auto filtered = self.Devices
+				| std::ranges::views::filter(
+					[...required = required](const PhysicalDevice& device)
+					{
+						return (device.SupportsQueues(required...));
 					})
 				| std::ranges::to<std::vector<PhysicalDevice>>();
 			return PhysicalDeviceList{ std::move(filtered) };

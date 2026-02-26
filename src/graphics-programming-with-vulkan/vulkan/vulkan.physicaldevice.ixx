@@ -4,6 +4,7 @@ import :raii;
 import :vulkan.exports;
 import :vulkan.error;
 import :vulkan.formatters;
+import :stlhelpers;
 
 export namespace Vulkan
 {
@@ -40,12 +41,16 @@ export namespace Vulkan
 			std::convertible_to<vkr::VkQueueFlagBits> auto... args
 		) -> bool
 		{
-			return (self.SupportsQueueFamily(args) and ...);
+			return StlHelpers::Collection{ self.GetQueueFamilyProperties() }
+				.any_of([requested = (args | ...)](const vkr::VkQueueFamilyProperties& qfp)
+				{
+					return qfp.queueFlags & requested;
+				});
 		}
 
 		auto SupportsQueueFamily(this const PhysicalDevice& self, vkr::VkQueueFlagBits requested) -> bool
 		{
-			auto queueFamilies = std::vector{ self.GetQueueFamilyProperties() };
+			auto queueFamilies = StlHelpers::Collection{ self.GetQueueFamilyProperties() };
 			return std::ranges::any_of(queueFamilies, [requested](const vkr::VkQueueFamilyProperties& qfp)
 			{
 				return qfp.queueFlags & requested;
@@ -54,7 +59,7 @@ export namespace Vulkan
 
 		auto GetQueueFamilyProperties(
 			this const PhysicalDevice& self
-		) -> std::vector<vkr::VkQueueFamilyProperties>
+		) -> StlHelpers::Collection<std::vector<vkr::VkQueueFamilyProperties>>
 		{
 			auto count = std::uint32_t{};
 			vkr::vkGetPhysicalDeviceQueueFamilyProperties(self.Handle, &count, nullptr);
@@ -89,7 +94,7 @@ export namespace Vulkan
 
 		auto GetGraphicsQueueFamilyIndex(this const PhysicalDevice& self) -> std::optional<std::uint32_t>
 		{
-			auto queueFamilies = std::vector{ self.GetQueueFamilyProperties() };
+			auto queueFamilies = StlHelpers::Collection{ self.GetQueueFamilyProperties() };
 			for (std::uint32_t i = 0; i < queueFamilies.size(); ++i)
 				if (queueFamilies[i].queueFlags & vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
 					return i;

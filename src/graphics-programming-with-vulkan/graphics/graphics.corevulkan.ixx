@@ -150,6 +150,12 @@ export namespace Graphics
 			if (not graphicsQueueFamilyIndex)
 				throw std::runtime_error("Selected physical device does not support graphics queues.");
 
+			vkr::VkPhysicalDeviceVulkan11Features s1{};
+			vkr::VkPhysicalDeviceVulkan12Features s2{};
+			vkr::VkPhysicalDeviceVulkan13Features s3{};
+			vkr::VkPhysicalDeviceVulkan14Features s4{};
+
+
 			auto factory = Vulkan::LogicalDeviceFactory{
 				.Info = {
 					.QueueCreateInfos = {

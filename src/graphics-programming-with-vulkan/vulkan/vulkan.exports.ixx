@@ -46,6 +46,11 @@ export namespace vkr
 		::VkQueueFamilyProperties,
 		::VkQueueFlagBits,
 		::VkDeviceCreateFlags,
+		::VkPhysicalDeviceFeatures2,
+		::VkPhysicalDeviceVulkan11Features,
+		::VkPhysicalDeviceVulkan12Features,
+		::VkPhysicalDeviceVulkan13Features,
+		::VkPhysicalDeviceVulkan14Features,
 		::vkCreateDevice,
 		::vkDestroyDevice,
 		::vkEnumeratePhysicalDevices,
@@ -125,7 +130,10 @@ export namespace vkr
 
 	namespace Extensions
 	{
-		constexpr auto EXTDebugUtilsExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+		constexpr auto 
+			EXTDebugUtilsExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+			SwapChainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			;
 	}
 	namespace Layers
 	{

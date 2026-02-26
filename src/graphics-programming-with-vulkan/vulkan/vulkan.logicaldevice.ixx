@@ -38,24 +38,39 @@ export namespace Vulkan
 
 			std::vector<DeviceQueueCreateInfo> QueueCreateInfos;
 			std::vector<const char*> EnabledExtensions;
-			std::vector<vkr::VkPhysicalDeviceFeatures*> EnabledFeatures;
+			vkr::VkPhysicalDeviceFeatures2 EnabledFeatures{};
+			vkr::VkPhysicalDeviceVulkan11Features EnabledFeatures11{};
+			vkr::VkPhysicalDeviceVulkan12Features EnabledFeatures12{};
+			vkr::VkPhysicalDeviceVulkan13Features EnabledFeatures13{};
+			vkr::VkPhysicalDeviceVulkan14Features EnabledFeatures14{};
 
 			// vulkanQueueCreateInfosCache is needed to ensure that the transformed queue create infos remain valid for the duration of the device creation,
 			// as the Vulkan API expects pointers to valid memory. This cache will be populated during the transformation process and passed to the Vulkan API.
 			auto ToVulkanStruct(this CreateInfo& self, std::vector<vkr::VkDeviceQueueCreateInfo>& vulkanQueueCreateInfosCache) -> vkr::VkDeviceCreateInfo
 			{
+				self.EnabledFeatures.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				self.EnabledFeatures.pNext = &self.EnabledFeatures11;
+				self.EnabledFeatures11.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+				self.EnabledFeatures11.pNext = &self.EnabledFeatures12;
+				self.EnabledFeatures12.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+				self.EnabledFeatures12.pNext = &self.EnabledFeatures13;
+				self.EnabledFeatures13.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+				self.EnabledFeatures13.pNext = &self.EnabledFeatures14;
+				self.EnabledFeatures14.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
+				self.EnabledFeatures14.pNext = nullptr;
+
 				vulkanQueueCreateInfosCache = self.QueueCreateInfos
 					| std::ranges::views::transform([](const DeviceQueueCreateInfo& info) -> vkr::VkDeviceQueueCreateInfo { return info.ToVulkanStruct(); })
 					| std::ranges::to<std::vector<vkr::VkDeviceQueueCreateInfo>>();
 				return vkr::VkDeviceCreateInfo{
 					.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-					.pNext = nullptr,
+					.pNext = &self.EnabledFeatures,
 					.flags = 0, // Device creation flags are reserved for future use and must be zero.
 					.queueCreateInfoCount = static_cast<std::uint32_t>(self.QueueCreateInfos.size()),
 					.pQueueCreateInfos = self.QueueCreateInfos.empty() ? nullptr : vulkanQueueCreateInfosCache.data(),
 					.enabledExtensionCount = static_cast<uint32_t>(self.EnabledExtensions.size()),
 					.ppEnabledExtensionNames = self.EnabledExtensions.empty() ? nullptr : self.EnabledExtensions.data(),
-					.pEnabledFeatures = self.EnabledFeatures.empty() ? nullptr : self.EnabledFeatures[0]
+					.pEnabledFeatures = nullptr
 				};
 			}
 		}; 

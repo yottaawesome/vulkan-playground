@@ -1,5 +1,6 @@
 export module vulkangfx:vulkan.devicequeue;
 import std;
+import :error;
 import :vulkan.exports;
 import :vulkan.error;
 
@@ -14,9 +15,9 @@ export namespace Vulkan
 			: physicalDevice(physicalDevice), queueFamilyIndex(queueFamilyIndex), queueIndex(queueIndex)
 		{ 
 			if (not physicalDevice)
-				throw std::runtime_error("Invalid physical device handle.");
+				throw Error::RuntimeError("Invalid physical device handle.");
 			if (not device)
-				throw std::runtime_error("Invalid device handle.");
+				throw Error::RuntimeError("Invalid device handle.");
 			vkr::vkGetDeviceQueue(device, queueFamilyIndex, queueIndex, &queue);
 		}
 
@@ -24,7 +25,7 @@ export namespace Vulkan
 
 		auto GetQueueFamilyProperties(this DeviceQueue& self) noexcept -> vkr::VkQueueFamilyProperties 
 		{ 
-			vkr::VkQueueFamilyProperties queueFamilyProperties{};
+			auto queueFamilyProperties = vkr::VkQueueFamilyProperties{};
 			vkr::vkGetPhysicalDeviceQueueFamilyProperties(self.physicalDevice, &self.queueFamilyIndex, &queueFamilyProperties);
 			return queueFamilyProperties;
 		}

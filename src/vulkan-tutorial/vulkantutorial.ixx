@@ -6,6 +6,7 @@ export import :error;
 export import :util;
 export import :vulkanite;
 export import :concepts;
+export import :error;
 
 export auto main(int argc, char* argv[]) -> int
 try

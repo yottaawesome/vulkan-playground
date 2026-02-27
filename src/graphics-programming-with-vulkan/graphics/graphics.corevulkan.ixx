@@ -5,6 +5,7 @@ import :glfw;
 import :gsl;
 import :win32;
 import :stlhelpers;
+import :error;
 
 export namespace Graphics
 {
@@ -66,20 +67,20 @@ export namespace Graphics
 					"Not all required Vulkan extensions are supported. Unsupported extensions: {}",
 					std::ranges::views::join_with(extensionSupport.Names, ", ") | std::ranges::to<std::string>()
 				);
-				throw std::runtime_error(message);
-			}
+					throw Error::RuntimeError(message);
+				}
 
-			auto layerSupport = Vulkan::Instance::EvaluateLayerSupport(requiredLayers);
-			if (not layerSupport.empty())
-			{
-				auto message = std::format(
-					"Not all required Vulkan layers are supported. Unsupported layers: {}",
-					std::ranges::views::join_with(layerSupport, ", ") | std::ranges::to<std::string>()
-				);
-				throw std::runtime_error(message);
-			}
+				auto layerSupport = Vulkan::Instance::EvaluateLayerSupport(requiredLayers);
+				if (not layerSupport.empty())
+				{
+					auto message = std::format(
+						"Not all required Vulkan layers are supported. Unsupported layers: {}",
+						std::ranges::views::join_with(layerSupport, ", ") | std::ranges::to<std::string>()
+					);
+					throw Error::RuntimeError(message);
+				}
 
-			auto instanceFactory = Vulkan::Instance::Factory{
+				auto instanceFactory = Vulkan::Instance::Factory{
 				.ApplicationInfo = {
 					.ApplicationName = "Graphics Programming with Vulkan and C++",
 					.ApplicationVersion = vkr::MakeVersion(1, 0, 0),
@@ -137,7 +138,7 @@ export namespace Graphics
 				.FilterByQueueSupport(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT, vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT)
 				.FilterByPhysicalDeviceType(vkr::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 			if (deviceList.Devices.empty())
-				throw std::runtime_error("Failed to find a discrete GPU with graphics support.");
+					throw Error::RuntimeError("Failed to find a discrete GPU with graphics support.");
 			self.physicalDevice = deviceList.Devices.front();
 
 			auto queueFamilyDetails = 
@@ -148,7 +149,7 @@ export namespace Graphics
 						return details.SupportsOperations(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT, vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT);
 					});
 			if (queueFamilyDetails.empty())
-				throw std::runtime_error("Selected physical device does not have any queue families that support graphics and transfer queues.");
+					throw Error::RuntimeError("Selected physical device does not have any queue families that support graphics and transfer queues.");
 			self.selectedQueue = queueFamilyDetails.front();
 
 			return self;
@@ -157,7 +158,7 @@ export namespace Graphics
 		auto CreateLogicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
 			if (not self.physicalDevice)
-				throw std::runtime_error("Physical device must be selected before creating logical device.");
+				throw Error::RuntimeError("Physical device must be selected before creating logical device.");
 
 			auto factory = Vulkan::LogicalDeviceFactory{
 				.Info = {
@@ -187,6 +188,36 @@ export namespace Graphics
 
 		auto CreateSwapChain(this CoreVulkan& self) -> decltype(self)
 		{
+			/*
+			typedef struct VkSwapchainCreateInfoKHR {
+				VkStructureType                  sType;
+				const void*                      pNext;
+				VkSwapchainCreateFlagsKHR        flags;
+				VkSurfaceKHR                     surface;
+				uint32_t                         minImageCount;
+				VkFormat                         imageFormat;
+				VkColorSpaceKHR                  imageColorSpace;
+				VkExtent2D                       imageExtent;
+				uint32_t                         imageArrayLayers;
+				VkImageUsageFlags                imageUsage;
+				VkSharingMode                    imageSharingMode;
+				uint32_t                         queueFamilyIndexCount;
+				const uint32_t*                  pQueueFamilyIndices;
+				VkSurfaceTransformFlagBitsKHR    preTransform;
+				VkCompositeAlphaFlagBitsKHR      compositeAlpha;
+				VkPresentModeKHR                 presentMode;
+				VkBool32                         clipped;
+				VkSwapchainKHR                   oldSwapchain;
+			} VkSwapchainCreateInfoKHR;
+			
+			*/
+			auto swapchainDetails = vkr::VkSwapchainCreateInfoKHR{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+			};
+			auto swapchain = vkr::VkSwapchainKHR{ };
+
+			auto result = Vulkan::Result{ vkr::vkCreateSwapchainKHR(self.device->GetHandle(), &swapchainDetails, nullptr, &swapchain) };
+
 			return self;
 		}
 

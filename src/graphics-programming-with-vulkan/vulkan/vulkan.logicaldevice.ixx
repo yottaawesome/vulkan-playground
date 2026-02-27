@@ -15,9 +15,14 @@ export namespace Vulkan
 			: Device(std::move(device))
 		{ }
 
-		constexpr auto GetHandle() const noexcept -> vkr::VkDevice
+		constexpr auto GetHandle(this const LogicalDevice& self) noexcept -> vkr::VkDevice
 		{
-			return Device.get();
+			return self.Device.get();
+		}
+
+		constexpr auto GetPtr(this LogicalDevice&& self) noexcept -> VkDeviceUniquePtr
+		{
+			return std::move(self.Device);
 		}
 
 	private:

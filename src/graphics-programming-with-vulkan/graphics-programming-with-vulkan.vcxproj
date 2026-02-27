@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="error\error.ixx" />
     <ClCompile Include="glfw\glfw.error.ixx" />
     <ClCompile Include="glfw\glfw.exports.ixx" />
     <ClCompile Include="glfw\glfw.functions.ixx" />

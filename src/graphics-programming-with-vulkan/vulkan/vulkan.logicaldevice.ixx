@@ -70,7 +70,7 @@ export namespace Vulkan
 					.pQueueCreateInfos = self.QueueCreateInfos.empty() ? nullptr : vulkanQueueCreateInfosCache.data(),
 					.enabledExtensionCount = static_cast<uint32_t>(self.EnabledExtensions.size()),
 					.ppEnabledExtensionNames = self.EnabledExtensions.empty() ? nullptr : self.EnabledExtensions.data(),
-					.pEnabledFeatures = nullptr
+					.pEnabledFeatures = nullptr // Must be nullptr if using VkPhysicalDeviceFeatures2.
 				};
 			}
 		}; 

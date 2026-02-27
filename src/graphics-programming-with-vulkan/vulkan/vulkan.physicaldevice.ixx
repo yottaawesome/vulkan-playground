@@ -1,13 +1,45 @@
 export module vulkangfx:vulkan.physicaldevice;
 import std;
 import :raii;
+import :stlhelpers;
 import :vulkan.exports;
 import :vulkan.error;
 import :vulkan.formatters;
-import :stlhelpers;
 
 export namespace Vulkan
 {
+	struct DeviceQueueDetails
+	{
+		std::uint32_t FamilyIndex = 0;
+		vkr::VkQueueFamilyProperties Properties{};
+		constexpr auto SupportsGraphics(this const DeviceQueueDetails& self) -> bool
+		{
+			return self.Properties.queueFlags & vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT;
+		}
+		constexpr auto SupportsCompute(this const DeviceQueueDetails& self) -> bool
+		{
+			return self.Properties.queueFlags & vkr::VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT;
+		}
+		constexpr auto SupportsTransfer(this const DeviceQueueDetails& self) -> bool
+		{
+			return self.Properties.queueFlags & vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT;
+		}
+		constexpr auto SupportsOperations(this const DeviceQueueDetails& self, std::convertible_to<vkr::VkQueueFlagBits> auto... requested) -> bool
+		{
+			return (self.Properties.queueFlags & (requested | ...)) != 0;
+		}
+		auto Describe(this const DeviceQueueDetails& self) -> std::string
+		{
+			return std::format(
+				"Queue family {}: supports {}{}{}",
+				self.FamilyIndex,
+				self.SupportsGraphics() ? "graphics " : "",
+				self.SupportsCompute() ? "compute " : "",
+				self.SupportsTransfer() ? "transfer " : ""
+			);
+		}
+	};
+
 	struct PhysicalDevice
 	{
 		vkr::VkPhysicalDevice Handle;
@@ -16,27 +48,48 @@ export namespace Vulkan
 			: Handle(handle)
 		{ }
 
-		auto SupportsGraphicsQueue(this const PhysicalDevice& self) -> bool
+		[[nodiscard]]
+		auto GetQueueFamilyDetails(this const PhysicalDevice& self) -> StlHelpers::Vector<DeviceQueueDetails>
+		{
+			auto count = std::uint32_t{};
+			vkr::vkGetPhysicalDeviceQueueFamilyProperties(self.Handle, &count, nullptr);
+			auto properties = std::vector<vkr::VkQueueFamilyProperties>{ count };
+			vkr::vkGetPhysicalDeviceQueueFamilyProperties(self.Handle, &count, properties.data());
+
+			auto details = std::vector<DeviceQueueDetails>{};
+			for (std::uint32_t familyIndex = 0; familyIndex < properties.size(); ++familyIndex)
+			{
+				const auto& familyProperties = properties[familyIndex];
+				details.push_back(DeviceQueueDetails{
+					.FamilyIndex = familyIndex,
+					.Properties = familyProperties
+				});
+			}
+
+			return details;
+		}
+
+		auto SupportsGraphics(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT);
 		}
 
-		auto SupportsComputeQueue(this const PhysicalDevice& self) -> bool
+		auto SupportsCompute(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT);
 		}
 
-		auto SupportsTransferQueue(this const PhysicalDevice& self) -> bool
+		auto SupportsTransfer(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT);
 		}
 
-		auto SupportsSparseBindingQueue(this const PhysicalDevice& self) -> bool
+		auto SupportsSparseBinding(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_SPARSE_BINDING_BIT);
 		}
 
-		auto SupportsQueues(
+		auto SupportsOperations(
 			this const PhysicalDevice& self, 
 			std::convertible_to<vkr::VkQueueFlagBits> auto... args
 		) -> bool
@@ -147,7 +200,7 @@ export namespace Vulkan
 		auto FilterByGraphicsSupport(this const PhysicalDeviceList& self) -> PhysicalDeviceList
 		{
 			auto filtered = self.Devices
-				| std::ranges::views::filter([](const PhysicalDevice& device) { return device.SupportsGraphicsQueue(); })
+				| std::ranges::views::filter([](const PhysicalDevice& device) { return device.SupportsGraphics(); })
 				| std::ranges::to<std::vector<PhysicalDevice>>();
 			return PhysicalDeviceList{ std::move(filtered) };
 		}
@@ -173,7 +226,7 @@ export namespace Vulkan
 				| std::ranges::views::filter(
 					[...required = required](const PhysicalDevice& device)
 					{
-						return (device.SupportsQueues(required...));
+						return (device.SupportsOperations(required...));
 					})
 				| std::ranges::to<std::vector<PhysicalDevice>>();
 			return PhysicalDeviceList{ std::move(filtered) };

@@ -132,7 +132,8 @@ export namespace vkr
 	{
 		constexpr auto 
 			EXTDebugUtilsExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-			SwapChainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			SwapChainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			SurfaceExtensionName = VK_KHR_SURFACE_EXTENSION_NAME
 			;
 	}
 	namespace Layers

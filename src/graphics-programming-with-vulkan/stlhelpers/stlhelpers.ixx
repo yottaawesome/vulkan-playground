@@ -14,6 +14,8 @@ export namespace StlHelpers
 
 	template<std::ranges::range T>
 	Collection(T&&) -> Collection<std::remove_cvref_t<T>>;
+	template<std::ranges::range T>
+	Collection(Collection<T>&&) -> Collection<std::remove_cvref_t<T>>;
 
 	template<typename F>
 	struct FilterClosure { F predicate; };
@@ -245,6 +247,9 @@ export namespace StlHelpers
 		auto vec = std::vector<Value>{ std::ranges::begin(range), std::ranges::end(range) };
 		return Collection<std::vector<Value>>{ std::move(vec) };
 	}
+
+	template<typename T>
+	using Vector = Collection<std::vector<T>>;
 
 	static_assert(
 		[] {

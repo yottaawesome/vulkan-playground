@@ -4,6 +4,7 @@ import :vulkan;
 import :glfw;
 import :gsl;
 import :win32;
+import :stlhelpers;
 
 export namespace Graphics
 {
@@ -138,6 +139,18 @@ export namespace Graphics
 			if (deviceList.Devices.empty())
 				throw std::runtime_error("Failed to find a discrete GPU with graphics support.");
 			self.physicalDevice = deviceList.Devices.front();
+
+			auto queueFamilyDetails = 
+				self.physicalDevice->GetQueueFamilyDetails()
+				.filter(
+					[](const Vulkan::DeviceQueueDetails& details) 
+					{ 
+						return details.SupportsOperations(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT, vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT);
+					});
+			if (queueFamilyDetails.empty())
+				throw std::runtime_error("Selected physical device does not have any queue families that support graphics and transfer queues.");
+			self.selectedQueue = queueFamilyDetails.front();
+
 			return self;
 		}
 
@@ -146,32 +159,28 @@ export namespace Graphics
 			if (not self.physicalDevice)
 				throw std::runtime_error("Physical device must be selected before creating logical device.");
 
-			auto graphicsQueueFamilyIndex = self.physicalDevice->GetGraphicsQueueFamilyIndex();
-			if (not graphicsQueueFamilyIndex)
-				throw std::runtime_error("Selected physical device does not support graphics queues.");
-
-			vkr::VkPhysicalDeviceVulkan11Features s1{};
-			vkr::VkPhysicalDeviceVulkan12Features s2{};
-			vkr::VkPhysicalDeviceVulkan13Features s3{};
-			vkr::VkPhysicalDeviceVulkan14Features s4{};
-
-
 			auto factory = Vulkan::LogicalDeviceFactory{
 				.Info = {
 					.QueueCreateInfos = {
 						{
 							.Flags = 0,
-							.QueueFamilyIndex = *graphicsQueueFamilyIndex,
-							.QueueCount = 1,
+							.QueueFamilyIndex = self.selectedQueue.FamilyIndex,
 							.QueuePriorities = {1.f}
 						}
 					},
-					.EnabledExtensions = {},
+					.EnabledExtensions = {vkr::Extensions::SwapChainExtensionName},
 					.EnabledFeatures = {} // TODO: enable features as needed.
 				},
 				.PhysicalDevice = self.physicalDevice->Handle,
 			};
 			self.device = factory();
+
+			self.deviceQueue = Vulkan::DeviceQueue(
+				self.physicalDevice->Handle,
+				self.device->GetHandle(),
+				self.selectedQueue.FamilyIndex,
+				0
+			);
 
 			return self;
 		}
@@ -230,5 +239,7 @@ export namespace Graphics
 		std::optional<Vulkan::Surface> surface;
 		std::optional<Vulkan::PhysicalDevice> physicalDevice;
 		std::optional<Vulkan::LogicalDevice> device;
+		std::optional<Vulkan::DeviceQueue> deviceQueue;
+		Vulkan::DeviceQueueDetails selectedQueue{};
 	};
 }

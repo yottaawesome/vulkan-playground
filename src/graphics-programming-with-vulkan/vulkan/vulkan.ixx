@@ -9,3 +9,4 @@ export import :vulkan.logicaldevice;
 export import :vulkan.physicaldevice;
 export import :vulkan.raii;
 export import :vulkan.surface;
+export import :vulkan.devicequeue;

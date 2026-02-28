@@ -192,38 +192,77 @@ export namespace Graphics
 
 			return self;
 		}
+		
+		auto ChooseSwapSurfaceFormat(
+			this const CoreVulkan&,
+			const std::vector<vkr::VkSurfaceFormatKHR>& availableFormats
+		) -> vkr::VkSurfaceFormatKHR
+		{
+			if (availableFormats.empty())
+				throw Error::RuntimeError("No available surface formats found.");
+			for (const auto& availableFormat : availableFormats) 
+				if (availableFormat.format == vkr::VkFormat::VK_FORMAT_B8G8R8A8_SRGB 
+					and availableFormat.colorSpace == vkr::VkColorSpaceKHR::VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+				) return availableFormat;
+			return availableFormats[0];
+		}
+
+		auto ChooseSwapExtent(
+			this CoreVulkan& self,
+			const vkr::VkSurfaceCapabilitiesKHR& surfaceCapabilities
+		) -> vkr::VkExtent2D
+		{
+			if (surfaceCapabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+				return surfaceCapabilities.currentExtent;
+			auto [width, height] = self.window->GetContentAreaDimensions();
+			auto actualExtent = vkr::VkExtent2D{
+				.width = static_cast<std::uint32_t>(width),
+				.height = static_cast<std::uint32_t>(height)
+			};
+			actualExtent.width = std::clamp(
+				actualExtent.width, 
+				surfaceCapabilities.minImageExtent.width, 
+				surfaceCapabilities.maxImageExtent.width
+			);
+			actualExtent.height = std::clamp(
+				actualExtent.height, 
+				surfaceCapabilities.minImageExtent.height, 
+				surfaceCapabilities.maxImageExtent.height
+			);
+			return actualExtent;
+		}
 
 		auto CreateSwapChain(this CoreVulkan& self) -> decltype(self)
 		{
-			/*
-			typedef struct VkSwapchainCreateInfoKHR {
-				VkStructureType                  sType;
-				const void*                      pNext;
-				VkSwapchainCreateFlagsKHR        flags;
-				VkSurfaceKHR                     surface;
-				uint32_t                         minImageCount;
-				VkFormat                         imageFormat;
-				VkColorSpaceKHR                  imageColorSpace;
-				VkExtent2D                       imageExtent;
-				uint32_t                         imageArrayLayers;
-				VkImageUsageFlags                imageUsage;
-				VkSharingMode                    imageSharingMode;
-				uint32_t                         queueFamilyIndexCount;
-				const uint32_t*                  pQueueFamilyIndices;
-				VkSurfaceTransformFlagBitsKHR    preTransform;
-				VkCompositeAlphaFlagBitsKHR      compositeAlpha;
-				VkPresentModeKHR                 presentMode;
-				VkBool32                         clipped;
-				VkSwapchainKHR                   oldSwapchain;
-			} VkSwapchainCreateInfoKHR;
-			
-			*/
-			auto swapchainDetails = vkr::VkSwapchainCreateInfoKHR{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-			};
-			auto swapchain = vkr::VkSwapchainKHR{ };
+			auto surfaceCapabilities = vkr::VkSurfaceCapabilitiesKHR{ self.surface->GetSurfaceCapabilities() };
+			self.swapChainExtent = self.ChooseSwapExtent(surfaceCapabilities);
+			self.swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(self.surface->GetSurfaceFormats());
 
-			auto result = Vulkan::Result{ vkr::vkCreateSwapchainKHR(self.device->GetHandle(), &swapchainDetails, nullptr, &swapchain) };
+			std::uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+			if (surfaceCapabilities.maxImageCount > 0 and imageCount > surfaceCapabilities.maxImageCount)
+				imageCount = surfaceCapabilities.maxImageCount;
+
+			auto factory = Vulkan::SwapchainFactory{
+				.Info = {
+					.flags = 0,
+					.surface = self.surface->GetHandle(),
+					.minImageCount = imageCount,
+					.imageFormat = self.swapChainSurfaceFormat.format,
+					.imageColorSpace = self.swapChainSurfaceFormat.colorSpace,
+					.imageExtent = self.swapChainExtent,
+					.imageArrayLayers = 1,
+					.imageUsage = vkr::VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+					.imageSharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+					.preTransform = surfaceCapabilities.currentTransform,
+					.compositeAlpha = vkr::VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+					.presentMode = vkr::VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR, // TODO: allow user to choose present mode.
+					.clipped = vkr::True,
+					.oldSwapchain = nullptr
+				},
+				.Device = self.device->GetHandle()
+			};
+
+			self.swapchain = Vulkan::Swapchain{ factory() };
 
 			return self;
 		}
@@ -279,5 +318,8 @@ export namespace Graphics
 		std::optional<Vulkan::LogicalDevice> device;
 		std::optional<Vulkan::DeviceQueue> deviceQueue;
 		Vulkan::DeviceQueueDetails selectedQueue{};
+		vkr::VkExtent2D swapChainExtent;
+		vkr::VkSurfaceFormatKHR swapChainSurfaceFormat;
+		std::optional<Vulkan::Swapchain> swapchain;
 	};
 }

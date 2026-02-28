@@ -47,6 +47,12 @@ export namespace glfw
 	class Window
 	{
 	public:
+		struct Dimensions
+		{
+			int Width = 0;
+			int Height = 0;
+		};
+
 		Window(GlfwWindowUniquePtr window) 
 			: window(std::move(window))
 		{
@@ -59,7 +65,7 @@ export namespace glfw
 			return glfw::glfwGetWin32Window(self.window.get());
 		}
 
-		auto GetContentAreaDimensions(this const Window& self) -> std::pair<int, int>
+		auto GetContentAreaDimensions(this const Window& self) -> Dimensions
 		{
 			int width, height;
 			glfw::glfwGetWindowSize(self.window.get(), &width, &height);

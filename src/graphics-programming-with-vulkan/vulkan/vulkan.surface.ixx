@@ -28,6 +28,7 @@ export namespace Vulkan
 	};
 	using SurfaceUniquePtr = std::unique_ptr<std::remove_pointer_t<vkr::VkSurfaceKHR>, SurfaceDeleter>;
 
+	// Constructs raw Vulkan surface handles. The factory is a function object that captures the necessary parameters for surface creation.
 	struct SurfaceFactory
 	{
 		Win32::HINSTANCE appInstance = Win32::GetModuleHandleW(nullptr);
@@ -61,8 +62,8 @@ export namespace Vulkan
 	struct Surface
 	{
 	public:
-		Surface(SurfaceUniquePtr surface, vkr::VkPhysicalDevice physicalDevice)
-			: surface{ std::move(surface) }, physicalDevice{ physicalDevice }
+		Surface(SurfaceUniquePtr surfaceIn, vkr::VkPhysicalDevice physicalDevice)
+			: surface{ std::move(surfaceIn) }, physicalDevice{ physicalDevice }
 		{ 
 			if (not surface)
 				throw Error::RuntimeError("Surface handle cannot be null.");
@@ -81,7 +82,8 @@ export namespace Vulkan
 		auto GetSurfaceCapabilities(this const Surface& self) -> vkr::VkSurfaceCapabilitiesKHR
 		{
 			auto capabilities = vkr::VkSurfaceCapabilitiesKHR{};
-			if (auto result = Result{ vkr::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(self.physicalDevice, self.surface.get(), &capabilities) })
+			auto result = Result{ vkr::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(self.physicalDevice, self.surface.get(), &capabilities) };
+			if (not result)
 				throw Vulkan::VulkanError{ result, "Failed to query surface capabilities." };
 			return capabilities;
 		}
@@ -89,6 +91,22 @@ export namespace Vulkan
 		auto GetHandle(this const Surface& self) noexcept -> vkr::VkSurfaceKHR
 		{
 			return self.surface.get();
+		}
+
+		auto GetSurfaceFormats(this const Surface& self) -> std::vector<vkr::VkSurfaceFormatKHR>
+		{
+			auto formatCount = std::uint32_t{};
+			auto result = Result{ vkr::vkGetPhysicalDeviceSurfaceFormatsKHR(self.physicalDevice, self.surface.get(), &formatCount, nullptr) };
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to query surface formats count." };
+			if (formatCount == 0)
+				return {};
+			
+			auto formats = std::vector<vkr::VkSurfaceFormatKHR>(formatCount);
+			result = Result{ vkr::vkGetPhysicalDeviceSurfaceFormatsKHR(self.physicalDevice, self.surface.get(), &formatCount, formats.data()) };
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to query surface formats." };
+			return formats;
 		}
 
 	private:

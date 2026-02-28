@@ -34,18 +34,20 @@ export namespace Vulkan
 
 	struct SwapchainFactory
 	{
+		// https://docs.vulkan.org/refpages/latest/refpages/source/VkSwapchainCreateInfoKHR.html
+		vkr::VkSwapchainCreateInfoKHR Info{};
 		vkr::VkDevice Device = nullptr;
-		vkr::VkSwapchainCreateInfoKHR CreateInfo{};
 
-		auto CreateSwapchainKHR(this SwapchainFactory& self) -> VkSwapchainKHRUniquePtr
+		[[nodiscard]]
+		auto operator()(this SwapchainFactory& self) -> VkSwapchainKHRUniquePtr
 		{
 			if (not self.Device)
 				throw Error::RuntimeError{"Device must not be null to create a swapchain."};
 
-			self.CreateInfo.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-
+			self.Info.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 			auto swapchain = vkr::VkSwapchainKHR{ nullptr };
-			if (auto result = Result{ vkr::vkCreateSwapchainKHR(self.Device, &self.CreateInfo, nullptr, &swapchain) })
+			auto result = Result{ vkr::vkCreateSwapchainKHR(self.Device, &self.Info, nullptr, &swapchain) };
+			if (not result)
 				throw VulkanError{ result, "Failed to create swapchain." };
 			return VkSwapchainKHRUniquePtr(swapchain, SwapchainDeleter(self.Device));
 		}
@@ -61,6 +63,7 @@ export namespace Vulkan
 				throw Error::RuntimeError{"Swapchain handle must not be null."};
 		}
 
+		[[nodiscard]]
 		constexpr auto GetHandle(this const Swapchain& self) noexcept -> vkr::VkSwapchainKHR
 		{
 			return self.handle.get();

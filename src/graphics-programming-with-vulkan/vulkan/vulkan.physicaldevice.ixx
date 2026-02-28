@@ -48,6 +48,12 @@ export namespace Vulkan
 			: Handle(handle)
 		{ }
 
+		[[nodiscard]] 
+		constexpr auto GetHandle(this const PhysicalDevice& self) -> vkr::VkPhysicalDevice
+		{
+			return self.Handle;
+		}
+
 		[[nodiscard]]
 		auto GetQueueFamilyDetails(this const PhysicalDevice& self) -> StlHelpers::Vector<DeviceQueueDetails>
 		{
@@ -69,26 +75,31 @@ export namespace Vulkan
 			return details;
 		}
 
+		[[nodiscard]]
 		auto SupportsGraphics(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT);
 		}
 
+		[[nodiscard]]
 		auto SupportsCompute(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT);
 		}
 
+		[[nodiscard]]
 		auto SupportsTransfer(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT);
 		}
 
+		[[nodiscard]]
 		auto SupportsSparseBinding(this const PhysicalDevice& self) -> bool
 		{
 			return self.SupportsQueueFamily(vkr::VkQueueFlagBits::VK_QUEUE_SPARSE_BINDING_BIT);
 		}
 
+		[[nodiscard]]
 		auto SupportsOperations(
 			this const PhysicalDevice& self, 
 			std::convertible_to<vkr::VkQueueFlagBits> auto... args
@@ -101,6 +112,7 @@ export namespace Vulkan
 				});
 		}
 
+		[[nodiscard]]
 		auto SupportsQueueFamily(this const PhysicalDevice& self, vkr::VkQueueFlagBits requested) -> bool
 		{
 			auto queueFamilies = StlHelpers::Collection{ self.GetQueueFamilyProperties() };
@@ -110,6 +122,7 @@ export namespace Vulkan
 			});
 		}
 
+		[[nodiscard]]
 		auto GetQueueFamilyProperties(
 			this const PhysicalDevice& self
 		) -> StlHelpers::Collection<std::vector<vkr::VkQueueFamilyProperties>>
@@ -121,6 +134,7 @@ export namespace Vulkan
 			return properties;
 		}
 
+		[[nodiscard]]
 		auto GetProperties(this const PhysicalDevice& self) -> vkr::VkPhysicalDeviceProperties
 		{
 			auto properties = vkr::VkPhysicalDeviceProperties{};
@@ -128,11 +142,13 @@ export namespace Vulkan
 			return properties;
 		}
 
+		[[nodiscard]]
 		auto GetType(this const PhysicalDevice& self) -> vkr::VkPhysicalDeviceType
 		{
 			return self.GetProperties().deviceType;
 		}
 
+		[[nodiscard]]
 		auto Describe(this const PhysicalDevice& self) -> std::string
 		{
 			auto properties = vkr::VkPhysicalDeviceProperties{ self.GetProperties() };
@@ -145,6 +161,7 @@ export namespace Vulkan
 			);
 		}
 
+		[[nodiscard]]
 		auto GetGraphicsQueueFamilyIndex(this const PhysicalDevice& self) -> std::optional<std::uint32_t>
 		{
 			auto queueFamilies = StlHelpers::Collection{ self.GetQueueFamilyProperties() };
@@ -166,6 +183,7 @@ export namespace Vulkan
 			return std::forward_like<decltype(self)>(self.Devices[x]);
 		}
 
+		[[nodiscard]]
 		static auto Enumerate(vkr::VkInstance instance) -> PhysicalDeviceList
 		{
 			if (not instance)
@@ -187,16 +205,19 @@ export namespace Vulkan
 			return PhysicalDeviceList{ std::move(devices) };
 		}
 
+		[[nodiscard]]
 		constexpr auto begin(this auto&& self) noexcept -> std::vector<PhysicalDevice>::iterator
 		{
 			return self.Devices.begin();
 		}
 
+		[[nodiscard]]
 		constexpr auto end(this auto&& self) noexcept -> std::vector<PhysicalDevice>::iterator
 		{
 			return self.Devices.end();
 		}
 
+		[[nodiscard]]
 		auto FilterByGraphicsSupport(this const PhysicalDeviceList& self) -> PhysicalDeviceList
 		{
 			auto filtered = self.Devices
@@ -205,6 +226,7 @@ export namespace Vulkan
 			return PhysicalDeviceList{ std::move(filtered) };
 		}
 
+		[[nodiscard]]
 		auto FilterByPhysicalDeviceType(this const PhysicalDeviceList& self, vkr::VkPhysicalDeviceType type) -> PhysicalDeviceList
 		{
 			auto filtered = self.Devices
@@ -217,6 +239,7 @@ export namespace Vulkan
 			return PhysicalDeviceList{ std::move(filtered) };
 		}
 
+		[[nodiscard]]
 		auto FilterByQueueSupport(
 			this const PhysicalDeviceList& self, 
 			std::convertible_to<vkr::VkQueueFlagBits> auto... required

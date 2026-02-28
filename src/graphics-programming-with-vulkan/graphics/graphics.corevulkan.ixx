@@ -126,7 +126,14 @@ export namespace Graphics
 
 		auto CreateSurface(this CoreVulkan& self) -> decltype(self)
 		{
-			self.surface = self.instance.CreateSurface(reinterpret_cast<Win32::HWND>(self.window->GetWin32Window()));
+			self.surface = Vulkan::Surface{
+				Vulkan::SurfaceFactory{
+					.appInstance = Win32::GetModuleHandleW(nullptr),
+					.window = static_cast<Win32::HWND>(self.window->GetWin32Window()),
+					.instance = self.instance.GetHandle()
+				}(),
+				self.physicalDevice->GetHandle()
+			};
 			return self;
 		}
 
@@ -149,7 +156,7 @@ export namespace Graphics
 						return details.SupportsOperations(vkr::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT, vkr::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT);
 					});
 			if (queueFamilyDetails.empty())
-					throw Error::RuntimeError("Selected physical device does not have any queue families that support graphics and transfer queues.");
+				throw Error::RuntimeError("Selected physical device does not have any queue families that support graphics and transfer queues.");
 			self.selectedQueue = queueFamilyDetails.front();
 
 			return self;

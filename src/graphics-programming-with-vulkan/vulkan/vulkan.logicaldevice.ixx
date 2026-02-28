@@ -8,27 +8,6 @@ export namespace Vulkan
 {
 	using VkDeviceUniquePtr = Raii::IndirectUniquePtr<vkr::VkDevice, vkr::vkDestroyDevice, nullptr>;
 
-	class LogicalDevice
-	{
-	public:
-		LogicalDevice(VkDeviceUniquePtr device)
-			: Device(std::move(device))
-		{ }
-
-		constexpr auto GetHandle(this const LogicalDevice& self) noexcept -> vkr::VkDevice
-		{
-			return self.Device.get();
-		}
-
-		constexpr auto GetPtr(this LogicalDevice&& self) noexcept -> VkDeviceUniquePtr
-		{
-			return std::move(self.Device);
-		}
-
-	private:
-		VkDeviceUniquePtr Device;
-	};
-
 	struct LogicalDeviceFactory
 	{
 		struct CreateInfo
@@ -89,7 +68,7 @@ export namespace Vulkan
 		CreateInfo Info;
 		vkr::VkPhysicalDevice PhysicalDevice = nullptr;
 
-		auto operator()(this LogicalDeviceFactory& self) -> LogicalDevice
+		auto operator()(this LogicalDeviceFactory& self) -> VkDeviceUniquePtr
 		{
 			if (not self.PhysicalDevice)
 				throw std::invalid_argument("Physical device cannot be null.");
@@ -101,7 +80,28 @@ export namespace Vulkan
 			auto result = Result{ vkr::vkCreateDevice(self.PhysicalDevice, &createInfo, nullptr, std::out_ptr(device)) };
 			if (not result)
 				throw VulkanError{ result, "Failed to create logical device." };
-			return LogicalDevice{ std::move(device) };
+			return device;
 		}
+	};
+
+	class LogicalDevice
+	{
+	public:
+		LogicalDevice(VkDeviceUniquePtr device)
+			: Device(std::move(device))
+		{ }
+
+		constexpr auto GetHandle(this const LogicalDevice& self) noexcept -> vkr::VkDevice
+		{
+			return self.Device.get();
+		}
+
+		constexpr auto GetPtr(this LogicalDevice&& self) noexcept -> VkDeviceUniquePtr
+		{
+			return std::move(self.Device);
+		}
+
+	private:
+		VkDeviceUniquePtr Device;
 	};
 }

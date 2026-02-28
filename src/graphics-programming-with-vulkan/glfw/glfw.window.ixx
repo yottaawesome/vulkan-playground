@@ -110,8 +110,6 @@ export namespace glfw
 			return not self.ShouldClose();
 		}
 
-		
-
 	private:
 		glfw::GlfwWindowUniquePtr window = nullptr;
 	};

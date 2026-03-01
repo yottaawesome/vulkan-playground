@@ -35,6 +35,7 @@ export namespace Vulkan
 		Win32::HWND window = nullptr;
 		vkr::VkInstance instance = nullptr;
 
+		[[nodiscard]]
 		auto operator()(this const SurfaceFactory& self) -> SurfaceUniquePtr
 		{
 			if (not self.appInstance)
@@ -71,6 +72,7 @@ export namespace Vulkan
 				throw Error::RuntimeError("Physical device handle cannot be null.");
 		}
 
+		[[nodiscard]]
 		auto SupportsPresentation(this const Surface& self, std::uint32_t queueFamilyIndex) -> bool
 		{
 			auto supported = VkBool32{};
@@ -79,6 +81,7 @@ export namespace Vulkan
 			return supported;
 		}
 
+		[[nodiscard]]
 		auto GetSurfaceCapabilities(this const Surface& self) -> vkr::VkSurfaceCapabilitiesKHR
 		{
 			auto capabilities = vkr::VkSurfaceCapabilitiesKHR{};
@@ -88,11 +91,13 @@ export namespace Vulkan
 			return capabilities;
 		}
 		
+		[[nodiscard]]
 		auto GetHandle(this const Surface& self) noexcept -> vkr::VkSurfaceKHR
 		{
 			return self.surface.get();
 		}
 
+		[[nodiscard]]
 		auto GetSurfaceFormats(this const Surface& self) -> std::vector<vkr::VkSurfaceFormatKHR>
 		{
 			auto formatCount = std::uint32_t{};
@@ -107,6 +112,23 @@ export namespace Vulkan
 			if (not result)
 				throw Vulkan::VulkanError{ result, "Failed to query surface formats." };
 			return formats;
+		}
+
+		[[nodiscard]]
+		auto GetSurfacePresentModes(this const Surface& self) -> std::vector<vkr::VkPresentModeKHR>
+		{
+			auto presentModeCount = std::uint32_t{};
+			auto result = Result{ vkr::vkGetPhysicalDeviceSurfacePresentModesKHR(self.physicalDevice, self.surface.get(), &presentModeCount, nullptr) };
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to query surface present modes count." };
+			if (presentModeCount == 0)
+				return {};
+			
+			auto presentModes = std::vector<vkr::VkPresentModeKHR>(presentModeCount);
+			result = Result{ vkr::vkGetPhysicalDeviceSurfacePresentModesKHR(self.physicalDevice, self.surface.get(), &presentModeCount, presentModes.data()) };
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to query surface present modes." };
+			return presentModes;
 		}
 
 	private:

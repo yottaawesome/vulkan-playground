@@ -65,6 +65,7 @@ export namespace vkr
 		::VkCompositeAlphaFlagBitsKHR,
 		::VkSharingMode,
 		::VkPresentModeKHR,
+		::vkGetPhysicalDeviceSurfacePresentModesKHR,
 		::vkGetPhysicalDeviceSurfaceFormatsKHR,
 		::vkGetPhysicalDeviceSurfaceCapabilitiesKHR,
 		::vkGetPhysicalDeviceSurfaceSupportKHR,

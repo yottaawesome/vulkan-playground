@@ -311,7 +311,7 @@ export namespace Graphics
 
 		static auto GetRequiredLayers() -> std::vector<const char*>
 		{
-			constexpr bool enableValidationLayers = true;
+			constexpr auto enableValidationLayers = bool{ true };
 			auto layers = std::vector<const char*>{};
 			if constexpr (enableValidationLayers)
 				layers.push_back(vkr::Layers::KhronosValidationLayerName);

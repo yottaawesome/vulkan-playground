@@ -41,6 +41,8 @@ export namespace Graphics
 	private:
 		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating Vulkan instance...");
+
 			auto requiredExtensions = std::vector{ self.GetRequiredExtensions() };
 			auto requiredLayers = std::vector{ self.GetRequiredLayers() };
 
@@ -84,6 +86,8 @@ export namespace Graphics
 
 		auto AddDebugMessenger(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Setting up debug messenger...");
+
 			constexpr auto severity =
 				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 				vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -100,7 +104,7 @@ export namespace Graphics
 					void* pUserData [[maybe_unused]]
 				) static -> vkr::VkBool32
 				{
-					static auto logger = Vulkan::Log::Logger<"Validation layer">();
+					static auto logger = Log::Logger<"Validation layer">();
 					if (messageSeverity >= vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 						logger.Info("{}", pCallbackData->pMessage);
 					return vkr::False;
@@ -111,6 +115,8 @@ export namespace Graphics
 
 		auto PickPhysicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Picking physical device...");
+
 			auto deviceList = Vulkan::PhysicalDeviceList::Enumerate(self.instance.GetHandle());
 
 			deviceList = deviceList
@@ -136,6 +142,8 @@ export namespace Graphics
 
 		auto CreateSurface(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating window surface...");
+
 			self.surface = Vulkan::Surface{
 				self.window->CreateVulkanSurface(self.instance.GetHandle()),
 				self.physicalDevice->GetHandle(),
@@ -146,6 +154,8 @@ export namespace Graphics
 
 		auto CreateLogicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating logical device...");
+
 			if (not self.physicalDevice)
 				throw Error::RuntimeError("Physical device must be selected before creating logical device.");
 
@@ -177,6 +187,8 @@ export namespace Graphics
 		
 		auto CreateSwapChain(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating swap chain...");
+
 			auto surfaceCapabilities = vkr::VkSurfaceCapabilitiesKHR{ self.surface->GetSurfaceCapabilities() };
 			self.swapChainExtent = self.ChooseSwapExtent(surfaceCapabilities);
 			self.swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(self.surface->GetSurfaceFormats());
@@ -233,6 +245,8 @@ export namespace Graphics
 
 		auto CreateImageViews(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating image views...");
+
 			self.swapchainImageViews.clear();
 			auto factory = Vulkan::ImageViewFactory{
 				.Device = self.device->GetHandle(),
@@ -252,7 +266,7 @@ export namespace Graphics
 					.layerCount = 1
 				}
 			};
-
+			
 			for (vkr::VkImage image : self.swapchainImages)
 			{
 				factory.Image = image;
@@ -264,21 +278,25 @@ export namespace Graphics
 
 		auto CreateSyncObjects(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating synchronization objects...");
 			return self;
 		}
 
 		auto DescribeGraphicsPipeline(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Describing graphics pipeline...");
 			return self;
 		}
 
 		auto CreateCommandPool(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating command pool...");
 			return self;
 		}
 
 		auto CreateCommandBuffers(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Creating command buffers...");
 			return self;
 		}
 
@@ -301,10 +319,11 @@ export namespace Graphics
 		}
 
 		auto ChooseSwapSurfaceFormat(
-			this const CoreVulkan&,
+			this const CoreVulkan& self,
 			const std::vector<vkr::VkSurfaceFormatKHR>& availableFormats
 		) -> vkr::VkSurfaceFormatKHR
 		{
+			self.logger.Info("Choosing swap surface format...");
 			if (availableFormats.empty())
 				throw Error::RuntimeError("No available surface formats found.");
 			for (const auto& availableFormat : availableFormats)
@@ -319,6 +338,7 @@ export namespace Graphics
 			const vkr::VkSurfaceCapabilitiesKHR& surfaceCapabilities
 		) -> vkr::VkExtent2D
 		{
+			self.logger.Info("Choosing swap extent...");
 			if (surfaceCapabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
 				return surfaceCapabilities.currentExtent;
 			auto [width, height] = self.window->GetContentAreaDimensions();
@@ -342,6 +362,7 @@ export namespace Graphics
 	private:
 		auto FlushCommands(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Flushing commands...");
 			return self;
 		}
 
@@ -352,11 +373,14 @@ export namespace Graphics
 
 		auto Teardown(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Tearing down Vulkan resources...");
 			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);
 			return self;
 		}
 
 	private:
+		Log::Logger<"CoreVulkan"> logger;
+
 		Vulkan::Instance::MainInstance instance;
 		glfw::Window* window = nullptr;
 		vkr::VkDebugUtilsMessengerEXT debugMessenger = nullptr;

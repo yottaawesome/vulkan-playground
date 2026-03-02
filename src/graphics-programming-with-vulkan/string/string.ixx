@@ -2,7 +2,7 @@
 export module vulkangfx:string;
 import std;
 
-export namespace Vulkan
+export namespace String
 {
 	template<size_t N, typename TChar>
 	struct FixedString

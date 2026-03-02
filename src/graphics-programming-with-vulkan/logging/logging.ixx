@@ -10,7 +10,7 @@ import :error;
 import :string;
 import :file;
 
-namespace Vulkan::Log
+namespace Log
 {
 	enum class LoggingMode
 	{
@@ -103,23 +103,23 @@ namespace Vulkan::Log
 	};
 }
 
-export namespace Vulkan::Log
+export namespace Log
 {
-	template<FixedString Name>
+	template<String::FixedString Name>
 	struct Logger
 	{
 		template<typename... TArgs>
-		void Info(std::format_string<TArgs...> fmt, TArgs&&...args)
+		void Info(this const Logger&, std::format_string<TArgs...> fmt, TArgs&&...args)
 		{
 			InternalLogger<>::Info(Name.ToView(), std::format(fmt, std::forward<TArgs>(args)...));
 		}
 		template<typename... TArgs>
-		void Warning(std::format_string<TArgs...> fmt, TArgs&&...args)
+		void Warning(this const Logger&, std::format_string<TArgs...> fmt, TArgs&&...args)
 		{
 			InternalLogger<>::Warning(Name.ToView(), std::format(fmt, std::forward<TArgs>(args)...));
 		}
 		template<typename... TArgs>
-		void Error(std::format_string<TArgs...> fmt, TArgs&&...args)
+		void Error(this const Logger&, std::format_string<TArgs...> fmt, TArgs&&...args)
 		{
 			InternalLogger<>::Error(Name.ToView(), std::format(fmt, std::forward<TArgs>(args)...));
 		}

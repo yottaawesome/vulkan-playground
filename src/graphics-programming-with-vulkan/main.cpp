@@ -1,7 +1,7 @@
 import std;
 import vulkangfx;
 
-auto Logger = Vulkan::Log::Logger<"Main">{};
+auto Logger = Log::Logger<"Main">{};
 
 auto wWinMain(
 	Win32::HINSTANCE,

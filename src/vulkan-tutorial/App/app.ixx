@@ -512,7 +512,7 @@ export namespace VulkanTutorial::App
 					.layerCount = 1 
 				}
 			};
-			for (auto image : self.swapChainImages) 
+			for (const vk::Image& image : self.swapChainImages)
 			{
 				imageViewCreateInfo.image = image;
 				self.swapChainImageViews.emplace_back(self.device, imageViewCreateInfo);

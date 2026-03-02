@@ -6,6 +6,7 @@ import :gsl;
 import :win32;
 import :stlhelpers;
 import :error;
+import :logging;
 
 export namespace Graphics
 {
@@ -99,8 +100,9 @@ export namespace Graphics
 					void* pUserData [[maybe_unused]]
 				) static -> vkr::VkBool32
 				{
+					static auto logger = Vulkan::Log::Logger<"Validation layer">();
 					if (messageSeverity >= vkr::VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-						std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
+						logger.Info("{}", pCallbackData->pMessage);
 					return vkr::False;
 				};
 			self.debugMessenger = self.instance.SetupDebugMessenger(severity, types, &self, callback);
@@ -179,7 +181,7 @@ export namespace Graphics
 			self.swapChainExtent = self.ChooseSwapExtent(surfaceCapabilities);
 			self.swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(self.surface->GetSurfaceFormats());
 
-			std::uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+			auto imageCount = std::uint32_t{ surfaceCapabilities.minImageCount + 1 };
 			if (surfaceCapabilities.maxImageCount > 0 and imageCount > surfaceCapabilities.maxImageCount)
 				imageCount = surfaceCapabilities.maxImageCount;
 
@@ -231,6 +233,32 @@ export namespace Graphics
 
 		auto CreateImageViews(this CoreVulkan& self) -> decltype(self)
 		{
+			self.swapchainImageViews.clear();
+			auto factory = Vulkan::ImageViewFactory{
+				.Device = self.device->GetHandle(),
+				.ViewType = vkr::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
+				.Format = self.swapChainSurfaceFormat.format,
+				.Components {
+					.r = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+					.g = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+					.b = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+					.a = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+				},
+				.SubresourceRange {
+					.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
+
+			for (vkr::VkImage image : self.swapchainImages)
+			{
+				factory.Image = image;
+				self.swapchainImageViews.emplace_back(factory());
+			}
+
 			return self;
 		}
 
@@ -282,7 +310,7 @@ export namespace Graphics
 			for (const auto& availableFormat : availableFormats)
 				if (availableFormat.format == vkr::VkFormat::VK_FORMAT_B8G8R8A8_SRGB
 					and availableFormat.colorSpace == vkr::VkColorSpaceKHR::VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-					) return availableFormat;
+				) return availableFormat;
 			return availableFormats[0];
 		}
 
@@ -341,5 +369,6 @@ export namespace Graphics
 		vkr::VkSurfaceFormatKHR swapChainSurfaceFormat;
 		std::optional<Vulkan::Swapchain> swapchain;
 		Vulkan::SwapchainImages swapchainImages;
+		std::vector<Vulkan::ImageView> swapchainImageViews;
 	};
 }

@@ -10,3 +10,4 @@ export import :stlhelpers;
 export import :error;
 export import :logging;
 export import :string;
+export import :file;

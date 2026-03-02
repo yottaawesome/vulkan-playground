@@ -8,6 +8,7 @@ import std;
 import :win32;
 import :error;
 import :string;
+import :file;
 
 namespace Vulkan::Log
 {
@@ -38,35 +39,7 @@ namespace Vulkan::Log
 		}
 	} const ConsoleInit;
 
-	struct LogFileHandler
-	{
-		std::string_view FileName = "log.txt";
-		std::unique_ptr<std::ofstream> of;
-
-		auto GetLogFile(this LogFileHandler& self) -> std::ofstream&
-		{
-			if (self.of)
-				return *self.of;
-			self.of = std::make_unique<std::ofstream>(std::string{ self.FileName }, std::ios::app);
-			return *self.of;
-		}
-
-		auto operator<<(this auto&& self, std::string_view message) -> decltype(self)
-		{
-			auto& logFile = self.GetLogFile();
-			if (logFile)
-				logFile << message << std::endl;
-			return std::forward<decltype(self)>(self);
-		}
-
-		auto operator<<(this auto&& self, std::ostream&(*manip)(std::ostream&)) -> decltype(self)
-		{
-			auto& logFile = self.GetLogFile();
-			if (logFile)
-				manip(logFile);
-			return std::forward<decltype(self)>(self);
-		}
-	} constexpr LogFile{ "log.txt" };
+	constexpr auto LogFile = Vulkan::OutputFile{ "log.txt", std::ios::app };
 
 	template<LoggingMode T = CurrentLoggingMode>
 	struct InternalLogger
@@ -74,7 +47,7 @@ namespace Vulkan::Log
 		static void Info(std::string_view source, std::string_view message)
 		{
 			auto formatted = std::format(
-				"[{}] [info] [{}]: {}\n",
+				"[{}] [info] [{}]: {}",
 				std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() },
 				source,
 				message
@@ -93,7 +66,7 @@ namespace Vulkan::Log
 		static void Warning(std::string_view source, std::string_view message)
 		{
 			auto formatted = std::format(
-				"[{}] [warning] [{}]: {}\n",
+				"[{}] [warning] [{}]: {}",
 				std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() },
 				source,
 				message
@@ -112,7 +85,7 @@ namespace Vulkan::Log
 		static void Error(std::string_view source, std::string_view message)
 		{
 			auto formatted = std::format(
-				"[{}] [error] [{}]: {}\n",
+				"[{}] [error] [{}]: {}",
 				std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() },
 				source,
 				message

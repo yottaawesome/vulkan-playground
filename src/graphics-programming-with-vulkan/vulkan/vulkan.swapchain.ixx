@@ -63,12 +63,12 @@ export namespace Vulkan
 
 		constexpr auto begin(this auto&& self) noexcept
 		{ 
-			return std::forward_like<decltype(self)>(self.Image).begin(); 
+			return std::forward_like<decltype(self)>(self.Images).begin(); 
 		}
 
 		constexpr auto end(this auto&& self) noexcept
 		{
-			return std::forward_like<decltype(self)>(self.Image).end(); 
+			return std::forward_like<decltype(self)>(self.Images).end(); 
 		}
 
 		constexpr auto count(this const SwapchainImages& self) noexcept
@@ -78,9 +78,9 @@ export namespace Vulkan
 
 		constexpr auto operator[](this auto&& self, std::size_t index)
 		{
-			if (index >= self.Image.size())
+			if (index >= self.Images.size())
 				throw std::out_of_range{ "Index out of range in SwapchainImageViews." };
-			return std::forward_like<decltype(self)>(self.Image)[index];
+			return std::forward_like<decltype(self)>(self.Images)[index];
 		}
 
 		constexpr auto GetImages(this auto&& self) noexcept

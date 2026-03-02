@@ -135,6 +135,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="error\error.ixx" />
+    <ClCompile Include="file\vulkan.file.ixx" />
     <ClCompile Include="glfw\glfw.error.ixx" />
     <ClCompile Include="glfw\glfw.exports.ixx" />
     <ClCompile Include="glfw\glfw.functions.ixx" />
@@ -156,6 +157,7 @@
     <ClCompile Include="vulkan\vulkan.devicequeue.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
     <ClCompile Include="vulkan\vulkan.formatters.ixx" />
+    <ClCompile Include="vulkan\vulkan.imageview.ixx" />
     <ClCompile Include="vulkan\vulkan.instance.ixx" />
     <ClCompile Include="vulkan\vulkan.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />

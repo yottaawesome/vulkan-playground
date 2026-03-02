@@ -120,6 +120,12 @@
     <ClCompile Include="string\string.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="file\vulkan.file.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.imageview.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

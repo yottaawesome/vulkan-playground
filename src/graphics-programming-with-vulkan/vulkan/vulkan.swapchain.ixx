@@ -32,6 +32,55 @@ export namespace Vulkan
 	};
 	using VkSwapchainKHRUniquePtr = std::unique_ptr<std::remove_pointer_t<vkr::VkSwapchainKHR>, SwapchainDeleter>;
 
+	struct SwapchainCapabilities
+	{
+		vkr::VkSurfaceCapabilitiesKHR Capabilities{};
+		std::vector<vkr::VkSurfaceFormatKHR> Formats;
+		std::vector<vkr::VkPresentModeKHR> PresentModes;
+
+		static auto Query(vkr::VkPhysicalDevice device, vkr::VkSurfaceKHR surface) -> SwapchainCapabilities
+		{
+			auto capabilities = SwapchainCapabilities{};
+
+			if (not device)
+				throw Error::RuntimeError{ "Physical device must not be null to query swapchain capabilities." };
+			if (not surface)
+				throw Error::RuntimeError{ "Surface must not be null to query swapchain capabilities." };
+
+			// Query surface capabilities.
+			auto result = Result{ vkr::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &capabilities.Capabilities) };
+			if (not result)
+				throw VulkanError{ result, "Failed to query surface capabilities." };
+			auto formatCount = std::uint32_t{};
+			result = Result{ vkr::vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr) };
+			if (not result)
+				throw VulkanError{ result, "Failed to query surface formats count." };
+
+			// Query surface formats.
+			if (formatCount > 0)
+			{
+				capabilities.Formats.resize(formatCount);
+				result = Result{ vkr::vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, capabilities.Formats.data()) };
+				if (not result)
+					throw VulkanError{ result, "Failed to query surface formats." };
+			}
+
+			//Query present modes count.
+			auto presentModeCount = std::uint32_t{};
+			result = Result{ vkr::vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr) };
+			if (not result)
+				throw VulkanError{ result, "Failed to query present modes count." };
+			if (presentModeCount > 0)
+			{
+				capabilities.PresentModes.resize(presentModeCount);
+				result = Result{ vkr::vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, capabilities.PresentModes.data()) };
+				if (not result)
+					throw VulkanError{ result, "Failed to query present modes." };
+			}
+			return capabilities;
+		}
+	};
+
 	struct SwapchainFactory
 	{
 		// https://docs.vulkan.org/refpages/latest/refpages/source/VkSwapchainCreateInfoKHR.html

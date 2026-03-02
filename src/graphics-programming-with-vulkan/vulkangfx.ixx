@@ -8,3 +8,5 @@ export import :vulkan;
 export import :graphics;
 export import :stlhelpers;
 export import :error;
+export import :logging;
+export import :string;

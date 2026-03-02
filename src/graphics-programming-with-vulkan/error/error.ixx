@@ -43,4 +43,11 @@ export namespace Error
 			return std::format("{} ({}:{}:{})", message, loc.function_name(), loc.file_name(), loc.line());
 		}
 	};
+
+	struct IndexOutOfRangeError : RuntimeError
+	{
+		IndexOutOfRangeError(std::string_view message, auto index, auto max, const std::source_location& loc = std::source_location::current())
+			: RuntimeError(std::format("{} (index: {}, max: {})", message, index, max), loc)
+		{ }
+	};
 }

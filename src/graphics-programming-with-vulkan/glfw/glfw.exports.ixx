@@ -37,7 +37,8 @@ export namespace glfw
 		::glfwCreateWindowSurface,
 		::glfwTerminate,
 		::glfwGetWin32Window,
-		::glfwSetErrorCallback
+		::glfwSetErrorCallback,
+		::glfwCreateWindowSurface
 		;
 
 	namespace WindowHints
@@ -198,5 +199,14 @@ export namespace glfw
 		constexpr auto
 			X11XcbVulkanSurface = GLFW_X11_XCB_VULKAN_SURFACE
 			;
+	}
+
+	// See https://www.glfw.org/docs/3.3/group__vulkan.html
+	export namespace VulkanSupport
+	{
+		using 
+			::VkInstance,
+			::VkSurfaceKHR,
+			::VkResult;
 	}
 }

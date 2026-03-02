@@ -1,9 +1,10 @@
 export module vulkangfx:glfw.window;
 import std;
+import :error;
+import :gsl;
 import :glfw.exports;
 import :glfw.raii;
 import :glfw.error;
-import :gsl;
 
 // Note that glfw windows have two coordinate systems: virtual screen and content area.
 // Both use the same units, which is screen coordinates, which is not necessarily
@@ -44,20 +45,30 @@ export namespace glfw
 		}
 	};
 
+	struct ScreenCoordinates
+	{
+		int X = 0;
+		int Y = 0;
+	};
+	struct PixelCoordinates
+	{
+		int X = 0;
+		int Y = 0;
+	};
+	struct ScreenDimensions
+	{
+		int Width = 0;
+		int Height = 0;
+	};
+
 	class Window
 	{
 	public:
-		struct Dimensions
+		Window(GlfwWindowUniquePtr windowIn) 
+			: window(std::move(windowIn))
 		{
-			int Width = 0;
-			int Height = 0;
-		};
-
-		Window(GlfwWindowUniquePtr window) 
-			: window(std::move(window))
-		{
-			if (not this->window)
-				throw std::runtime_error("Window pointer cannot be null.");
+			if (not window)
+				throw ::Error::RuntimeError{ "Window pointer cannot be null." };
 		}
 
 		auto GetWin32Window(this const Window& self) -> void*
@@ -65,21 +76,23 @@ export namespace glfw
 			return glfw::glfwGetWin32Window(self.window.get());
 		}
 
-		auto GetContentAreaDimensions(this const Window& self) -> Dimensions
+		auto GetContentAreaDimensions(this const Window& self) -> ScreenDimensions
 		{
 			int width, height;
 			glfw::glfwGetWindowSize(self.window.get(), &width, &height);
 			return { width, height };
 		}
 
-		auto GetScreenPosition(this const Window& self) -> std::pair<int, int>
+		auto GetScreenPosition(this const Window& self) -> ScreenCoordinates
 		{
 			int xPos, yPos;
 			glfw::glfwGetWindowPos(self.window.get(), &xPos, &yPos);
 			return { xPos, yPos };
 		}
 
-		auto GetFramebufferDimensions(this const Window& self) -> std::pair<int, int>
+		// This metric is in pixels.
+		// https://www.glfw.org/docs/latest/window_guide.html#window_fbsize
+		auto GetFramebufferDimensions(this const Window& self) -> PixelCoordinates
 		{
 			int width, height;
 			glfw::glfwGetFramebufferSize(self.window.get(), &width, &height);
@@ -114,6 +127,16 @@ export namespace glfw
 		auto StillOpen(this const Window& self) -> bool
 		{
 			return not self.ShouldClose();
+		}
+
+		auto CreateVulkanSurface(this const Window& self, VulkanSupport::VkInstance instance) -> VulkanSupport::VkSurfaceKHR
+		{
+			if (not instance)
+				throw ::Error::RuntimeError("Vulkan instance must not be null to create a surface.");
+			auto surface = VulkanSupport::VkSurfaceKHR{};
+			if (auto result = glfw::glfwCreateWindowSurface(instance, self.window.get(), nullptr, &surface); result != 0)
+				throw VulkanSupportError{ result };
+			return surface;
 		}
 
 	private:

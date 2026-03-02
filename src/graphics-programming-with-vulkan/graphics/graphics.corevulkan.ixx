@@ -38,23 +38,6 @@ export namespace Graphics
 
 		// Order of initialisation.
 	private:
-		static auto GetRequiredExtensions() -> std::vector<const char*>
-		{
-			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
-			auto vector = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
-			vector.push_back(vkr::Extensions::EXTDebugUtilsExtensionName);
-			return vector;
-		}
-
-		static auto GetRequiredLayers() -> std::vector<const char*>
-		{
-			constexpr bool enableValidationLayers = true;
-			auto layers = std::vector<const char*>{};
-			if constexpr (enableValidationLayers)
-				layers.push_back(vkr::Layers::KhronosValidationLayerName);
-			return layers;
-		}
-
 		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
 		{
 			auto requiredExtensions = std::vector{ self.GetRequiredExtensions() };
@@ -67,20 +50,20 @@ export namespace Graphics
 					"Not all required Vulkan extensions are supported. Unsupported extensions: {}",
 					std::ranges::views::join_with(extensionSupport.Names, ", ") | std::ranges::to<std::string>()
 				);
-					throw Error::RuntimeError(message);
-				}
+				throw Error::RuntimeError(message);
+			}
 
-				auto layerSupport = Vulkan::Instance::EvaluateLayerSupport(requiredLayers);
-				if (not layerSupport.empty())
-				{
-					auto message = std::format(
-						"Not all required Vulkan layers are supported. Unsupported layers: {}",
-						std::ranges::views::join_with(layerSupport, ", ") | std::ranges::to<std::string>()
-					);
-					throw Error::RuntimeError(message);
-				}
+			auto layerSupport = Vulkan::Instance::EvaluateLayerSupport(requiredLayers);
+			if (not layerSupport.empty())
+			{
+				auto message = std::format(
+					"Not all required Vulkan layers are supported. Unsupported layers: {}",
+					std::ranges::views::join_with(layerSupport, ", ") | std::ranges::to<std::string>()
+				);
+				throw Error::RuntimeError(message);
+			}
 
-				auto instanceFactory = Vulkan::Instance::Factory{
+			auto instanceFactory = Vulkan::Instance::Factory{
 				.ApplicationInfo = {
 					.ApplicationName = "Graphics Programming with Vulkan and C++",
 					.ApplicationVersion = vkr::MakeVersion(1, 0, 0),
@@ -124,19 +107,6 @@ export namespace Graphics
 			return self;
 		}
 
-		auto CreateSurface(this CoreVulkan& self) -> decltype(self)
-		{
-			self.surface = Vulkan::Surface{
-				Vulkan::SurfaceFactory{
-					.appInstance = Win32::GetModuleHandleW(nullptr),
-					.window = static_cast<Win32::HWND>(self.window->GetWin32Window()),
-					.instance = self.instance.GetHandle()
-				}(),
-				self.physicalDevice->GetHandle()
-			};
-			return self;
-		}
-
 		auto PickPhysicalDevice(this CoreVulkan& self) -> decltype(self)
 		{
 			auto deviceList = Vulkan::PhysicalDeviceList::Enumerate(self.instance.GetHandle());
@@ -159,6 +129,16 @@ export namespace Graphics
 				throw Error::RuntimeError("Selected physical device does not have any queue families that support graphics and transfer queues.");
 			self.selectedQueue = queueFamilyDetails.front();
 
+			return self;
+		}
+
+		auto CreateSurface(this CoreVulkan& self) -> decltype(self)
+		{
+			self.surface = Vulkan::Surface{
+				self.window->CreateVulkanSurface(self.instance.GetHandle()),
+				self.physicalDevice->GetHandle(),
+				self.instance.GetHandle()
+			};
 			return self;
 		}
 
@@ -193,45 +173,6 @@ export namespace Graphics
 			return self;
 		}
 		
-		auto ChooseSwapSurfaceFormat(
-			this const CoreVulkan&,
-			const std::vector<vkr::VkSurfaceFormatKHR>& availableFormats
-		) -> vkr::VkSurfaceFormatKHR
-		{
-			if (availableFormats.empty())
-				throw Error::RuntimeError("No available surface formats found.");
-			for (const auto& availableFormat : availableFormats) 
-				if (availableFormat.format == vkr::VkFormat::VK_FORMAT_B8G8R8A8_SRGB 
-					and availableFormat.colorSpace == vkr::VkColorSpaceKHR::VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-				) return availableFormat;
-			return availableFormats[0];
-		}
-
-		auto ChooseSwapExtent(
-			this CoreVulkan& self,
-			const vkr::VkSurfaceCapabilitiesKHR& surfaceCapabilities
-		) -> vkr::VkExtent2D
-		{
-			if (surfaceCapabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
-				return surfaceCapabilities.currentExtent;
-			auto [width, height] = self.window->GetContentAreaDimensions();
-			auto actualExtent = vkr::VkExtent2D{
-				.width = static_cast<std::uint32_t>(width),
-				.height = static_cast<std::uint32_t>(height)
-			};
-			actualExtent.width = std::clamp(
-				actualExtent.width, 
-				surfaceCapabilities.minImageExtent.width, 
-				surfaceCapabilities.maxImageExtent.width
-			);
-			actualExtent.height = std::clamp(
-				actualExtent.height, 
-				surfaceCapabilities.minImageExtent.height, 
-				surfaceCapabilities.maxImageExtent.height
-			);
-			return actualExtent;
-		}
-
 		auto CreateSwapChain(this CoreVulkan& self) -> decltype(self)
 		{
 			auto surfaceCapabilities = vkr::VkSurfaceCapabilitiesKHR{ self.surface->GetSurfaceCapabilities() };
@@ -246,7 +187,15 @@ export namespace Graphics
 				.Info = {
 					.flags = 0,
 					.surface = self.surface->GetHandle(),
-					.minImageCount = imageCount,
+					.minImageCount =
+						[&surfaceCapabilities] noexcept -> std::uint32_t
+						{
+							auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
+							if (0 < surfaceCapabilities.maxImageCount
+								and surfaceCapabilities.maxImageCount < minImageCount
+							) minImageCount = surfaceCapabilities.maxImageCount;
+							return minImageCount;
+						}(),
 					.imageFormat = self.swapChainSurfaceFormat.format,
 					.imageColorSpace = self.swapChainSurfaceFormat.colorSpace,
 					.imageExtent = self.swapChainExtent,
@@ -255,15 +204,28 @@ export namespace Graphics
 					.imageSharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
 					.preTransform = surfaceCapabilities.currentTransform,
 					.compositeAlpha = vkr::VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-					.presentMode = vkr::VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR, // TODO: allow user to choose present mode.
+					.presentMode =
+						[
+							&surfaceCapabilities, 
+							availablePresentModes = self.surface->GetSurfacePresentModes()
+						] -> vkr::VkPresentModeKHR
+						{
+							// Only VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available.
+							// VK_PRESENT_MODE_FIFO_KHR is more important for mobile devices,
+							// where energy usage matters.
+							for (const auto& availablePresentMode : availablePresentModes)
+								if (availablePresentMode == vkr::VkPresentModeKHR::VK_PRESENT_MODE_MAILBOX_KHR)
+									return availablePresentMode;
+							return vkr::VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR;
+						}(),
 					.clipped = vkr::True,
 					.oldSwapchain = nullptr
 				},
 				.Device = self.device->GetHandle()
 			};
 
-			self.swapchain = Vulkan::Swapchain{ factory() };
-
+			self.swapchain = Vulkan::Swapchain{ factory(), self.device->GetHandle() };
+			self.swapchainImages = self.swapchain->GetImages();
 			return self;
 		}
 
@@ -290,6 +252,63 @@ export namespace Graphics
 		auto CreateCommandBuffers(this CoreVulkan& self) -> decltype(self)
 		{
 			return self;
+		}
+
+	private: // Initialisation support functions
+		static auto GetRequiredExtensions() -> std::vector<const char*>
+		{
+			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
+			auto vector = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
+			vector.push_back(vkr::Extensions::EXTDebugUtilsExtensionName);
+			return vector;
+		}
+
+		static auto GetRequiredLayers() -> std::vector<const char*>
+		{
+			constexpr bool enableValidationLayers = true;
+			auto layers = std::vector<const char*>{};
+			if constexpr (enableValidationLayers)
+				layers.push_back(vkr::Layers::KhronosValidationLayerName);
+			return layers;
+		}
+
+		auto ChooseSwapSurfaceFormat(
+			this const CoreVulkan&,
+			const std::vector<vkr::VkSurfaceFormatKHR>& availableFormats
+		) -> vkr::VkSurfaceFormatKHR
+		{
+			if (availableFormats.empty())
+				throw Error::RuntimeError("No available surface formats found.");
+			for (const auto& availableFormat : availableFormats)
+				if (availableFormat.format == vkr::VkFormat::VK_FORMAT_B8G8R8A8_SRGB
+					and availableFormat.colorSpace == vkr::VkColorSpaceKHR::VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+					) return availableFormat;
+			return availableFormats[0];
+		}
+
+		auto ChooseSwapExtent(
+			this CoreVulkan& self,
+			const vkr::VkSurfaceCapabilitiesKHR& surfaceCapabilities
+		) -> vkr::VkExtent2D
+		{
+			if (surfaceCapabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
+				return surfaceCapabilities.currentExtent;
+			auto [width, height] = self.window->GetContentAreaDimensions();
+			auto actualExtent = vkr::VkExtent2D{
+				.width = static_cast<std::uint32_t>(width),
+				.height = static_cast<std::uint32_t>(height)
+			};
+			actualExtent.width = std::clamp(
+				actualExtent.width,
+				surfaceCapabilities.minImageExtent.width,
+				surfaceCapabilities.maxImageExtent.width
+			);
+			actualExtent.height = std::clamp(
+				actualExtent.height,
+				surfaceCapabilities.minImageExtent.height,
+				surfaceCapabilities.maxImageExtent.height
+			);
+			return actualExtent;
 		}
 
 	private:
@@ -321,5 +340,6 @@ export namespace Graphics
 		vkr::VkExtent2D swapChainExtent;
 		vkr::VkSurfaceFormatKHR swapChainSurfaceFormat;
 		std::optional<Vulkan::Swapchain> swapchain;
+		Vulkan::SwapchainImages swapchainImages;
 	};
 }

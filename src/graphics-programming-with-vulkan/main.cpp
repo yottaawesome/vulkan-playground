@@ -1,6 +1,8 @@
 import std;
 import vulkangfx;
 
+auto Logger = Vulkan::Log::Logger<"Main">{};
+
 auto wWinMain(
 	Win32::HINSTANCE,
 	Win32::HINSTANCE,
@@ -9,11 +11,13 @@ auto wWinMain(
 ) -> int
 try
 {
+	Logger.Info("Application started.");
+
 	auto context = glfw::Context{};
 	glfw::SetErrorCallback(
 		[](int code, const char* description) noexcept
 		{
-			std::println("GLFW error {}: {}", code, description ? description : "Unknown error");
+			Logger.Error("GLFW error {}: {}", code, description ? description : "Unknown error");
 		});
 	auto window = glfw::Window{ glfw::WindowFactory{}() };
 

@@ -17,6 +17,8 @@ export namespace Win32
 		::DWORD,
 		::HRESULT,
 		::HWND,
+		::AllocConsole,
+		::FreeConsole,
 		::GetModuleHandleW,
 		::LocalFree,
 		::GetLastError,

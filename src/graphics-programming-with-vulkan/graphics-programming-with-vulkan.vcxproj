@@ -145,8 +145,10 @@
     <ClCompile Include="graphics\graphics.ixx" />
     <ClCompile Include="graphics\graphics.corevulkan.ixx" />
     <ClCompile Include="gsl\gsl.ixx" />
+    <ClCompile Include="logging\logging.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stlhelpers\stlhelpers.ixx" />
+    <ClCompile Include="string\string.ixx" />
     <ClCompile Include="vulkangfx.ixx" />
     <ClCompile Include="glfw\glfw.raii.ixx" />
     <ClCompile Include="glfw\glfw.window.ixx" />

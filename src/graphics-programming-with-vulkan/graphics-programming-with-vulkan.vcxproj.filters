@@ -114,6 +114,12 @@
     <ClCompile Include="vulkan\vulkan.swapchain.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="logging\logging.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string\string.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

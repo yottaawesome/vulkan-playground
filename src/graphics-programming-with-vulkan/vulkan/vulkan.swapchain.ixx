@@ -16,10 +16,10 @@ export namespace Vulkan
 		SwapchainDeleter& operator=(SwapchainDeleter&&) = default;
 
 		SwapchainDeleter(vkr::VkDevice device)
-			: Device(device) 
+			: Device(device)
 		{
 			if (not Device)
-				throw Error::RuntimeError{"Device must not be null for SwapchainDeleter."};
+				throw Error::RuntimeError{ "Device must not be null for SwapchainDeleter." };
 		}
 
 		void operator()(this SwapchainDeleter& self, vkr::VkSwapchainKHR swapchain) noexcept
@@ -42,7 +42,7 @@ export namespace Vulkan
 		auto operator()(this SwapchainFactory& self) -> VkSwapchainKHRUniquePtr
 		{
 			if (not self.Device)
-				throw Error::RuntimeError{"Device must not be null to create a swapchain."};
+				throw Error::RuntimeError{ "Device must not be null to create a swapchain." };
 
 			self.Info.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 			auto swapchain = vkr::VkSwapchainKHR{ nullptr };
@@ -53,14 +53,54 @@ export namespace Vulkan
 		}
 	};
 
+	struct SwapchainImages
+	{
+		constexpr SwapchainImages() = default;
+
+		SwapchainImages(std::vector<vkr::VkImage> images)
+			: Images(std::move(images))
+		{ }
+
+		constexpr auto begin(this auto&& self) noexcept
+		{ 
+			return std::forward_like<decltype(self)>(self.Image).begin(); 
+		}
+
+		constexpr auto end(this auto&& self) noexcept
+		{
+			return std::forward_like<decltype(self)>(self.Image).end(); 
+		}
+
+		constexpr auto count(this const SwapchainImages& self) noexcept
+		{
+			return static_cast<std::uint32_t>(self.Images.size());
+		}
+
+		constexpr auto operator[](this auto&& self, std::size_t index)
+		{
+			if (index >= self.Image.size())
+				throw std::out_of_range{ "Index out of range in SwapchainImageViews." };
+			return std::forward_like<decltype(self)>(self.Image)[index];
+		}
+
+		constexpr auto GetImages(this auto&& self) noexcept
+		{
+			return std::forward_like<decltype(self)>(self.Image);
+		}
+
+		std::vector<vkr::VkImage> Images;
+	};
+
 	class Swapchain
 	{
 	public:
-		Swapchain(VkSwapchainKHRUniquePtr handle)
-			: handle(std::move(handle))
+		Swapchain(VkSwapchainKHRUniquePtr handleIn, vkr::VkDevice deviceIn)
+			: handle(std::move(handleIn)), device(deviceIn)
 		{
-			if (not this->handle)
-				throw Error::RuntimeError{"Swapchain handle must not be null."};
+			if (not device)
+				throw Error::RuntimeError{ "Device must not be null to create a swapchain." };
+			if (not handle)
+				throw Error::RuntimeError{ "Swapchain handle must not be null." };
 		}
 
 		[[nodiscard]]
@@ -68,7 +108,37 @@ export namespace Vulkan
 		{
 			return self.handle.get();
 		}
+
+		[[nodiscard]]
+		auto GetImages(this const Swapchain& self) -> SwapchainImages
+		{
+			auto count = std::uint32_t{};
+			auto result = Result{
+				vkr::vkGetSwapchainImagesKHR(
+				self.device,
+				self.handle.get(),
+				&count,
+				nullptr
+			) };
+			if (not result)
+				throw VulkanError{ result, "Failed to get swapchain image count." };
+
+			auto images = std::vector<vkr::VkImage>(count);
+			result = Result{
+				vkr::vkGetSwapchainImagesKHR(
+					self.device,
+					self.handle.get(),
+					&count,
+					images.data()
+				)};
+			if (not result)
+				throw VulkanError{ result, "Failed to get swapchain images." };
+
+			return SwapchainImages{ std::move(images) };
+		}
+
 	private:
 		VkSwapchainKHRUniquePtr handle;
+		vkr::VkDevice device{};
 	};
 }

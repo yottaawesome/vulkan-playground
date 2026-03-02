@@ -534,10 +534,6 @@ export namespace VulkanTutorial::App
 			self.swapChainExtent = self.ChooseSwapExtent(surfaceCapabilities);
 			self.swapChainSurfaceFormat = self.ChooseSwapSurfaceFormat(self.physicalDevice->getSurfaceFormatsKHR(self.surface));
 
-			std::uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
-			if (surfaceCapabilities.maxImageCount > 0 and imageCount > surfaceCapabilities.maxImageCount)
-				imageCount = surfaceCapabilities.maxImageCount;
-
 			auto swapChainCreateInfo = vk::SwapchainCreateInfoKHR{
 				.flags = vk::SwapchainCreateFlagsKHR(),
 				.surface = self.surface,

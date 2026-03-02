@@ -63,6 +63,16 @@ export namespace Vulkan
 	struct Surface
 	{
 	public:
+		Surface(vkr::VkSurfaceKHR surfaceIn, vkr::VkPhysicalDevice device, vkr::VkInstance instanceIn)
+			: surface{ SurfaceUniquePtr{ surfaceIn, SurfaceDeleter{instanceIn} } }
+			, physicalDevice{ device }
+		{
+			if (not surface)
+				throw Error::RuntimeError("Surface handle cannot be null.");
+			if (not instanceIn)
+				throw Error::RuntimeError("Vulkan instance handle cannot be null.");
+		}
+
 		Surface(SurfaceUniquePtr surfaceIn, vkr::VkPhysicalDevice physicalDevice)
 			: surface{ std::move(surfaceIn) }, physicalDevice{ physicalDevice }
 		{ 

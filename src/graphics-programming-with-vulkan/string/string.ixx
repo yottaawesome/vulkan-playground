@@ -23,16 +23,6 @@ export namespace String
 			return std::basic_string_view<TChar>{ self.Data, N - 1 };
 		}
 
-		constexpr auto begin(this const FixedString& self) noexcept -> const TChar*
-		{
-			return self.Data;
-		}
-
-		constexpr auto end(this const FixedString& self) noexcept -> const TChar*
-		{
-			return self.Data + N - 1;
-		}
-
 		constexpr auto size(this const FixedString&) noexcept -> size_t
 		{
 			return N - 1;
@@ -57,6 +47,42 @@ export namespace String
 		constexpr auto operator==(this const FixedString&, const TChar(&)[M]) noexcept -> bool
 		{
 			return false;
+		}
+
+		struct Iterator
+		{
+			const TChar* Data = nullptr;
+			int Position = 0;
+
+			constexpr auto operator++(this Iterator& self) noexcept -> Iterator&
+			{
+				Position++; 
+				return self;
+			}
+
+			[[nodiscard]]
+			constexpr auto operator*(this const Iterator& self) noexcept -> TChar
+			{
+				return self.Data[Position];
+			}
+
+			[[nodiscard]]
+			constexpr auto operator!=(this const Iterator& self, const Iterator& other) noexcept -> bool
+			{
+				return self.Position != other.Position;
+			}
+		};
+
+		[[nodiscard]]
+		constexpr auto begin(this const FixedString& self) noexcept -> Iterator 
+		{ 
+			return Iterator{ self.Data, 0 }; 
+		}
+		
+		[[nodiscard]]
+		constexpr auto end(this const FixedString& self) noexcept -> Iterator 
+		{ 
+			return Iterator{ self.Data, N - 1 }; 
 		}
 	};
 	template<size_t N>

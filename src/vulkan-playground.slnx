@@ -5,5 +5,6 @@
   </Configurations>
   <Project Path="graphics-programming-with-vulkan/graphics-programming-with-vulkan.vcxproj" Id="be96710d-0534-4fbe-8bfb-0082e3112cad" />
   <Project Path="hello-world/hello-world.vcxproj" Id="583a70aa-e6f9-4c0d-b2cf-c870805930fc" />
+  <Project Path="how-to-vulkan-2026/how-to-vulkan-2026.vcxproj" Id="6c8ea6c0-af2f-4c66-9021-124e27e28885" />
   <Project Path="vulkan-tutorial/vulkan-tutorial.vcxproj" Id="9883e565-2b0f-4608-904a-66003832c11e" />
 </Solution>

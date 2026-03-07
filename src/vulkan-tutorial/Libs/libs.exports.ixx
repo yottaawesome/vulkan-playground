@@ -125,6 +125,12 @@ export namespace vk
 		::vk::RenderingAttachmentInfo,
 		::vk::PipelineBindPoint,
 		::vk::RenderingInfo,
+		::vk::VertexInputBindingDescription,
+		::vk::VertexInputAttributeDescription,
+		::vk::BufferCreateInfo,
+		::vk::MemoryRequirements,
+		::vk::MemoryPropertyFlags,
+		::vk::MemoryPropertyFlagBits,
 		::vk::ApiVersion14,
 		::vk::EXTDebugUtilsExtensionName,
 		::vk::KHRSwapchainExtensionName,
@@ -132,6 +138,10 @@ export namespace vk
 		::vk::KHRSynchronization2ExtensionName,
 		::vk::KHRCreateRenderpass2ExtensionName
 		;
+
+	using ::vk::operator|;
+	using ::vk::operator&;
+	using ::vk::operator==;
 
 	constexpr auto MakeVersion(int x, int y, int z)
 		noexcept -> unsigned

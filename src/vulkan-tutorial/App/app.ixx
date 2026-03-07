@@ -4,9 +4,39 @@ import :libs;
 import :error;
 import :util;
 import :vulkanite;
+import :glm;
 
 export namespace VulkanTutorial::App
 {
+	struct Vertex
+	{
+		glm::vec2 pos;
+		glm::vec3 color;
+
+		static auto ToBindingDescription() -> vk::VertexInputBindingDescription
+		{
+			return vk::VertexInputBindingDescription{
+				.binding = 0,
+				.stride = sizeof(Vertex),
+				.inputRate = vk::VertexInputRate::eVertex
+			};
+		}
+
+		static auto GetAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 2>
+		{
+			return {
+				vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, Util::OffsetOf(&Vertex::pos)),
+				vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, Util::OffsetOf(&Vertex::color))
+			};
+		}
+	};
+
+	const std::vector<Vertex> vertices = {
+		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	};
+
 	constexpr auto Width = std::uint32_t{ 800 };
 	constexpr auto Height = std::uint32_t{ 600 };
 	constexpr int MaxFramesInFlight = 2;
@@ -84,6 +114,7 @@ export namespace VulkanTutorial::App
 			self.CreateImageViews();
 			self.CreateGraphicsPipeline();
 			self.CreateCommandPool();
+			self.CreateVertexBuffer();
 			self.CreateCommandBuffers();
 			self.CreateSyncObjects();
 			return self;
@@ -101,6 +132,42 @@ export namespace VulkanTutorial::App
 		}
 
 	private: // Internal methods.
+		vk::raii::Buffer       vertexBuffer = nullptr;
+		vk::raii::DeviceMemory vertexBufferMemory = nullptr;
+
+		std::uint32_t FindMemoryType(this auto&& self, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+		{
+			vk::PhysicalDeviceMemoryProperties memProperties = self.physicalDevice->getMemoryProperties();
+
+			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+			{
+				if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				{
+					return i;
+				}
+			}
+
+			throw std::runtime_error("failed to find suitable memory type!");
+		}
+
+		auto CreateVertexBuffer(this MainApp& self) -> decltype(self)
+		{
+			vk::BufferCreateInfo bufferInfo{ .size = sizeof(vertices[0]) * vertices.size(), .usage = vk::BufferUsageFlagBits::eVertexBuffer, .sharingMode = vk::SharingMode::eExclusive };
+			self.vertexBuffer = vk::raii::Buffer(self.device, bufferInfo);
+
+			vk::MemoryRequirements memRequirements = self.vertexBuffer.getMemoryRequirements();
+			auto memoryProperties = vk::MemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+			vk::MemoryAllocateInfo memoryAllocateInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, memoryProperties) };
+			self.vertexBufferMemory = vk::raii::DeviceMemory(self.device, memoryAllocateInfo);
+			self.vertexBuffer.bindMemory(*self.vertexBufferMemory, 0);
+
+			void* data = self.vertexBufferMemory.mapMemory(0, bufferInfo.size);
+			std::memcpy(data, vertices.data(), bufferInfo.size);
+			self.vertexBufferMemory.unmapMemory();
+
+			return self;
+		}
+
 		static void FramebufferResizeCallback(glfw::GLFWwindow* window, int width, int height)
 		{
 			auto app = reinterpret_cast<MainApp*>(glfw::glfwGetWindowUserPointer(window));
@@ -159,16 +226,9 @@ export namespace VulkanTutorial::App
 
 			commandBuffer.beginRendering(renderingInfo);
 			commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *self.graphicsPipeline);
-			commandBuffer.setViewport(
-				0,
-				vk::Viewport{
-					0.0f,
-					0.0f,
-					static_cast<float>(self.swapChainExtent.width),
-					static_cast<float>(self.swapChainExtent.height), 0.0f, 1.0f
-				}
-			);
+			commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(self.swapChainExtent.width), static_cast<float>(self.swapChainExtent.height), 0.0f, 1.0f));
 			commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), self.swapChainExtent));
+			commandBuffer.bindVertexBuffers(0, *self.vertexBuffer, { 0 });
 			commandBuffer.draw(3, 1, 0, 0);
 			commandBuffer.endRendering();
 			// After rendering, transition the swapchain image to PRESENT_SRC
@@ -355,7 +415,14 @@ export namespace VulkanTutorial::App
 			// Purposefully left empty, as we're not using any vertex data for now.
 			// Describes the format of the vertex data that will be passed to the 
 			// vertex shader via bindings and attribute descriptions.
-			auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo{};
+			auto bindingDescription = Vertex::ToBindingDescription();
+			auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+			auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo{
+				.vertexBindingDescriptionCount = 1,
+				.pVertexBindingDescriptions = &bindingDescription,
+				.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+				.pVertexAttributeDescriptions = attributeDescriptions.data() 
+			};
 			// Describes what kind of geometry will be drawn from the vertices and 
 			// if primitive restart should be enabled.
 			auto inputAssembly = vk::PipelineInputAssemblyStateCreateInfo{

@@ -7,16 +7,4 @@ export import :util;
 export import :vulkanite;
 export import :concepts;
 export import :error;
-
-export auto main(int argc, char* argv[]) -> int
-try
-{
-    VulkanTutorial::App::MainApp app;
-    app.Run();
-    return 0;
-}
-catch (const std::exception& ex)
-{
-    std::println("Exception in main: {}", ex.what());
-    return 1;
-}
+export import :glm;

@@ -133,6 +133,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Concepts\concepts.ixx" />
+    <ClCompile Include="Glm\glm.ixx" />
+    <ClCompile Include="vulkantutorial.ixx" />
     <ClCompile Include="Util\util.build.ixx" />
     <ClCompile Include="Util\util.fixedstring.ixx" />
     <ClCompile Include="Util\util.functions.ixx" />
@@ -150,7 +152,7 @@
     <ClCompile Include="Vulkanite\Sync\sync.ixx" />
     <ClCompile Include="Vulkanite\vulkanite.ixx" />
     <ClCompile Include="Vulkanite\Window\vulkanite.window.ixx" />
-    <ClCompile Include="vulkantutorial.ixx" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Libs\libs.ixx" />
   </ItemGroup>
   <ItemGroup>

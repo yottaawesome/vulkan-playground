@@ -14,4 +14,14 @@ export namespace VulkanTutorial::Util
 		file.close();
 		return buffer;
 	}
+
+	template<typename T, typename TMember>
+	auto OffsetOf(TMember T::* member) noexcept -> std::uint32_t
+	{
+		auto object = T{};
+		return static_cast<std::uint32_t>(
+			reinterpret_cast<std::uintptr_t>(&(object.*member))
+			- reinterpret_cast<std::uintptr_t>(&object));
+	}
+
 }

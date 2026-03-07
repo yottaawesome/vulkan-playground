@@ -163,7 +163,7 @@ try
 				.samplerAnisotropy = true
 			};
 			const auto  deviceExtensions = std::vector<const char*>{ Vk::DeviceExtension::Swapchain };
-			Vk::VkDeviceCreateInfo deviceCI{
+			auto deviceCI = Vk::VkDeviceCreateInfo{
 				.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.pNext = &enabledVk13Features,
 				.queueCreateInfoCount = 1,

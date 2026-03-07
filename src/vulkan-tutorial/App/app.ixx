@@ -412,9 +412,6 @@ export namespace VulkanTutorial::App
 			};
 			auto shaderStages = std::array{ vertShaderStageInfo, fragShaderStageInfo };
 
-			// Purposefully left empty, as we're not using any vertex data for now.
-			// Describes the format of the vertex data that will be passed to the 
-			// vertex shader via bindings and attribute descriptions.
 			auto bindingDescription = Vertex::ToBindingDescription();
 			auto attributeDescriptions = Vertex::GetAttributeDescriptions();
 			auto vertexInputInfo = vk::PipelineVertexInputStateCreateInfo{

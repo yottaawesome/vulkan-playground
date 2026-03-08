@@ -12,78 +12,78 @@ try
 	//
 	// Instance and physical device selection.
 	auto init = sdl3::Init{ sdl3::InitFlags::Video };
-	if (not sdl3::Vk::SDL_Vulkan_LoadLibrary(nullptr))
+	if (not sdl3::vk::SDL_Vulkan_LoadLibrary(nullptr))
 		throw sdl3::Error::Error{};
-	auto result = Vk::Result{ volk::volkInitialize() };
+	auto result = vk::Result{ volk::volkInitialize() };
 	if (not result)
-		throw Vk::Error{ result.result };
+		throw vk::Error{ result.result };
 
 	// Create the Vulkan instance.
 	auto instance = 
-		[] static -> Vk::Instance
+		[] static -> vk::Instance
 		{
 			// Get SDL to tell us the required instance extensions for Vulkan.
 			auto instanceExtensions = 
 				[] static->std::span<const char* const>
 				{
 					auto instanceExtensionsCount = std::uint32_t{};
-					return { sdl3::Vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };
+					return { sdl3::vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };
 				}();
 			// Start with the application info, to describe our application
 			// to Vulkan. This can help with driver optimisations for 
 			// popular games.
 			auto appInfo = 
-				Vk::VkApplicationInfo
+				vk::VkApplicationInfo
 				{
-					.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+					.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
 					.pApplicationName = "Vulkan-2026",
-					.applicationVersion = Vk::MakeVersion(1, 0, 0),
+					.applicationVersion = vk::MakeVersion(1, 0, 0),
 					.pEngineName = "DorkEngine2000",
-					.engineVersion = Vk::MakeVersion(1, 0, 0),
-					.apiVersion = Vk::ApiVersion::V1_4
+					.engineVersion = vk::MakeVersion(1, 0, 0),
+					.apiVersion = vk::ApiVersion::V1_4
 				};
 			auto createInfo = 
-				Vk::VkInstanceCreateInfo
+				vk::VkInstanceCreateInfo
 				{
-					.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+					.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 					.pApplicationInfo = &appInfo,
 					.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
 					.ppEnabledExtensionNames = instanceExtensions.data()
 				};
 
-			auto instance = Vk::VkInstance{};
-			auto status = Vk::Result{ Vk::vkCreateInstance(&createInfo, nullptr, &instance) };
+			auto instance = vk::VkInstance{};
+			auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
 			if (not status)
-				throw Vk::Error{ status.result };	
+				throw vk::Error{ status.result };	
 			return instance;
 		}();
 	volk::volkLoadInstance(instance.Get());
 
 	// Get a list of the physical devices.
 	auto physicalDevices =
-		[](auto& instance) static -> std::vector<Vk::VkPhysicalDevice>
+		[](auto& instance) static -> std::vector<vk::VkPhysicalDevice>
 		{
 			auto physicalDeviceCount = std::uint32_t{};
-			auto status = Vk::Result{ Vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, nullptr) };
+			auto status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, nullptr) };
 			if (not status)
-				throw Vk::Error{ status.result };
-			auto physicalDevices = std::vector<Vk::VkPhysicalDevice>{ physicalDeviceCount };
-			status = Vk::Result{ Vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, physicalDevices.data()) };
+				throw vk::Error{ status.result };
+			auto physicalDevices = std::vector<vk::VkPhysicalDevice>{ physicalDeviceCount };
+			status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, physicalDevices.data()) };
 			if (not status)
-				throw Vk::Error{ status.result };
+				throw vk::Error{ status.result };
 			return physicalDevices;
 		}(instance);
 
 	// Pick the first discrete device.
 	auto pickedDevice = 
-		[](auto& physicalDevices) static->Vk::PhysicalDevice
+		[](auto& physicalDevices) static->vk::PhysicalDevice
 		{
 			for (const auto& device : physicalDevices)
 			{
-				auto props = Vk::VkPhysicalDeviceProperties2{.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-				Vk::vkGetPhysicalDeviceProperties2(device, &props);
+				auto props = vk::VkPhysicalDeviceProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+				vk::vkGetPhysicalDeviceProperties2(device, &props);
 				std::println("Found device: {}", props.properties.deviceName);
-				if (props.properties.deviceType & Vk::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+				if (props.properties.deviceType & vk::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 					return device;
 			}
 			throw std::runtime_error("No Vulkan-compatible discrete GPUs found.");
@@ -99,23 +99,23 @@ try
 	// Queues. On most devices, the first queue family will support graphics, 
 	// compute and transfer, but this is not guaranteed.
 	auto suitableQueueFamilyIndex = 
-		[](const Vk::PhysicalDevice& pickedDevice) static->std::uint32_t
+		[](const vk::PhysicalDevice& pickedDevice) static->std::uint32_t
 		{
 			auto count = std::uint32_t{};
-			Vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, nullptr);
+			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, nullptr);
 
-			auto queueFamilies = std::vector<Vk::VkQueueFamilyProperties2>{ 
+			auto queueFamilies = std::vector<vk::VkQueueFamilyProperties2>{ 
 				count, 
-				Vk::VkQueueFamilyProperties2{.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 } 
+				vk::VkQueueFamilyProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 } 
 			};
-			Vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, queueFamilies.data());
+			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, queueFamilies.data());
 		
 			for (auto [index, element] : queueFamilies | std::views::enumerate) 
 			{
 				auto queueFlags = element.queueFamilyProperties.queueFlags;
-				if (not (queueFlags & Vk::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
+				if (not (queueFlags & vk::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
 					continue;
-				if (not (queueFlags & Vk::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
+				if (not (queueFlags & vk::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
 					continue;
 				return static_cast<std::uint32_t>(index);
 			}
@@ -126,26 +126,26 @@ try
 	// 
 	// Check if the queue family supports presentation. This depends on the windowing system, 
 	// and the physical device so we have to ask SDL to check for us.
-	if (not sdl3::Vk::SDL_Vulkan_GetPresentationSupport(instance.Get(), pickedDevice.Get(), suitableQueueFamilyIndex))
+	if (not sdl3::vk::SDL_Vulkan_GetPresentationSupport(instance.Get(), pickedDevice.Get(), suitableQueueFamilyIndex))
 		throw std::runtime_error("The selected queue family does not support presentation.");
 
 	//
 	//
-	// Creation of the logical device and retrieval of the queue.
-	auto [device, queue] = 
+	// Creation of the logical device
+	auto device = 
 		[](
-			auto suitableQueueFamilyIndex, 
-			const Vk::PhysicalDevice& pickedDevice
-		) -> std::pair<Vk::VkDevice, Vk::VkQueue>
+			auto suitableQueueFamilyIndex,
+			const vk::PhysicalDevice& pickedDevice
+		) -> vk::Device
 		{
 			constexpr auto qfpriorities = 1.0f;
-			auto queueCI = Vk::VkDeviceQueueCreateInfo{
-				.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			auto queueCI = vk::VkDeviceQueueCreateInfo{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.queueFamilyIndex = suitableQueueFamilyIndex,
 				.queueCount = 1,
 				.pQueuePriorities = &qfpriorities
 			};
-			auto enabledVk12Features = Vk::VkPhysicalDeviceVulkan12Features{
+			auto enabledVk12Features = vk::VkPhysicalDeviceVulkan12Features{
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
 				.descriptorIndexing = true,
 				.shaderSampledImageArrayNonUniformIndexing = true,
@@ -153,34 +153,63 @@ try
 				.runtimeDescriptorArray = true,
 				.bufferDeviceAddress = true
 			};
-			const auto enabledVk13Features = Vk::VkPhysicalDeviceVulkan13Features{
+			auto enabledVk13Features = vk::VkPhysicalDeviceVulkan13Features{
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
 				.pNext = &enabledVk12Features,
 				.synchronization2 = true,
 				.dynamicRendering = true,
 			};
-			const auto enabledVk10Features = Vk::VkPhysicalDeviceFeatures{
+			const auto enabledVk14Features = vk::VkPhysicalDeviceVulkan14Features{
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
+				.pNext = &enabledVk13Features,
+			};
+			const auto enabledVk10Features = vk::VkPhysicalDeviceFeatures{
 				.samplerAnisotropy = true
 			};
-			const auto  deviceExtensions = std::vector<const char*>{ Vk::DeviceExtension::Swapchain };
-			auto deviceCI = Vk::VkDeviceCreateInfo{
-				.sType = Vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.pNext = &enabledVk13Features,
+			const auto deviceExtensions = std::vector<const char*>{ vk::DeviceExtension::Swapchain };
+			auto deviceCI = vk::VkDeviceCreateInfo{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+				.pNext = &enabledVk14Features,
 				.queueCreateInfoCount = 1,
 				.pQueueCreateInfos = &queueCI,
 				.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
 				.ppEnabledExtensionNames = deviceExtensions.data(),
 				.pEnabledFeatures = &enabledVk10Features
 			};
-			auto device = Vk::VkDevice{};
-			auto result = Vk::Result{Vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device)};
+			auto device = vk::VkDevice{};
+			auto result = vk::Result{vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device)};
 			if (not result)
-				throw Vk::Error{ result.result };
-
-			auto queue = Vk::VkQueue{};
-			Vk::vkGetDeviceQueue(device, suitableQueueFamilyIndex, 0, &queue);
-			return {device, queue};
+				throw vk::Error{ result.result };
+			return vk::Device{device};
 		}(suitableQueueFamilyIndex, pickedDevice);
+
+	// Get the queue handle from the device.
+	auto queue = device.GetQueue(suitableQueueFamilyIndex, 0);
+
+	auto allocator = 
+		[](
+			const vk::PhysicalDevice& pickedDevice, 
+			const vk::Device& device, 
+			const vk::Instance& instance
+		) -> vk::vma::Allocator
+		{
+			auto vkFunctions = vma::VmaVulkanFunctions{
+				.vkGetInstanceProcAddr = vk::vkGetInstanceProcAddr,
+				.vkGetDeviceProcAddr = vk::vkGetDeviceProcAddr
+			};
+			auto allocatorCI = vma::VmaAllocatorCreateInfo{
+				.flags = vma::VmaAllocatorCreateFlagBits::VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+				.physicalDevice = pickedDevice.Get(),
+				.device = device.Get(),
+				.pVulkanFunctions = &vkFunctions,
+				.instance = instance.Get()
+			};
+			auto allocator = vma::VmaAllocator{};
+			auto result = vk::Result{ vma::vmaCreateAllocator(&allocatorCI, &allocator) };
+			if (not result)
+				throw vk::Error{ result.result };
+			return allocator;
+		}(pickedDevice, device, instance);
 
 	return 0;
 }

@@ -4,7 +4,7 @@ import :vulkan.error;
 import :vulkan.exports;
 import :raii;
 
-export namespace Vk
+export namespace vk
 {
 	class Instance
 	{

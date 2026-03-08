@@ -3,7 +3,7 @@ import std;
 import :vulkan.error;
 import :vulkan.exports;
 
-export namespace Vk
+export namespace vk
 {
 	class PhysicalDevice
 	{
@@ -44,11 +44,11 @@ export namespace Vk
 		auto GetQueueFamilyProperties(this const auto& self) -> std::vector<VkQueueFamilyProperties2>
 		{
 			auto queueFamilyCount = std::uint32_t{};
-			auto status = Vk::Result{ Vk::vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, nullptr) };
+			auto status = vk::Result{ vk::vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, nullptr) };
 			if (not status)
 				throw Error{ status.result };
 			auto queueFamilies = std::vector<VkQueueFamilyProperties2>{ queueFamilyCount };
-			status = Vk::Result{ Vk::vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, queueFamilies.data()) };
+			status = vk::Result{ vk::vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, queueFamilies.data()) };
 			if (not status)
 				throw Error{ status.result };
 			return queueFamilies;

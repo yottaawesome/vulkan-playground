@@ -27,9 +27,6 @@
     <ClCompile Include="vulkan\vulkan.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vma\vma.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sdl3\sdl3.exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -54,10 +51,13 @@
     <ClCompile Include="raii\raii.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.logicaldevice.ixx">
+    <ClCompile Include="vulkan\vulkan.device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.vma.allocator.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -2,7 +2,7 @@ export module vulkan26:vulkan.error;
 import std;
 import :vulkan.exports;
 
-export namespace Vk
+export namespace vk
 {
 	struct Error : std::runtime_error
 	{

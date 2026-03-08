@@ -31,7 +31,7 @@ export namespace sdl3::InitFlags
 	};
 }
 
-export namespace sdl3::Vk
+export namespace sdl3::vk
 {
 	using 
 		::SDL_Vulkan_LoadLibrary,

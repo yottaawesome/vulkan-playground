@@ -1,11 +1,13 @@
 module;
 
-//#define VOLK_IMPLEMENTATION
+#define VOLK_IMPLEMENTATION
 #include <volk.h>
+#define VMA_IMPLEMENTATION
+#include <vma/vk_mem_alloc.h>
 
 export module vulkan26:vulkan.exports;
 
-export namespace Vk
+export namespace vk
 {
 	using 
 		::VkInstance,
@@ -42,6 +44,9 @@ export namespace Vk
 		::VkPhysicalDeviceVulkan13Features,
 		::VkPhysicalDeviceFeatures,
 		::VkDeviceCreateInfo,
+		::VkPhysicalDeviceVulkan14Features,
+		::vkGetInstanceProcAddr,
+		::vkGetDeviceProcAddr,
 		::vkGetDeviceQueue,
 		::vkCreateDevice,
 		::vkDestroyDevice,
@@ -78,10 +83,11 @@ export namespace Vk
 // invoking Vulkan functions.
 export namespace volk
 {
-	/* Volk has three loading levels — each one populates a different set of function pointers:
-	1. volkInitialize() — global functions only (vkCreateInstance, vkEnumerateInstanceExtensionProperties, etc.)
-	2. volkLoadInstance(instance) — instance-level functions (vkEnumeratePhysicalDevices, vkCreateDevice, vkGetPhysicalDeviceProperties, etc.)
-	3. volkLoadDevice(device) — device-level functions (vkCreateBuffer, vkCmdDraw, etc.) — you'll need this later when you create a logical device.
+	/* 
+	* Volk has three loading levels — each one populates a different set of function pointers:
+	*   1. volkInitialize() — global functions only (vkCreateInstance, vkEnumerateInstanceExtensionProperties, etc.)
+	*   2. volkLoadInstance(instance) — instance-level functions (vkEnumeratePhysicalDevices, vkCreateDevice, vkGetPhysicalDeviceProperties, etc.)
+	*   3. volkLoadDevice(device) — device-level functions (vkCreateBuffer, vkCmdDraw, etc.) — you'll need this later when you create a logical device.
 	*/
 	using
 		::volkInitialize,
@@ -89,16 +95,33 @@ export namespace volk
 		::volkLoadDevice
 		;
 
-	auto Initialize() noexcept -> Vk::VkResult
+	auto Initialize() noexcept -> vk::VkResult
 	{
 		return volkInitialize();
 	}
-	auto LoadInstance(Vk::VkInstance instance) noexcept -> void
+	auto LoadInstance(vk::VkInstance instance) noexcept -> void
 	{
 		volkLoadInstance(instance);
 	}
-	auto LoadDevice(Vk::VkDevice device) noexcept -> void
+	auto LoadDevice(vk::VkDevice device) noexcept -> void
 	{
 		volkLoadDevice(device);
 	}
+}
+
+export namespace vma
+{
+	using
+		::VmaAllocator,
+		::VmaAllocation,
+		::VmaAllocationCreateInfo,
+		::VmaAllocationInfo,
+		::VmaAllocatorCreateInfo,
+		::VmaVulkanFunctions,
+		::VmaAllocatorCreateFlagBits,
+		::vmaCreateAllocator,
+		::vmaDestroyAllocator,
+		::vmaAllocateMemory,
+		::vmaFreeMemory
+		;
 }

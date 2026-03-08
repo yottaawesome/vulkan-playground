@@ -19,6 +19,23 @@ export namespace sdl3
 		;
 }
 
+export namespace sdl3::WindowFlags
+{
+	enum : std::uint64_t
+	{
+		Fullscreen = SDL_WINDOW_FULLSCREEN,
+		OpenGL = SDL_WINDOW_OPENGL,
+		Vulkan = SDL_WINDOW_VULKAN,
+		Metal = SDL_WINDOW_METAL,
+		Borderless = SDL_WINDOW_BORDERLESS,
+		Resizable = SDL_WINDOW_RESIZABLE,
+		Minimized = SDL_WINDOW_MINIMIZED,
+		Maximized = SDL_WINDOW_MAXIMIZED,
+		InputFocus = SDL_WINDOW_INPUT_FOCUS,
+		MouseFocus = SDL_WINDOW_MOUSE_FOCUS,
+	};
+}
+
 export namespace sdl3::InitFlags
 {
 	enum : std::uint32_t
@@ -37,6 +54,8 @@ export namespace sdl3::vk
 		::SDL_Vulkan_LoadLibrary,
 		::SDL_Vulkan_CreateSurface,
 		::SDL_Vulkan_GetInstanceExtensions,
-		::SDL_Vulkan_GetPresentationSupport
+		::SDL_Vulkan_GetPresentationSupport,
+		::VkInstance,
+		::VkSurfaceKHR
 		;
 }

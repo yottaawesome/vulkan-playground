@@ -138,6 +138,7 @@
     <ClCompile Include="sdl3\sdl3.exports.ixx" />
     <ClCompile Include="sdl3\sdl3.ixx" />
     <ClCompile Include="sdl3\sdl3.misc.ixx" />
+    <ClCompile Include="sdl3\sdl3.window.ixx" />
     <ClCompile Include="vulkan26.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
@@ -145,6 +146,7 @@
     <ClCompile Include="vulkan\vulkan.ixx" />
     <ClCompile Include="vulkan\vulkan.device.ixx" />
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
+    <ClCompile Include="vulkan\vulkan.surface.ixx" />
     <ClCompile Include="vulkan\vulkan.vma.allocator.ixx" />
     <ClCompile Include="win32\win32.ixx" />
   </ItemGroup>

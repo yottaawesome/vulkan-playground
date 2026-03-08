@@ -180,12 +180,15 @@ try
 			auto result = vk::Result{vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device)};
 			if (not result)
 				throw vk::Error{ result.result };
+			volk::LoadDevice(device);
 			return vk::Device{device};
 		}(suitableQueueFamilyIndex, pickedDevice);
 
 	// Get the queue handle from the device.
 	auto queue = device.GetQueue(suitableQueueFamilyIndex, 0);
 
+	// Create the VMA allocator. We need to provide it with the Vulkan 
+	// function pointers, so that it can call Vulkan functions internally.
 	auto allocator = 
 		[](
 			const vk::PhysicalDevice& pickedDevice, 
@@ -210,6 +213,9 @@ try
 				throw vk::Error{ result.result };
 			return allocator;
 		}(pickedDevice, device, instance);
+
+	auto window = sdl3::Window{ "Vulkan-2026", 1280u, 720u, sdl3::WindowFlags::Vulkan };
+	auto surface = vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get()));
 
 	return 0;
 }

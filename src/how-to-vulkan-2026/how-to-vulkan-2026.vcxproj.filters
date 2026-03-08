@@ -60,6 +60,12 @@
     <ClCompile Include="vulkan\vulkan.vma.allocator.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sdl3\sdl3.window.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.surface.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

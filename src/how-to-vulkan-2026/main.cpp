@@ -217,6 +217,18 @@ try
 	auto window = sdl3::Window{ "Vulkan-2026", 1280u, 720u, sdl3::WindowFlags::Vulkan };
 	auto surface = vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get()));
 
+	//
+	//
+	//
+	//
+	// Swapchain creation.
+	constexpr auto imageFormat = vk::VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
+	auto swapchainCreateInfo = vk::VkSwapchainCreateInfoKHR{
+		// todo fill out
+	};
+	auto swapchain = vk::VkSwapchainKHR{};
+	// todo create the swapchain with vkCreateSwapchainKHR, and check the result for errors.
+
 	return 0;
 }
 catch(const std::exception& e)

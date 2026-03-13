@@ -284,6 +284,7 @@ export namespace Graphics
 
 		auto CreateGraphicsPipeline(this CoreVulkan& self) -> decltype(self)
 		{
+			self.logger.Info("Describing graphics pipeline...");
 			// load shader modules
 			auto [vertShader, fragShader] = self.LoadShaderModules();
 
@@ -301,7 +302,35 @@ export namespace Graphics
 			};
 			auto stages = std::array{ vertexStageInfo, fragmentStageInfo };
 
-			self.logger.Info("Describing graphics pipeline...");
+			auto dynamicStatus = std::array{ vkr::VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT, vkr::VkDynamicState::VK_DYNAMIC_STATE_SCISSOR };
+			auto dynamicStateInfo = vkr::VkPipelineDynamicStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+				.dynamicStateCount = static_cast<std::uint32_t>(dynamicStatus.size()),
+				.pDynamicStates = dynamicStatus.data()
+			};
+
+			auto viewport = vkr::VkViewport{
+				.x = 0.f,
+				.y = 0.f,
+				.width = static_cast<float>(self.swapChainExtent.width),
+				.height = static_cast<float>(self.swapChainExtent.height),
+				.minDepth = 0.f,
+				.maxDepth = 1.f
+			};
+
+			auto scissor = vkr::VkRect2D{
+				.offset = {0, 0},
+				.extent = self.swapChainExtent
+			};
+
+			auto viewportInfo = vkr::VkPipelineViewportStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+				.viewportCount = 1,
+				.pViewports = &viewport,
+				.scissorCount = 1,
+				.pScissors = &scissor
+			};
+
 			return self;
 		}
 

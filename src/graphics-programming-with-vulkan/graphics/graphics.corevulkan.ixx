@@ -32,7 +32,7 @@ export namespace Graphics
 				.CreateSwapChain()
 				.CreateImageViews()
 				.CreateSyncObjects()
-				.DescribeGraphicsPipeline()
+				.CreateGraphicsPipeline()
 				.CreateCommandPool()
 				.CreateCommandBuffers();
 		}
@@ -282,8 +282,25 @@ export namespace Graphics
 			return self;
 		}
 
-		auto DescribeGraphicsPipeline(this CoreVulkan& self) -> decltype(self)
+		auto CreateGraphicsPipeline(this CoreVulkan& self) -> decltype(self)
 		{
+			// load shader modules
+			auto [vertShader, fragShader] = self.LoadShaderModules();
+
+			auto vertexStageInfo = vkr::VkPipelineShaderStageCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = vkr::VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT,
+				.module = vertShader.GetHandle(),
+				.pName = "main"
+			};
+			auto fragmentStageInfo = vkr::VkPipelineShaderStageCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = vkr::VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT,
+				.module = fragShader.GetHandle(),
+				.pName = "main"
+			};
+			auto stages = std::array{ vertexStageInfo, fragmentStageInfo };
+
 			self.logger.Info("Describing graphics pipeline...");
 			return self;
 		}
@@ -300,7 +317,7 @@ export namespace Graphics
 			return self;
 		}
 
-	private: // Initialisation support functions
+	private: // Static initialisation support functions
 		static auto GetRequiredExtensions() -> std::vector<const char*>
 		{
 			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
@@ -318,6 +335,7 @@ export namespace Graphics
 			return layers;
 		}
 
+	private:
 		auto ChooseSwapSurfaceFormat(
 			this const CoreVulkan& self,
 			const std::vector<vkr::VkSurfaceFormatKHR>& availableFormats
@@ -376,6 +394,19 @@ export namespace Graphics
 			self.logger.Info("Tearing down Vulkan resources...");
 			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);
 			return self;
+		}
+
+		// Loads the vertex and fragment shader modules from disk.
+		auto LoadShaderModules(this CoreVulkan& self) -> std::pair<Vulkan::ShaderModule, Vulkan::ShaderModule>
+		{
+			auto base = std::filesystem::path{ "shaders" };
+			auto vertPath = base / "vert.spv";
+			auto fragPath = base / "frag.spv";
+
+			return { 
+				Vulkan::ShaderModule{ Vulkan::ShaderModuleFactory{ self.device->GetHandle(), vertPath }() }, 
+				Vulkan::ShaderModule{ Vulkan::ShaderModuleFactory{ self.device->GetHandle(), fragPath }() } 
+			};
 		}
 
 	private:

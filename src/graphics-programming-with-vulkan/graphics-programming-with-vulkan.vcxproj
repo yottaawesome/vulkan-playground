@@ -135,7 +135,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="error\error.ixx" />
-    <ClCompile Include="file\vulkan.file.ixx" />
+    <ClCompile Include="file\file.file.ixx" />
+    <ClCompile Include="file\file.functions.ixx" />
+    <ClCompile Include="file\file.ixx" />
     <ClCompile Include="glfw\glfw.error.ixx" />
     <ClCompile Include="glfw\glfw.exports.ixx" />
     <ClCompile Include="glfw\glfw.functions.ixx" />
@@ -148,6 +150,7 @@
     <ClCompile Include="gsl\gsl.ixx" />
     <ClCompile Include="logging\logging.ixx" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="stlhelpers\stlhelpers.collection.ixx" />
     <ClCompile Include="stlhelpers\stlhelpers.ixx" />
     <ClCompile Include="string\string.ixx" />
     <ClCompile Include="vulkangfx.ixx" />
@@ -164,6 +167,7 @@
     <ClCompile Include="vulkan\vulkan.logicaldevice.ixx" />
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
     <ClCompile Include="vulkan\vulkan.raii.ixx" />
+    <ClCompile Include="vulkan\vulkan.shader.ixx" />
     <ClCompile Include="vulkan\vulkan.surface.ixx" />
     <ClCompile Include="vulkan\vulkan.swapchain.ixx" />
     <ClCompile Include="win32\win32.error.ixx" />
@@ -180,6 +184,15 @@
     <None Include="gsl\README.md" />
     <None Include="raii\README.md" />
     <None Include="README.md" />
+    <None Include="shaders\basic.frag">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shaders\basic.vert">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shaders\compile-shaders.bat" />
     <None Include="stlhelpers\README.md" />
     <None Include="vcpkg.json" />
     <None Include="vulkan\README.md" />

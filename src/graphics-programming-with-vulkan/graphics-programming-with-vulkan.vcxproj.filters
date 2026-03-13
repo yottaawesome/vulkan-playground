@@ -120,10 +120,22 @@
     <ClCompile Include="string\string.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="file\vulkan.file.ixx">
+    <ClCompile Include="file\file.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.imageview.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.shader.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stlhelpers\stlhelpers.collection.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file\file.file.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="file\file.functions.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -139,5 +151,10 @@
     <None Include="vulkan\README.md" />
     <None Include="graphics\README.md" />
     <None Include="stlhelpers\README.md" />
+    <None Include="shaders\basic.vert" />
+    <None Include="shaders\basic.frag" />
+    <None Include="shaders\compile-shaders.bat">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

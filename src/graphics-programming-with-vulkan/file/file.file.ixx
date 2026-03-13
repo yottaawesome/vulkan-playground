@@ -1,19 +1,20 @@
-export module vulkangfx:file;
+export module vulkangfx:file.file;
 import std;
+import :error;
 
-export namespace Vulkan
+export namespace File
 {
-	struct OutputFile
+	template<int VMode>
+	struct File
 	{
 		std::string_view FileName = "somefile.txt";
-		int Mode = std::ios::app;
 		std::unique_ptr<std::ofstream> File;
 
-		auto GetLogFile(this OutputFile& self) -> std::ofstream&
+		auto GetLogFile(this File& self) -> std::ofstream&
 		{
 			if (self.File)
 				return *self.File;
-			self.File = std::make_unique<std::ofstream>(std::string{ self.FileName }, self.Mode);
+			self.File = std::make_unique<std::ofstream>(std::string{ self.FileName }, VMode);
 			return *self.File;
 		}
 
@@ -33,4 +34,11 @@ export namespace Vulkan
 			return std::forward<decltype(self)>(self);
 		}
 	};
+
+	using OutputFile = File<std::ios::out>;
+	using AppendedOutputFile = File<std::ios::app>;
+	using InputFile = File<std::ios::in>;
+	using InputBinaryFile = File<std::ios::in | std::ios::binary>;
+	using OutputBinaryFile = File<std::ios::out | std::ios::binary>;
+	using InputOutputBinaryFile = File<std::ios::in | std::ios::out | std::ios::binary>;
 }

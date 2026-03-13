@@ -12,3 +12,4 @@ export import :vulkan.surface;
 export import :vulkan.devicequeue;
 export import :vulkan.swapchain;
 export import :vulkan.imageview;
+export import :vulkan.shaders;

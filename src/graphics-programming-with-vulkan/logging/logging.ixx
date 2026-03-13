@@ -39,7 +39,7 @@ namespace Log
 		}
 	} const ConsoleInit;
 
-	constexpr auto LogFile = Vulkan::OutputFile{ "log.txt", std::ios::app };
+	constexpr auto LogFile = File::AppendedOutputFile{ "log.txt" };
 
 	template<LoggingMode T = CurrentLoggingMode>
 	struct InternalLogger

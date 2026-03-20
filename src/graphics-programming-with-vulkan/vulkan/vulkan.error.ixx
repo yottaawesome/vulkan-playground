@@ -7,6 +7,9 @@ export namespace Vulkan
 	struct Result
 	{
 		vkr::VkResult Value = vkr::VkResult::VK_SUCCESS;
+
+		constexpr Result() noexcept = default;
+		constexpr Result(vkr::VkResult value) noexcept : Value(value) {}
 		
 		constexpr operator bool(this const Result& self) noexcept
 		{

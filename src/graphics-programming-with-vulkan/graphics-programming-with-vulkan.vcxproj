@@ -166,6 +166,7 @@
     <ClCompile Include="vulkan\vulkan.error.ixx" />
     <ClCompile Include="vulkan\vulkan.logicaldevice.ixx" />
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
+    <ClCompile Include="vulkan\vulkan.pipeline.ixx" />
     <ClCompile Include="vulkan\vulkan.raii.ixx" />
     <ClCompile Include="vulkan\vulkan.shader.ixx" />
     <ClCompile Include="vulkan\vulkan.surface.ixx" />

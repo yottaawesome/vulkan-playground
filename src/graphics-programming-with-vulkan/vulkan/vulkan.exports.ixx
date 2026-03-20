@@ -84,6 +84,33 @@ export namespace vkr
 		::VkPipelineViewportStateCreateFlags,
 		::VkRect2D,
 		::VkViewport,
+		::VkPipelineVertexInputStateCreateInfo,
+		::VkPipelineInputAssemblyStateCreateInfo,
+		::VkPipelineRasterizationStateCreateInfo,
+		::VkPrimitiveTopology,
+		::VkPolygonMode,
+		::VkFrontFace,
+		::VkCullModeFlagBits,
+		::VkCullModeFlags,
+		::VkPipelineMultisampleStateCreateInfo,
+		::VkSampleCountFlagBits,
+		::VkSampleCountFlags,
+		::VkPipelineColorBlendAttachmentState,
+		::VkColorComponentFlagBits,
+		::VkPipelineColorBlendStateCreateInfo,
+		::VkPipelineLayout,
+		::VkPipelineLayoutCreateInfo,
+		::VkPipeline,
+		::VkPhysicalDeviceDynamicRenderingFeatures,
+		::VkRenderPass,
+		::VkRenderPassCreateInfo,
+		::VkPipelineRenderingCreateInfo,
+		::VkGraphicsPipelineCreateInfo,
+		::vkCreateGraphicsPipelines,
+		::vkDestroyRenderPass,
+		::vkDestroyPipeline,
+		::vkDestroyPipelineLayout,
+		::vkCreatePipelineLayout,
 		::vkCreateShaderModule,
 		::vkDestroyShaderModule,
 		::vkCreateImageView,
@@ -175,9 +202,10 @@ export namespace vkr
 	namespace Extensions
 	{
 		constexpr auto 
-			EXTDebugUtilsExtensionName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-			SwapChainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			SurfaceExtensionName = VK_KHR_SURFACE_EXTENSION_NAME
+			EXTDebugUtils = VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+			SwapChain = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			Surface = VK_KHR_SURFACE_EXTENSION_NAME,
+			DynamicRendering = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
 			;
 	}
 	namespace Layers

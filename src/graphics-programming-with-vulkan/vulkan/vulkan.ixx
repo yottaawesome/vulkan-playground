@@ -13,3 +13,4 @@ export import :vulkan.devicequeue;
 export import :vulkan.swapchain;
 export import :vulkan.imageview;
 export import :vulkan.shaders;
+export import :vulkan.pipeline;

@@ -30,6 +30,7 @@ export namespace Graphics
 				.CreateSurface()
 				.CreateLogicalDevice()
 				.CreateSwapChain()
+				.CreateRenderPass()
 				.CreateImageViews()
 				.CreateSyncObjects()
 				.CreateGraphicsPipeline()
@@ -159,6 +160,10 @@ export namespace Graphics
 			if (not self.physicalDevice)
 				throw Error::RuntimeError("Physical device must be selected before creating logical device.");
 
+			auto dynamicRendering = vkr::VkPhysicalDeviceDynamicRenderingFeatures{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+				.dynamicRendering = true
+			};
 			auto factory = Vulkan::LogicalDeviceFactory{
 				.Info = {
 					.QueueCreateInfos = {
@@ -168,8 +173,9 @@ export namespace Graphics
 							.QueuePriorities = {1.f}
 						}
 					},
-					.EnabledExtensions = {vkr::Extensions::SwapChainExtensionName},
-					.EnabledFeatures = {} // TODO: enable features as needed.
+					.EnabledExtensions = {vkr::Extensions::SwapChain},
+					.EnabledFeatures13 = {.dynamicRendering = true},
+					.EnabledFeatures14 = {.dynamicRenderingLocalRead = true},
 				},
 				.PhysicalDevice = self.physicalDevice->Handle,
 			};
@@ -240,7 +246,13 @@ export namespace Graphics
 
 			self.swapchain = Vulkan::Swapchain{ factory(), self.device->GetHandle() };
 			self.swapchainImages = self.swapchain->GetImages();
-			return self;
+			return decltype(self)(self);
+		}
+
+		auto CreateRenderPass(this CoreVulkan& self) -> decltype(self)
+		{
+			self.logger.Info("Creating render pass...");
+			return decltype(self)(self);
 		}
 
 		auto CreateImageViews(this CoreVulkan& self) -> decltype(self)
@@ -273,13 +285,13 @@ export namespace Graphics
 				self.swapchainImageViews.emplace_back(factory());
 			}
 
-			return self;
+			return decltype(self)(self);
 		}
 
 		auto CreateSyncObjects(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating synchronization objects...");
-			return self;
+			return decltype(self)(self);
 		}
 
 		auto CreateGraphicsPipeline(this CoreVulkan& self) -> decltype(self)
@@ -331,19 +343,92 @@ export namespace Graphics
 				.pScissors = &scissor
 			};
 
-			return self;
+			auto vertexInputInfo = vkr::VkPipelineVertexInputStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+				.vertexBindingDescriptionCount = 0,
+				.pVertexBindingDescriptions = nullptr,
+			};
+			auto inputAssemblyInfo = vkr::VkPipelineInputAssemblyStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+				.topology = vkr::VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+				.primitiveRestartEnable = false
+			};
+
+			auto rasterizationStateInfo = vkr::VkPipelineRasterizationStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+				.depthClampEnable = false,
+				.rasterizerDiscardEnable = false,
+				.polygonMode = vkr::VkPolygonMode::VK_POLYGON_MODE_FILL,
+				.cullMode = vkr::VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT,
+				.frontFace = vkr::VkFrontFace::VK_FRONT_FACE_CLOCKWISE,
+				.depthBiasEnable = false,
+				.lineWidth = 1.f,
+			};
+
+			auto multisamplingInfo = vkr::VkPipelineMultisampleStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+				.rasterizationSamples = vkr::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
+				.sampleShadingEnable = false,
+			};
+
+			auto colorBlendAttachment = vkr::VkPipelineColorBlendAttachmentState{
+				.blendEnable = false,
+				.colorWriteMask =
+					vkr::VkColorComponentFlagBits::VK_COLOR_COMPONENT_R_BIT |
+					vkr::VkColorComponentFlagBits::VK_COLOR_COMPONENT_G_BIT |
+					vkr::VkColorComponentFlagBits::VK_COLOR_COMPONENT_B_BIT |
+					vkr::VkColorComponentFlagBits::VK_COLOR_COMPONENT_A_BIT,
+			};
+
+			auto colorBlendingInfo = vkr::VkPipelineColorBlendStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+				.logicOpEnable = false,
+				.attachmentCount = 1,
+				.pAttachments = &colorBlendAttachment
+			};
+
+			auto pipelineLayoutFactory = Vulkan::PipelineLayoutFactory{.Device = self.device->GetHandle()};
+			self.pipelineLayout = pipelineLayoutFactory();
+
+			auto pipelineRenderingInfo = vkr::VkPipelineRenderingCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+				.colorAttachmentCount = 1,
+				.pColorAttachmentFormats = &self.swapChainSurfaceFormat.format
+			};
+
+			auto pipelineFactory = Vulkan::PipelineFactory{
+				.Device = self.device->GetHandle(),
+				.CreateInfo = {
+					.pNext = &pipelineRenderingInfo,
+					.stageCount = static_cast<std::uint32_t>(stages.size()),
+					.pStages = stages.data(),
+					.pVertexInputState = &vertexInputInfo,
+					.pInputAssemblyState = &inputAssemblyInfo,
+					.pViewportState = &viewportInfo,
+					.pRasterizationState = &rasterizationStateInfo,
+					.pMultisampleState = &multisamplingInfo,
+					.pColorBlendState = &colorBlendingInfo,
+					.pDynamicState = &dynamicStateInfo,
+					.layout = self.pipelineLayout->GetHandle(),
+					.renderPass = nullptr, // renderpass-less
+					.subpass = 0,
+				}
+			};
+			self.pipeline = pipelineFactory();
+
+			return decltype(self)(self);
 		}
 
 		auto CreateCommandPool(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating command pool...");
-			return self;
+			return decltype(self)(self);
 		}
 
 		auto CreateCommandBuffers(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating command buffers...");
-			return self;
+			return decltype(self)(self);
 		}
 
 	private: // Static initialisation support functions
@@ -351,7 +436,7 @@ export namespace Graphics
 		{
 			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
 			auto vector = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
-			vector.push_back(vkr::Extensions::EXTDebugUtilsExtensionName);
+			vector.push_back(vkr::Extensions::EXTDebugUtils);
 			return vector;
 		}
 
@@ -454,5 +539,7 @@ export namespace Graphics
 		std::optional<Vulkan::Swapchain> swapchain;
 		Vulkan::SwapchainImages swapchainImages;
 		std::vector<Vulkan::ImageView> swapchainImageViews;
+		std::optional<Vulkan::PipelineLayout> pipelineLayout;
+		std::optional<Vulkan::Pipeline> pipeline;
 	};
 }

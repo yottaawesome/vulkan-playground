@@ -157,6 +157,7 @@
     <ClCompile Include="glfw\glfw.raii.ixx" />
     <ClCompile Include="glfw\glfw.window.ixx" />
     <ClCompile Include="raii\raii.ixx" />
+    <ClCompile Include="vulkan\vulkan.commands.ixx" />
     <ClCompile Include="vulkan\vulkan.devicequeue.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
     <ClCompile Include="vulkan\vulkan.formatters.ixx" />

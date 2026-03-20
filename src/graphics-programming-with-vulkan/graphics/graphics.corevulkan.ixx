@@ -422,12 +422,27 @@ export namespace Graphics
 		auto CreateCommandPool(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating command pool...");
+
+			self.commandPool = 
+				Vulkan::CommandPoolFactory{
+					.Device = self.device->GetHandle(),
+					.CreateInfo = {
+						.flags = vkr::VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+						.queueFamilyIndex = self.selectedQueue.FamilyIndex
+					}
+				}();
+
 			return decltype(self)(self);
 		}
 
 		auto CreateCommandBuffers(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating command buffers...");
+			self.commandBuffer = Vulkan::CommandBufferFactory{
+				.Device = self.device->GetHandle(),
+				.CommandPool = self.commandPool->GetHandle()
+			}();
+
 			return decltype(self)(self);
 		}
 
@@ -541,5 +556,7 @@ export namespace Graphics
 		std::vector<Vulkan::ImageView> swapchainImageViews;
 		std::optional<Vulkan::PipelineLayout> pipelineLayout;
 		std::optional<Vulkan::Pipeline> pipeline;
+		std::optional<Vulkan::CommandPool> commandPool;
+		std::optional<Vulkan::CommandBuffer> commandBuffer;
 	};
 }

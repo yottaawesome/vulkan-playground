@@ -15,3 +15,4 @@ export import :vulkan.imageview;
 export import :vulkan.shaders;
 export import :vulkan.pipeline;
 export import :vulkan.commands;
+export import :vulkan.sync;

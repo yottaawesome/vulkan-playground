@@ -30,7 +30,6 @@ export namespace Graphics
 				.CreateSurface()
 				.CreateLogicalDevice()
 				.CreateSwapChain()
-				.CreateRenderPass()
 				.CreateImageViews()
 				.CreateSyncObjects()
 				.CreateGraphicsPipeline()
@@ -244,14 +243,8 @@ export namespace Graphics
 				.Device = self.device->GetHandle()
 			};
 
-			self.swapchain = Vulkan::Swapchain{ factory(), self.device->GetHandle() };
+			self.swapchain = Vulkan::Swapchain{ factory() };
 			self.swapchainImages = self.swapchain->GetImages();
-			return decltype(self)(self);
-		}
-
-		auto CreateRenderPass(this CoreVulkan& self) -> decltype(self)
-		{
-			self.logger.Info("Creating render pass...");
 			return decltype(self)(self);
 		}
 
@@ -291,6 +284,18 @@ export namespace Graphics
 		auto CreateSyncObjects(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating synchronization objects...");
+
+			auto semaphoreFactory = Vulkan::Sync::SemaphoreFactory{
+				.Device = self.device->GetHandle() 
+			};
+			self.imageAvailableSemaphore = Vulkan::Sync::Semaphore{semaphoreFactory()};
+			self.renderFinishedSemaphore = Vulkan::Sync::Semaphore{semaphoreFactory()};
+
+			auto fenceFactory = Vulkan::Sync::FenceFactory{
+				.Device = self.device->GetHandle()
+			};
+			self.stillRenderingFence = Vulkan::Sync::Fence{fenceFactory()};
+
 			return decltype(self)(self);
 		}
 
@@ -558,5 +563,8 @@ export namespace Graphics
 		std::optional<Vulkan::Pipeline> pipeline;
 		std::optional<Vulkan::CommandPool> commandPool;
 		std::optional<Vulkan::CommandBuffer> commandBuffer;
+		std::optional<Vulkan::Sync::Semaphore> imageAvailableSemaphore;
+		std::optional<Vulkan::Sync::Semaphore> renderFinishedSemaphore;
+		std::optional<Vulkan::Sync::Fence> stillRenderingFence;
 	};
 }

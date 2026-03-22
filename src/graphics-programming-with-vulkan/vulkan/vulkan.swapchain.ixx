@@ -8,7 +8,7 @@ export namespace Vulkan
 {
 	struct SwapchainDeleter
 	{
-	public:
+		vkr::VkDevice Device = nullptr;
 		SwapchainDeleter(const SwapchainDeleter&) = delete;
 		SwapchainDeleter& operator=(const SwapchainDeleter&) = delete;
 
@@ -24,11 +24,8 @@ export namespace Vulkan
 
 		void operator()(this SwapchainDeleter& self, vkr::VkSwapchainKHR swapchain) noexcept
 		{
-			if (swapchain)
-				vkr::vkDestroySwapchainKHR(self.Device, swapchain, nullptr);
+			vkr::vkDestroySwapchainKHR(self.Device, swapchain, nullptr);
 		}
-	private:
-		vkr::VkDevice Device = nullptr;
 	};
 	using VkSwapchainKHRUniquePtr = std::unique_ptr<std::remove_pointer_t<vkr::VkSwapchainKHR>, SwapchainDeleter>;
 
@@ -94,7 +91,7 @@ export namespace Vulkan
 				throw Error::RuntimeError{ "Device must not be null to create a swapchain." };
 
 			self.Info.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-			auto swapchain = vkr::VkSwapchainKHR{ nullptr };
+			auto swapchain = vkr::VkSwapchainKHR{ };
 			auto result = Result{ vkr::vkCreateSwapchainKHR(self.Device, &self.Info, nullptr, &swapchain) };
 			if (not result)
 				throw VulkanError{ result, "Failed to create swapchain." };
@@ -143,11 +140,9 @@ export namespace Vulkan
 	class Swapchain
 	{
 	public:
-		Swapchain(VkSwapchainKHRUniquePtr handleIn, vkr::VkDevice deviceIn)
-			: handle(std::move(handleIn)), device(deviceIn)
+		Swapchain(VkSwapchainKHRUniquePtr handleIn)
+			: handle(std::move(handleIn))
 		{
-			if (not device)
-				throw Error::RuntimeError{ "Device must not be null to create a swapchain." };
 			if (not handle)
 				throw Error::RuntimeError{ "Swapchain handle must not be null." };
 		}
@@ -164,7 +159,7 @@ export namespace Vulkan
 			auto count = std::uint32_t{};
 			auto result = Result{
 				vkr::vkGetSwapchainImagesKHR(
-				self.device,
+				self.handle.get_deleter().Device,
 				self.handle.get(),
 				&count,
 				nullptr
@@ -175,7 +170,7 @@ export namespace Vulkan
 			auto images = std::vector<vkr::VkImage>(count);
 			result = Result{
 				vkr::vkGetSwapchainImagesKHR(
-					self.device,
+					self.handle.get_deleter().Device,
 					self.handle.get(),
 					&count,
 					images.data()
@@ -188,6 +183,5 @@ export namespace Vulkan
 
 	private:
 		VkSwapchainKHRUniquePtr handle;
-		vkr::VkDevice device{};
 	};
 }

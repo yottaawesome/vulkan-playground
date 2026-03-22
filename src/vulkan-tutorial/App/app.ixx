@@ -135,13 +135,17 @@ export namespace VulkanTutorial::App
 		vk::raii::Buffer       vertexBuffer = nullptr;
 		vk::raii::DeviceMemory vertexBufferMemory = nullptr;
 
-		std::uint32_t FindMemoryType(this auto&& self, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+		auto FindMemoryType(
+			this auto&& self, 
+			std::uint32_t typeFilter, 
+			vk::MemoryPropertyFlags properties
+		) -> std::uint32_t
 		{
-			vk::PhysicalDeviceMemoryProperties memProperties = self.physicalDevice->getMemoryProperties();
+			auto memProperties = vk::PhysicalDeviceMemoryProperties{ self.physicalDevice->getMemoryProperties() };
 
-			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+			for (std::uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 			{
-				if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				if ((typeFilter & (1 << i)) and (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 				{
 					return i;
 				}
@@ -152,12 +156,16 @@ export namespace VulkanTutorial::App
 
 		auto CreateVertexBuffer(this MainApp& self) -> decltype(self)
 		{
-			vk::BufferCreateInfo bufferInfo{ .size = sizeof(vertices[0]) * vertices.size(), .usage = vk::BufferUsageFlagBits::eVertexBuffer, .sharingMode = vk::SharingMode::eExclusive };
+			auto bufferInfo = vk::BufferCreateInfo{ 
+				.size = sizeof(vertices[0]) * vertices.size(), 
+				.usage = vk::BufferUsageFlagBits::eVertexBuffer, 
+				.sharingMode = vk::SharingMode::eExclusive 
+			};
 			self.vertexBuffer = vk::raii::Buffer(self.device, bufferInfo);
 
-			vk::MemoryRequirements memRequirements = self.vertexBuffer.getMemoryRequirements();
+			auto memRequirements = vk::MemoryRequirements{ self.vertexBuffer.getMemoryRequirements() };
 			auto memoryProperties = vk::MemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-			vk::MemoryAllocateInfo memoryAllocateInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, memoryProperties) };
+			auto memoryAllocateInfo = vk::MemoryAllocateInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = self.FindMemoryType(memRequirements.memoryTypeBits, memoryProperties) };
 			self.vertexBufferMemory = vk::raii::DeviceMemory(self.device, memoryAllocateInfo);
 			self.vertexBuffer.bindMemory(*self.vertexBufferMemory, 0);
 

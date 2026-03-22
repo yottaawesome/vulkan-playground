@@ -285,16 +285,9 @@ export namespace Graphics
 		{
 			self.logger.Info("Creating synchronization objects...");
 
-			auto semaphoreFactory = Vulkan::Sync::SemaphoreFactory{
-				.Device = self.device->GetHandle() 
-			};
-			self.imageAvailableSemaphore = Vulkan::Sync::Semaphore{semaphoreFactory()};
-			self.renderFinishedSemaphore = Vulkan::Sync::Semaphore{semaphoreFactory()};
-
-			auto fenceFactory = Vulkan::Sync::FenceFactory{
-				.Device = self.device->GetHandle()
-			};
-			self.stillRenderingFence = Vulkan::Sync::Fence{fenceFactory()};
+			self.imageAvailableSemaphore = Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle());
+			self.renderFinishedSemaphore = Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle());
+			self.stillRenderingFence = Vulkan::Sync::Fence::Create(self.device->GetHandle());
 
 			return decltype(self)(self);
 		}
@@ -520,7 +513,30 @@ export namespace Graphics
 
 		auto DrawFrame(this CoreVulkan& self) -> decltype(self)
 		{
-			return self;
+			// wait for previous frame to finish
+
+			// acquire image from swapchain
+			// recreate swapchain if it's out of date
+
+			// reset fence to unsignaled state
+			// reset command buffer to begin recording state
+			// record command buffer with rendering commands
+
+			// submit command buffer with fence to signal
+
+			// present swapchain image
+			// if presentation fails due to swapchain being out of date, recreate swapchain and try again
+			// advance to next frame
+
+
+			self.RecordCommandBuffer();
+			return decltype(self)(self);
+		}
+
+		auto RecordCommandBuffer(this CoreVulkan& self) -> decltype(self)
+		{
+			self.logger.Info("Recording command buffer...");
+			return decltype(self)(self);
 		}
 
 		auto Teardown(this CoreVulkan& self) -> decltype(self)
@@ -563,8 +579,8 @@ export namespace Graphics
 		std::optional<Vulkan::Pipeline> pipeline;
 		std::optional<Vulkan::CommandPool> commandPool;
 		std::optional<Vulkan::CommandBuffer> commandBuffer;
-		std::optional<Vulkan::Sync::Semaphore> imageAvailableSemaphore;
-		std::optional<Vulkan::Sync::Semaphore> renderFinishedSemaphore;
+		std::optional<Vulkan::Sync::BinarySemaphore> imageAvailableSemaphore;
+		std::optional<Vulkan::Sync::BinarySemaphore> renderFinishedSemaphore;
 		std::optional<Vulkan::Sync::Fence> stillRenderingFence;
 	};
 }

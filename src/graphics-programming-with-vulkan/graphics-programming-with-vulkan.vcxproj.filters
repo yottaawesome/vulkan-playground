@@ -102,7 +102,7 @@
     <ClCompile Include="vulkan\vulkan.formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.logicaldevice.ixx">
+    <ClCompile Include="vulkan\vulkan.device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.devicequeue.ixx">

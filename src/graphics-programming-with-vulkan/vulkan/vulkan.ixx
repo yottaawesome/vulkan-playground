@@ -5,7 +5,7 @@ export module vulkangfx:vulkan;
 export import :vulkan.error;
 export import :vulkan.exports;
 export import :vulkan.instance;
-export import :vulkan.logicaldevice;
+export import :vulkan.device;
 export import :vulkan.physicaldevice;
 export import :vulkan.raii;
 export import :vulkan.surface;

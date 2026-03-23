@@ -263,7 +263,7 @@ export namespace Graphics
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
 				.dynamicRendering = true
 			};
-			auto factory = Vulkan::LogicalDeviceFactory{
+			auto factory = Vulkan::DeviceFactory{
 				.Info = {
 					.QueueCreateInfos = {
 						{
@@ -712,6 +712,7 @@ export namespace Graphics
 		auto Teardown(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Tearing down Vulkan resources...");
+			self.device->WaitIdle();
 			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);
 			return self;
 		}
@@ -739,7 +740,7 @@ export namespace Graphics
 		vkr::VkDebugUtilsMessengerEXT debugMessenger = nullptr;
 		std::optional<Vulkan::Surface> surface;
 		std::optional<Vulkan::PhysicalDevice> physicalDevice;
-		std::optional<Vulkan::LogicalDevice> device;
+		std::optional<Vulkan::Device> device;
 		std::optional<Vulkan::DeviceQueue> deviceQueue;
 		Vulkan::DeviceQueueDetails selectedQueue{};
 		vkr::VkExtent2D swapChainExtent;

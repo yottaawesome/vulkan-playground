@@ -1,4 +1,4 @@
-export module vulkangfx:vulkan.logicaldevice;
+export module vulkangfx:vulkan.device;
 import std;
 import :raii;
 import :vulkan.exports;
@@ -8,7 +8,7 @@ export namespace Vulkan
 {
 	using VkDeviceUniquePtr = Raii::IndirectUniquePtr<vkr::VkDevice, vkr::vkDestroyDevice, nullptr>;
 
-	struct LogicalDeviceFactory
+	struct DeviceFactory
 	{
 		struct CreateInfo
 		{
@@ -68,7 +68,7 @@ export namespace Vulkan
 		CreateInfo Info;
 		vkr::VkPhysicalDevice PhysicalDevice = nullptr;
 
-		auto operator()(this LogicalDeviceFactory& self) -> VkDeviceUniquePtr
+		auto operator()(this DeviceFactory& self) -> VkDeviceUniquePtr
 		{
 			if (not self.PhysicalDevice)
 				throw std::invalid_argument("Physical device cannot be null.");
@@ -84,24 +84,30 @@ export namespace Vulkan
 		}
 	};
 
-	class LogicalDevice
+	class Device
 	{
 	public:
-		LogicalDevice(VkDeviceUniquePtr device)
-			: Device(std::move(device))
+		Device(VkDeviceUniquePtr deviceIn)
+			: device(std::move(deviceIn))
 		{ }
 
-		constexpr auto GetHandle(this const LogicalDevice& self) noexcept -> vkr::VkDevice
+		constexpr auto GetHandle(this const Device& self) noexcept -> vkr::VkDevice
 		{
-			return self.Device.get();
+			return self.device.get();
 		}
 
-		constexpr auto GetPtr(this LogicalDevice&& self) noexcept -> VkDeviceUniquePtr
+		constexpr auto GetPtr(this Device&& self) noexcept -> VkDeviceUniquePtr
 		{
-			return std::move(self.Device);
+			return std::move(self.device);
+		}
+
+		auto WaitIdle(this const Device& self) -> Result
+		{
+			// TODO: Should we check for errors here?
+			return { vkr::vkDeviceWaitIdle(self.device.get()) };
 		}
 
 	private:
-		VkDeviceUniquePtr Device;
+		VkDeviceUniquePtr device;
 	};
 }

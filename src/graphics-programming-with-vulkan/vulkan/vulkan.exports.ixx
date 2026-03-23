@@ -145,6 +145,7 @@ export namespace vkr
 		::VkAccessFlagBits2,
 		::VkPresentInfoKHR,
 		::VkPipelineStageFlagBits2,
+		::vkDeviceWaitIdle,
 		::vkGetFenceStatus,
 		::vkAcquireNextImageKHR,
 		::vkGetSemaphoreCounterValue,

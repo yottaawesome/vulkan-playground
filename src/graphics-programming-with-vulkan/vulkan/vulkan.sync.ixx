@@ -110,6 +110,7 @@ export namespace Vulkan::Sync
 		class BinarySemaphore
 		{
 		public:
+			[[nodiscard]]
 			static auto Create(vkr::VkDevice device) -> BinarySemaphore
 			{
 				if (not device)
@@ -161,6 +162,7 @@ export namespace Vulkan::Sync
 		class Fence
 		{
 		public:
+			[[nodiscard]]
 			static auto Create(vkr::VkDevice device, bool signaled = false) -> Fence
 			{
 				if (not device)

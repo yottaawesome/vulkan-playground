@@ -126,6 +126,27 @@ export namespace vkr
 		::VkSemaphoreType,
 		::VkSemaphoreSignalInfo,
 		::VkSemaphoreWaitInfo,
+		::VkSubmitInfo,
+		::VkPipelineStageFlags,
+		::VkPipelineStageFlagBits,
+		::VkCommandBufferBeginInfo,
+		::VkRenderingInfo,
+		::VkRenderingAttachmentInfo,
+		::VkImageLayout,
+		::VkAttachmentLoadOp,
+		::VkAttachmentStoreOp,
+		::VkClearValue,
+		::VkClearColorValue,
+		::VkPipelineBindPoint,
+		::VkImageMemoryBarrier2,
+		::VkDependencyInfo,
+		::VkPipelineStageFlags2,
+		::VkAccessFlags2,
+		::VkAccessFlagBits2,
+		::VkPresentInfoKHR,
+		::VkPipelineStageFlagBits2,
+		::vkGetFenceStatus,
+		::vkAcquireNextImageKHR,
 		::vkGetSemaphoreCounterValue,
 		::vkSignalSemaphore,
 		::vkWaitSemaphores,
@@ -175,8 +196,38 @@ export namespace vkr
 		::vkDestroyDevice,
 		::vkGetDeviceQueue,
 		::vkCreateWin32SurfaceKHR,
-		::vkDestroySurfaceKHR
+		::vkDestroySurfaceKHR,
+		::vkBeginCommandBuffer,
+		::vkEndCommandBuffer,
+		::vkCmdBeginRendering,
+		::vkCmdEndRendering,
+		::vkCmdBindPipeline,
+		::vkCmdSetViewport,
+		::vkCmdSetScissor,
+		::vkCmdDraw,
+		::vkCmdPipelineBarrier2,
+		::vkQueueSubmit,
+		::vkQueuePresentKHR
 		;
+
+	// Synchronization2 64-bit flag constants (cannot be exported via `using` as they are
+	// static const variables, not enum values).
+	constexpr auto QueueFamilyIgnored = static_cast<std::uint32_t>(VK_QUEUE_FAMILY_IGNORED);
+
+	namespace PipelineStage2
+	{
+		constexpr VkPipelineStageFlags2
+			None = VK_PIPELINE_STAGE_2_NONE,
+			ColorAttachmentOutput = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			BottomOfPipe = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+	}
+
+	namespace Access2
+	{
+		constexpr VkAccessFlags2
+			None = VK_ACCESS_2_NONE,
+			ColorAttachmentWrite = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+	}
 
 	auto VersionToString(std::uint32_t version) noexcept -> std::string
 	{

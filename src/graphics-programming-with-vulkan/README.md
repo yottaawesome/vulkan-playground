@@ -2,7 +2,11 @@
 
 ## Introduction
 
-My coursework for [Graphics Programming with Vulkan and C++](https://www.udemy.com/course/graphics-programming-with-vulkan-and-cpp). It does not precisely follow the course, as I have introduced my own structure, classes and other modifications.
+My coursework for [Graphics Programming with Vulkan and C++](https://www.udemy.com/course/graphics-programming-with-vulkan-and-cpp).
+
+## Changes
+
+I've actually not followed the course that closely, as I have introduced my own structure, classes and other modifications. The course material is rather dated due to its reliance on Vulkan 1.0 and the old renderpass/framebuffer functionality, so I've opted to use Vulkan 1.3+'s dynamic rendering instead.
 
 ## Notes
 

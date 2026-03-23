@@ -117,7 +117,7 @@ export namespace Vulkan
 			return std::forward_like<decltype(self)>(self.Images).end(); 
 		}
 
-		constexpr auto count(this const SwapchainImages& self) noexcept
+		constexpr auto size(this const SwapchainImages& self) noexcept
 		{
 			return static_cast<std::uint32_t>(self.Images.size());
 		}
@@ -179,6 +179,31 @@ export namespace Vulkan
 				throw VulkanError{ result, "Failed to get swapchain images." };
 
 			return SwapchainImages{ std::move(images) };
+		}
+
+		struct NextSwapchainImage
+		{
+			Result Result{};
+			std::uint32_t ImageIndex = 0;
+		};
+		auto AcquireNextImage(
+			this const Swapchain& self,
+			vkr::VkSemaphore semaphoreToSignal = nullptr,
+			vkr::VkFence fenceToSignal = nullptr,
+			std::uint64_t timeout = std::numeric_limits<std::uint64_t>::max()
+		) -> NextSwapchainImage
+		{
+			auto imageIndex = std::uint32_t{};
+			auto result = Result{
+				vkr::vkAcquireNextImageKHR(
+					self.handle.get_deleter().Device,
+					self.handle.get(),
+					timeout,
+					semaphoreToSignal,
+					fenceToSignal,
+					&imageIndex
+				)};
+			return { result, imageIndex };
 		}
 
 	private:

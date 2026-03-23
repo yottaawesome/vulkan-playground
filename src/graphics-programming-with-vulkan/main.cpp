@@ -33,6 +33,7 @@ try
 	while (window.StillOpen())
 	{
 		glfw::glfwPollEvents();
+		coreVulkan.DrawFrame();
 	}
 
 	return 0;

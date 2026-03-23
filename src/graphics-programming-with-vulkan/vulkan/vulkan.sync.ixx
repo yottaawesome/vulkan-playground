@@ -197,6 +197,11 @@ export namespace Vulkan::Sync
 				auto fences = std::array{ self.handle.get() };
 				return { vkr::vkResetFences(self.handle.get_deleter().Device, static_cast<std::uint32_t>(fences.size()), fences.data()) };
 			}
+			[[nodiscard]]
+			auto GetStatus(this const Fence& self) -> Result
+			{
+				return vkr::vkGetFenceStatus(self.handle.get_deleter().Device, self.handle.get());
+			}
 
 		private:
 			Fence(FenceUniquePtr handleIn)

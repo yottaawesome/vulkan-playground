@@ -37,6 +37,106 @@ export namespace Graphics
 				.CreateCommandBuffers();
 		}
 
+		// This function is tricky. Make sure to read the comments carefully and 
+		// understand the synchronization mechanisms in place. The complexity here
+		// lies in the fact that some functions consume signals while others 
+		// produce them and the synchronisation happens between CPU-GPU and GPU-GPU.
+		auto DrawFrame(this CoreVulkan& self) -> decltype(self)
+		{
+			// [CPU wait] Blocks until stillRenderingFence[frameIndex] is signalled,
+			// guaranteeing the previous submit using this frame slot has completed.
+			// The fence is created in the signalled state so the first frame doesn't deadlock.
+			if (auto result = Vulkan::Result{ self.stillRenderingFences[self.frameIndex].Wait()}; not result)
+				throw Vulkan::VulkanError{result, "Failed to wait for fence."};
+
+			// [Signals] imageAvailableSemaphore[frameIndex] (GPU-side, when the
+			// presentation engine releases the image). The semaphore is safe to
+			// reuse here because the fence above guarantees the previous submit
+			// — which consumed it — has completed.
+			auto acquiredImage = self.swapchain->AcquireNextImage(self.imageAvailableSemaphores[self.frameIndex].GetHandle());
+			if (acquiredImage.Result.IsOutOfDate())
+			{
+				self.CreateSwapChain();
+				return self;
+			}
+			if (acquiredImage.Result.Failed() and not acquiredImage.Result.IsSuboptimal())
+				throw Vulkan::VulkanError{ acquiredImage.Result, "Failed to acquire swapchain image." };
+
+			self.stillRenderingFences[self.frameIndex].Reset();
+			self.commandBuffers[self.frameIndex].Reset();
+			self.RecordCommandBuffer(acquiredImage.ImageIndex);
+
+			// Submission of the command buffer for execution to the graphics queue.
+			// [Consumes] imageAvailableSemaphore[frameIndex] — waits for the acquired
+			//            image to be ready before the color attachment output stage.
+			// [Signals]  renderFinishedSemaphore[imageIndex] — notifies present that
+			//            rendering to this image is complete. Indexed per-image (not
+			//            per-frame) because vkAcquireNextImageKHR returning this imageIndex
+			//            is the only guarantee that the previous present consuming this
+			//            semaphore has finished.
+			// [Signals]  stillRenderingFence[frameIndex] — CPU-side notification that
+			//            this submit has completed, allowing the frame slot to be reused.
+			auto waitSemaphores = std::array{ self.imageAvailableSemaphores[self.frameIndex].GetHandle() };
+			auto signalSemaphores = std::array{ self.renderFinishedSemaphores[acquiredImage.ImageIndex].GetHandle() };
+			[&waitSemaphores, &signalSemaphores, &self]
+			{
+				auto destinationStageMask = vkr::VkPipelineStageFlags{ vkr::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+				auto commandBuffers = std::array{ self.commandBuffers[self.frameIndex].GetHandle() };
+				auto submitInfo = vkr::VkSubmitInfo{
+					.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO,
+					.pNext = nullptr,
+					.waitSemaphoreCount = static_cast<std::uint32_t>(waitSemaphores.size()),
+					.pWaitSemaphores = waitSemaphores.data(),
+					.pWaitDstStageMask = &destinationStageMask,
+					.commandBufferCount = static_cast<std::uint32_t>(commandBuffers.size()),
+					.pCommandBuffers = commandBuffers.data(),
+					.signalSemaphoreCount = static_cast<std::uint32_t>(signalSemaphores.size()),
+					.pSignalSemaphores = signalSemaphores.data()
+				};
+				auto submitResult = Vulkan::Result{
+					vkr::vkQueueSubmit(
+						self.deviceQueue->GetQueue(),
+						1,
+						&submitInfo,
+						self.stillRenderingFences[self.frameIndex].GetHandle()
+					) };
+				if (not submitResult)
+					throw Vulkan::VulkanError{ submitResult, "Failed to submit draw command buffer." };
+			}();
+
+			// Presentation can only happen after rendering is finished on the same frame.
+			// [Consumes] renderFinishedSemaphore[imageIndex] — waits for rendering
+			//            to finish (submitted directly above) before displaying the 
+			//			  image. Not covered by the fence; the semaphore is only 
+			//			  safe to re-signal when this image is re-acquired.
+			auto result = 
+				[imageIndex = acquiredImage.ImageIndex, &waitSemaphores, &signalSemaphores, &self]
+				{
+					auto swapchains = std::array{ self.swapchain->GetHandle() };
+					auto presentInfo = vkr::VkPresentInfoKHR{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+						.pNext = nullptr,
+						.waitSemaphoreCount = static_cast<std::uint32_t>(signalSemaphores.size()),
+						.pWaitSemaphores = signalSemaphores.data(),
+						.swapchainCount = static_cast<std::uint32_t>(swapchains.size()),
+						.pSwapchains = swapchains.data(),
+						.pImageIndices = &imageIndex,
+						.pResults = nullptr
+					};
+					return Vulkan::Result{ vkr::vkQueuePresentKHR(self.deviceQueue->GetQueue(), &presentInfo) };
+				}();
+			if (result.IsOutOfDate() or result.IsSuboptimal())
+			{
+				self.CreateSwapChain();
+				return self;
+			}
+			if (result.Failed())
+				throw Vulkan::VulkanError{ result, "Failed to present swapchain image." };
+
+			self.frameIndex = (self.frameIndex + 1) % self.MaxFramesInFlight;
+			return decltype(self)(self);
+		}
+
 		// Order of initialisation.
 	private:
 		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
@@ -173,7 +273,7 @@ export namespace Graphics
 						}
 					},
 					.EnabledExtensions = {vkr::Extensions::SwapChain},
-					.EnabledFeatures13 = {.dynamicRendering = true},
+					.EnabledFeatures13 = {.synchronization2 = true, .dynamicRendering = true },
 					.EnabledFeatures14 = {.dynamicRenderingLocalRead = true},
 				},
 				.PhysicalDevice = self.physicalDevice->Handle,
@@ -285,10 +385,14 @@ export namespace Graphics
 		{
 			self.logger.Info("Creating synchronization objects...");
 
-			self.imageAvailableSemaphore = Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle());
-			self.renderFinishedSemaphore = Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle());
-			self.stillRenderingFence = Vulkan::Sync::Fence::Create(self.device->GetHandle());
+			for (auto i = 0u; i < self.swapchainImages.size(); i++)
+				self.renderFinishedSemaphores.emplace_back(Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle()));
 
+			for (auto i = 0u; i < MaxFramesInFlight; i++)
+			{
+				self.imageAvailableSemaphores.emplace_back(Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle()));
+				self.stillRenderingFences.emplace_back(Vulkan::Sync::Fence::Create(self.device->GetHandle(), true));
+			}
 			return decltype(self)(self);
 		}
 
@@ -436,11 +540,12 @@ export namespace Graphics
 		auto CreateCommandBuffers(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating command buffers...");
-			self.commandBuffer = Vulkan::CommandBufferFactory{
+			auto factory = Vulkan::CommandBufferFactory{
 				.Device = self.device->GetHandle(),
 				.CommandPool = self.commandPool->GetHandle()
-			}();
-
+			};
+			for (auto i = 0; i < MaxFramesInFlight; i++)
+				self.commandBuffers.emplace_back(factory());
 			return decltype(self)(self);
 		}
 
@@ -511,31 +616,96 @@ export namespace Graphics
 			return self;
 		}
 
-		auto DrawFrame(this CoreVulkan& self) -> decltype(self)
+		auto RecordCommandBuffer(this CoreVulkan& self, std::uint32_t imageIndex) -> decltype(self)
 		{
-			// wait for previous frame to finish
+			auto cmdBuffer = self.commandBuffers[self.frameIndex].GetHandle();
 
-			// acquire image from swapchain
-			// recreate swapchain if it's out of date
+			// Begin command buffer recording
+			auto beginInfo = vkr::VkCommandBufferBeginInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
+			};
+			if (auto result = Vulkan::Result{ vkr::vkBeginCommandBuffer(cmdBuffer, &beginInfo) }; not result)
+				throw Vulkan::VulkanError{ result, "Failed to begin recording command buffer." };
 
-			// reset fence to unsignaled state
-			// reset command buffer to begin recording state
-			// record command buffer with rendering commands
+			// Transition swapchain image: undefined -> color attachment optimal
+			auto imageBarrier = vkr::VkImageMemoryBarrier2{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+				.srcStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
+				.srcAccessMask = vkr::Access2::None,
+				.dstStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
+				.dstAccessMask = vkr::Access2::ColorAttachmentWrite,
+				.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+				.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				.srcQueueFamilyIndex = vkr::QueueFamilyIgnored,
+				.dstQueueFamilyIndex = vkr::QueueFamilyIgnored,
+				.image = self.swapchainImages[imageIndex],
+				.subresourceRange = {
+					.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
+			auto dependencyInfo = vkr::VkDependencyInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &imageBarrier
+			};
+			vkr::vkCmdPipelineBarrier2(cmdBuffer, &dependencyInfo);
 
-			// submit command buffer with fence to signal
+			// Begin dynamic rendering
+			auto clearValue = vkr::VkClearValue{ .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } };
+			auto colorAttachment = vkr::VkRenderingAttachmentInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+				.imageView = self.swapchainImageViews[imageIndex].GetHandle(),
+				.imageLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				.loadOp = vkr::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = vkr::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE,
+				.clearValue = clearValue
+			};
+			auto renderingInfo = vkr::VkRenderingInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_INFO,
+				.renderArea = { .offset = { 0, 0 }, .extent = self.swapChainExtent },
+				.layerCount = 1,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &colorAttachment
+			};
+			vkr::vkCmdBeginRendering(cmdBuffer, &renderingInfo);
 
-			// present swapchain image
-			// if presentation fails due to swapchain being out of date, recreate swapchain and try again
-			// advance to next frame
+			// Bind pipeline and set dynamic state
+			vkr::vkCmdBindPipeline(cmdBuffer, vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, self.pipeline->GetHandle());
 
+			auto viewport = vkr::VkViewport{
+				.x = 0.f, .y = 0.f,
+				.width = static_cast<float>(self.swapChainExtent.width),
+				.height = static_cast<float>(self.swapChainExtent.height),
+				.minDepth = 0.f, .maxDepth = 1.f
+			};
+			vkr::vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
-			self.RecordCommandBuffer();
-			return decltype(self)(self);
-		}
+			auto scissor = vkr::VkRect2D{
+				.offset = { 0, 0 },
+				.extent = self.swapChainExtent
+			};
+			vkr::vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-		auto RecordCommandBuffer(this CoreVulkan& self) -> decltype(self)
-		{
-			self.logger.Info("Recording command buffer...");
+			// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
+			vkr::vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+			vkr::vkCmdEndRendering(cmdBuffer);
+
+			// Transition swapchain image: color attachment optimal -> present src
+			imageBarrier.srcAccessMask = vkr::Access2::ColorAttachmentWrite;
+			imageBarrier.dstStageMask = vkr::PipelineStage2::BottomOfPipe;
+			imageBarrier.dstAccessMask = vkr::Access2::None;
+			imageBarrier.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			imageBarrier.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			vkr::vkCmdPipelineBarrier2(cmdBuffer, &dependencyInfo);
+
+			// End command buffer recording
+			if (auto result = Vulkan::Result{ vkr::vkEndCommandBuffer(cmdBuffer) }; not result)
+				throw Vulkan::VulkanError{ result, "Failed to end recording command buffer." };
+
 			return decltype(self)(self);
 		}
 
@@ -561,6 +731,8 @@ export namespace Graphics
 
 	private:
 		Log::Logger<"CoreVulkan"> logger;
+		constexpr static auto MaxFramesInFlight = 2u;
+		unsigned frameIndex = 0;
 
 		Vulkan::Instance::MainInstance instance;
 		glfw::Window* window = nullptr;
@@ -578,9 +750,9 @@ export namespace Graphics
 		std::optional<Vulkan::PipelineLayout> pipelineLayout;
 		std::optional<Vulkan::Pipeline> pipeline;
 		std::optional<Vulkan::CommandPool> commandPool;
-		std::optional<Vulkan::CommandBuffer> commandBuffer;
-		std::optional<Vulkan::Sync::BinarySemaphore> imageAvailableSemaphore;
-		std::optional<Vulkan::Sync::BinarySemaphore> renderFinishedSemaphore;
-		std::optional<Vulkan::Sync::Fence> stillRenderingFence;
+		std::vector<Vulkan::CommandBuffer> commandBuffers;
+		std::vector<Vulkan::Sync::BinarySemaphore> imageAvailableSemaphores;
+		std::vector<Vulkan::Sync::BinarySemaphore> renderFinishedSemaphores;
+		std::vector<Vulkan::Sync::Fence> stillRenderingFences;
 	};
 }

@@ -11,6 +11,16 @@ export namespace Vulkan
 		constexpr Result() noexcept = default;
 		constexpr Result(vkr::VkResult value) noexcept : Value(value) {}
 		
+		constexpr auto IsOutOfDate(this const Result& self) noexcept -> bool
+		{
+			return self.Value == vkr::VkResult::VK_ERROR_OUT_OF_DATE_KHR;
+		}
+
+		constexpr auto IsSuboptimal(this const Result& self) noexcept -> bool
+		{
+			return self.Value == vkr::VkResult::VK_SUBOPTIMAL_KHR;
+		}
+
 		constexpr operator bool(this const Result& self) noexcept
 		{
 			return self.Value == vkr::VkResult::VK_SUCCESS;

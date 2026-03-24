@@ -38,7 +38,11 @@ export namespace glfw
 		::glfwTerminate,
 		::glfwGetWin32Window,
 		::glfwSetErrorCallback,
-		::glfwCreateWindowSurface
+		::glfwCreateWindowSurface,
+		::glfwWaitEvents,
+		::glfwGetWindowUserPointer,
+		::glfwSetWindowUserPointer,
+		::glfwSetFramebufferSizeCallback
 		;
 
 	namespace WindowHints

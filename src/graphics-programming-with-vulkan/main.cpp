@@ -19,7 +19,7 @@ try
 		{
 			Logger.Error("GLFW error {}: {}", code, description ? description : "Unknown error");
 		});
-	auto window = glfw::Window{ glfw::WindowFactory{}() };
+	auto window = glfw::Window{ glfw::WindowFactory{.Resizable = true}() };
 
 	auto primaryMonitor = glfw::Monitor{};
 
@@ -27,14 +27,18 @@ try
 	auto [windowWidth, windowHeight] = window.GetContentAreaDimensions();
 	window.SetPosition((monitorWidth - windowWidth) / 2, (monitorHeight - windowHeight) / 2);
 
-	auto coreVulkan = Graphics::CoreVulkan{ &window };
-	coreVulkan.Initialise();
+	auto gfx = Graphics::CoreVulkan{ &window };
+	gfx.Initialise();
 
+	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
+	// Note that the framebuffer size is in pixels.
+	window.OnFramebufferResize = [&gfx](int, int) { gfx.RecreateSwapChain(); };
 	while (window.StillOpen())
 	{
 		glfw::glfwPollEvents();
-		coreVulkan.DrawFrame();
+		gfx.DrawFrame();
 	}
+	window.OnFramebufferResize = [](int, int) {};
 
 	return 0;
 }

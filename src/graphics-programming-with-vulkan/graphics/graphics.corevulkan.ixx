@@ -37,6 +37,32 @@ export namespace Graphics
 				.CreateCommandBuffers();
 		}
 
+		void CleanupSwapChain(this CoreVulkan& self)
+		{
+			self.swapchainImageViews.clear();
+			self.swapchain.reset();
+		}
+
+		void RecreateSwapChain(this CoreVulkan& self)
+		{
+			auto [width, height] = 
+				[window = self.window]
+				{
+					auto dimensions = window->GetFramebufferDimensions();
+					while(dimensions.X == 0 or dimensions.Y == 0)
+					{
+						dimensions = window -> GetFramebufferDimensions();
+						glfw::glfwWaitEvents();
+					}
+					return dimensions;
+				}();
+
+			self.device->WaitIdle();
+			self.CleanupSwapChain();
+			self.CreateSwapChain();
+			self.CreateImageViews();
+		}
+
 		// This function is tricky. Make sure to read the comments carefully and 
 		// understand the synchronization mechanisms in place. The complexity here
 		// lies in the fact that some functions consume signals while others 
@@ -56,7 +82,7 @@ export namespace Graphics
 			auto acquiredImage = self.swapchain->AcquireNextImage(self.imageAvailableSemaphores[self.frameIndex].GetHandle());
 			if (acquiredImage.Result.IsOutOfDate())
 			{
-				self.CreateSwapChain();
+				self.RecreateSwapChain();
 				return self;
 			}
 			if (acquiredImage.Result.Failed() and not acquiredImage.Result.IsSuboptimal())
@@ -126,10 +152,7 @@ export namespace Graphics
 					return Vulkan::Result{ vkr::vkQueuePresentKHR(self.deviceQueue->GetQueue(), &presentInfo) };
 				}();
 			if (result.IsOutOfDate() or result.IsSuboptimal())
-			{
-				self.CreateSwapChain();
-				return self;
-			}
+				self.RecreateSwapChain();
 			if (result.Failed())
 				throw Vulkan::VulkanError{ result, "Failed to present swapchain image." };
 
@@ -713,6 +736,7 @@ export namespace Graphics
 		{
 			self.logger.Info("Tearing down Vulkan resources...");
 			self.device->WaitIdle();
+			self.CleanupSwapChain();
 			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);
 			return self;
 		}

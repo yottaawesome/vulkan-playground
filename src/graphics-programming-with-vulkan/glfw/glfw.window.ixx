@@ -64,11 +64,15 @@ export namespace glfw
 	class Window
 	{
 	public:
+		std::function<void(int width, int height)> OnFramebufferResize = [](int, int) {};
+
 		Window(GlfwWindowUniquePtr windowIn) 
 			: window(std::move(windowIn))
 		{
 			if (not window)
 				throw ::Error::RuntimeError{ "Window pointer cannot be null." };
+			glfw::glfwSetWindowUserPointer(window.get(), this);
+			glfw::glfwSetFramebufferSizeCallback(window.get(), FramebufferResizeCallback);
 		}
 
 		auto GetWin32Window(this const Window& self) -> void*
@@ -140,6 +144,12 @@ export namespace glfw
 		}
 
 	private:
+		static auto FramebufferResizeCallback(glfw::GLFWwindow* window, int width, int height)
+		{
+			if (auto self = reinterpret_cast<Window*>(glfw::glfwGetWindowUserPointer(window)); self)
+				self->OnFramebufferResize(width, height);
+		}
+
 		glfw::GlfwWindowUniquePtr window = nullptr;
 	};
 }

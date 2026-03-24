@@ -648,93 +648,86 @@ export namespace Graphics
 
 		auto RecordCommandBuffer(this CoreVulkan& self, std::uint32_t imageIndex) -> decltype(self)
 		{
-			auto cmdBuffer = self.commandBuffers[self.frameIndex].GetHandle();
-
 			// Begin command buffer recording
-			auto beginInfo = vkr::VkCommandBufferBeginInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
-			};
-			if (auto result = Vulkan::Result{ vkr::vkBeginCommandBuffer(cmdBuffer, &beginInfo) }; not result)
-				throw Vulkan::VulkanError{ result, "Failed to begin recording command buffer." };
-
-			// Transition swapchain image: undefined -> color attachment optimal
-			auto imageBarrier = vkr::VkImageMemoryBarrier2{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-				.srcStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
-				.srcAccessMask = vkr::Access2::None,
-				.dstStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
-				.dstAccessMask = vkr::Access2::ColorAttachmentWrite,
-				.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
-				.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				.srcQueueFamilyIndex = vkr::QueueFamilyIgnored,
-				.dstQueueFamilyIndex = vkr::QueueFamilyIgnored,
-				.image = self.swapchainImages[imageIndex],
-				.subresourceRange = {
-					.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				}
-			};
-			auto dependencyInfo = vkr::VkDependencyInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-				.imageMemoryBarrierCount = 1,
-				.pImageMemoryBarriers = &imageBarrier
-			};
-			vkr::vkCmdPipelineBarrier2(cmdBuffer, &dependencyInfo);
-
-			// Begin dynamic rendering
-			auto clearValue = vkr::VkClearValue{ .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } };
-			auto colorAttachment = vkr::VkRenderingAttachmentInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-				.imageView = self.swapchainImageViews[imageIndex].GetHandle(),
-				.imageLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				.loadOp = vkr::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
-				.storeOp = vkr::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE,
-				.clearValue = clearValue
-			};
-			auto renderingInfo = vkr::VkRenderingInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_INFO,
-				.renderArea = { .offset = { 0, 0 }, .extent = self.swapChainExtent },
-				.layerCount = 1,
-				.colorAttachmentCount = 1,
-				.pColorAttachments = &colorAttachment
-			};
-			vkr::vkCmdBeginRendering(cmdBuffer, &renderingInfo);
-
-			// Bind pipeline and set dynamic state
-			vkr::vkCmdBindPipeline(cmdBuffer, vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, self.pipeline->GetHandle());
-
-			auto viewport = vkr::VkViewport{
-				.x = 0.f, .y = 0.f,
-				.width = static_cast<float>(self.swapChainExtent.width),
-				.height = static_cast<float>(self.swapChainExtent.height),
-				.minDepth = 0.f, .maxDepth = 1.f
-			};
-			vkr::vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-
-			auto scissor = vkr::VkRect2D{
-				.offset = { 0, 0 },
-				.extent = self.swapChainExtent
-			};
-			vkr::vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
-			// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
-			vkr::vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
-			vkr::vkCmdEndRendering(cmdBuffer);
-
-			// Transition swapchain image: color attachment optimal -> present src
-			imageBarrier.srcAccessMask = vkr::Access2::ColorAttachmentWrite;
-			imageBarrier.dstStageMask = vkr::PipelineStage2::BottomOfPipe;
-			imageBarrier.dstAccessMask = vkr::Access2::None;
-			imageBarrier.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			imageBarrier.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-			vkr::vkCmdPipelineBarrier2(cmdBuffer, &dependencyInfo);
-
-			// End command buffer recording
-			if (auto result = Vulkan::Result{ vkr::vkEndCommandBuffer(cmdBuffer) }; not result)
-				throw Vulkan::VulkanError{ result, "Failed to end recording command buffer." };
+			self.commandBuffers[self.frameIndex]
+				.Begin()
+				// Transition swapchain image: undefined -> color attachment optimal
+				.PipelineBarrier2Ex(
+					vkr::VkImageMemoryBarrier2{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.srcStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
+						.srcAccessMask = vkr::Access2::None,
+						.dstStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
+						.dstAccessMask = vkr::Access2::ColorAttachmentWrite,
+						.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = vkr::QueueFamilyIgnored,
+						.dstQueueFamilyIndex = vkr::QueueFamilyIgnored,
+						.image = self.swapchainImages[imageIndex],
+						.subresourceRange = {
+							.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1
+						}
+					})
+				// Begin dynamic rendering
+				.BeginRendering(
+					vkr::VkRect2D{
+						.offset = { 0, 0 },
+						.extent = self.swapChainExtent
+					},
+					vkr::VkRenderingAttachmentInfo{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+						.imageView = self.swapchainImageViews[imageIndex].GetHandle(),
+						.imageLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.loadOp = vkr::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
+						.storeOp = vkr::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE,
+						.clearValue = vkr::VkClearValue{.color = {.float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } }
+					}
+				)
+				// Bind pipeline and set dynamic state
+				.BindPipeline(vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, self.pipeline->GetHandle())
+				.SetViewport(
+					vkr::VkViewport{
+						.x = 0.f, 
+						.y = 0.f,
+						.width = static_cast<float>(self.swapChainExtent.width),
+						.height = static_cast<float>(self.swapChainExtent.height),
+						.minDepth = 0.f, 
+						.maxDepth = 1.f
+					})
+				.SetScissor(
+					vkr::VkRect2D{
+						.offset = { 0, 0 },
+						.extent = self.swapChainExtent
+					})
+				// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
+				.Draw(3, 1, 0, 0)
+				.EndRendering()
+				// Transition swapchain image: color attachment optimal -> present src
+				.PipelineBarrier2Ex(
+					vkr::VkImageMemoryBarrier2{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.srcStageMask = vkr::PipelineStage2::ColorAttachmentOutput,
+						.srcAccessMask = vkr::Access2::ColorAttachmentWrite,
+						.dstStageMask = vkr::PipelineStage2::BottomOfPipe,
+						.dstAccessMask = vkr::Access2::None,
+						.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+						.srcQueueFamilyIndex = vkr::QueueFamilyIgnored,
+						.dstQueueFamilyIndex = vkr::QueueFamilyIgnored,
+						.image = self.swapchainImages[imageIndex],
+						.subresourceRange = {
+							.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1
+						}
+					})
+				.End();
 
 			return decltype(self)(self);
 		}

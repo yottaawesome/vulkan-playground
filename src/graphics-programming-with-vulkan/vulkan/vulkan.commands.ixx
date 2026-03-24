@@ -48,6 +48,113 @@ export namespace Vulkan
 			if (result != vkr::VkResult::VK_SUCCESS)
 				throw VulkanError{result, "Failed to reset command buffer."};
 		}
+
+		auto Begin(
+			this const CommandBuffer& self, 
+			const vkr::VkCommandBufferBeginInfo& beginInfo = vkr::VkCommandBufferBeginInfo{ .sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, }
+		) -> decltype(self)
+		{
+			auto result = vkr::vkBeginCommandBuffer(self.commandBuffer.get(), &beginInfo);
+			if (result != vkr::VkResult::VK_SUCCESS)
+				throw VulkanError{result, "Failed to begin recording command buffer."};
+			return decltype(self)(self);
+		}
+
+		auto End(this const CommandBuffer& self) -> decltype(self)
+		{
+			auto result = vkr::vkEndCommandBuffer(self.commandBuffer.get());
+			if (result != vkr::VkResult::VK_SUCCESS)
+				throw VulkanError{result, "Failed to end recording command buffer."};
+			return decltype(self)(self);
+		}
+
+		auto SetViewport(this const CommandBuffer& self, const vkr::VkViewport& viewport) -> decltype(self)
+		{
+			vkr::vkCmdSetViewport(self.commandBuffer.get(), 0, 1, &viewport);
+			return decltype(self)(self);
+		}
+
+		auto SetScissor(this const CommandBuffer& self, const vkr::VkRect2D& scissor) -> decltype(self)
+		{
+			vkr::vkCmdSetScissor(self.commandBuffer.get(), 0, 1, &scissor);
+			return decltype(self)(self);
+		}
+
+		auto BeginRendering(this const CommandBuffer& self, const vkr::VkRenderingInfo& renderingInfo) -> decltype(self)
+		{
+			vkr::vkCmdBeginRendering(self.commandBuffer.get(), &renderingInfo);
+			return decltype(self)(self);
+		}
+
+		// Convenience overload that builds VkRenderingInfo internally. The pointer
+		// in renderingInfo.pColorAttachments points to the parameter, which is safe
+		// because vkCmdBeginRendering consumes the data immediately during recording.
+		// This pattern would be unsafe in a deferred/batched command builder where
+		// the struct outlives the call.
+		auto BeginRendering(
+			this const CommandBuffer& self, 
+			const vkr::VkRect2D& renderArea,
+			const vkr::VkRenderingAttachmentInfo& colorAttachment
+		) -> decltype(self)
+		{
+			auto renderingInfo = vkr::VkRenderingInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_INFO,
+				.renderArea = renderArea,
+				.layerCount = 1,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &colorAttachment
+			};
+			vkr::vkCmdBeginRendering(self.commandBuffer.get(), &renderingInfo);
+			return decltype(self)(self);
+		}
+
+		auto EndRendering(this const CommandBuffer& self) -> decltype(self)
+		{
+			vkr::vkCmdEndRendering(self.commandBuffer.get());
+			return decltype(self)(self);
+		}
+
+		auto Draw(
+			this const CommandBuffer& self, 
+			std::uint32_t vertexCount, 
+			std::uint32_t instanceCount, 
+			std::uint32_t firstVertex, 
+			std::uint32_t firstInstance
+		) -> decltype(self)
+		{
+			vkr::vkCmdDraw(self.commandBuffer.get(), vertexCount, instanceCount, firstVertex, firstInstance);
+			return decltype(self)(self);
+		}
+
+		auto BindPipeline(this const CommandBuffer& self, vkr::VkPipelineBindPoint pipelineBindPoint, vkr::VkPipeline pipeline) -> decltype(self)
+		{
+			vkr::vkCmdBindPipeline(self.commandBuffer.get(), pipelineBindPoint, pipeline);
+			return decltype(self)(self);
+		}
+
+		auto PipelineBarrier2(
+			this const CommandBuffer& self,
+			const vkr::VkDependencyInfo& dependencyInfo
+		) -> decltype(self)
+		{
+			vkr::vkCmdPipelineBarrier2(self.commandBuffer.get(), &dependencyInfo);
+			return decltype(self)(self);
+		}
+
+		auto PipelineBarrier2Ex(
+			this const CommandBuffer& self,
+			const vkr::VkImageMemoryBarrier2& barrier
+		) -> decltype(self)
+		{
+			auto dependencyInfo = vkr::VkDependencyInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &barrier
+			};
+			vkr::vkCmdPipelineBarrier2(self.commandBuffer.get(), &dependencyInfo);
+			return decltype(self)(self);
+		}
+
 	private:
 		CommandBufferUniquePtr commandBuffer;
 	};

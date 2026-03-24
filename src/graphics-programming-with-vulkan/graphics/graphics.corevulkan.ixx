@@ -496,8 +496,15 @@ export namespace Graphics
 				.sampleShadingEnable = false,
 			};
 
+			// Enable alpha blending for transparency.
 			auto colorBlendAttachment = vkr::VkPipelineColorBlendAttachmentState{
-				.blendEnable = false,
+				.blendEnable = true,
+				.srcColorBlendFactor = vkr::VkBlendFactor::VK_BLEND_FACTOR_SRC_ALPHA,
+				.dstColorBlendFactor = vkr::VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+				.colorBlendOp = vkr::VkBlendOp::VK_BLEND_OP_ADD,
+				.srcAlphaBlendFactor = vkr::VkBlendFactor::VK_BLEND_FACTOR_ONE,
+				.dstAlphaBlendFactor = vkr::VkBlendFactor::VK_BLEND_FACTOR_ZERO,
+				.alphaBlendOp = vkr::VkBlendOp::VK_BLEND_OP_ADD,
 				.colorWriteMask =
 					vkr::VkColorComponentFlagBits::VK_COLOR_COMPONENT_R_BIT |
 					vkr::VkColorComponentFlagBits::VK_COLOR_COMPONENT_G_BIT |

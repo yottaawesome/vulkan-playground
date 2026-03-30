@@ -16,35 +16,6 @@ import :glfw.error;
 // https://www.glfw.org/docs/3.3/window_guide.html#window_creation
 export namespace glfw
 {
-	struct WindowFactory
-	{
-		std::string Title = "Vulkan";
-		std::int32_t ClientApi = glfw::WindowHints::NoApi;
-		std::int32_t Width = 800;
-		std::int32_t Height = 600;
-		bool Resizable = false;
-
-		auto Create(this const WindowFactory& self) -> GlfwWindowUniquePtr
-		{
-			glfw::glfwWindowHint(glfw::WindowHints::ClientApi, self.ClientApi);
-			glfw::glfwWindowHint(glfw::WindowHints::Resizable, self.Resizable);
-			auto window = glfw::glfwCreateWindow(self.Width, self.Height, self.Title.c_str(), nullptr, nullptr);
-			if (not window)
-				throw Error("Failed to create GLFW window");
-			return GlfwWindowUniquePtr{ window };
-		}
-
-		auto operator()(this const WindowFactory& self) -> GlfwWindowUniquePtr
-		{
-			return self.Create();
-		}
-
-		explicit operator GlfwWindowUniquePtr(this const WindowFactory& self)
-		{
-			return self.Create();
-		}
-	};
-
 	struct ScreenCoordinates
 	{
 		int X = 0;
@@ -61,10 +32,59 @@ export namespace glfw
 		int Height = 0;
 	};
 
+	template<typename T>
+	struct IsPair : std::false_type {};
+	template<typename A, typename B>
+	struct IsPair<std::pair<A, B>> : std::true_type {};
+	template<typename T>
+	concept Pair = IsPair<T>::value;
+
+	template<typename T>
+	struct IsIntPair : std::false_type {};
+	template<>
+	struct IsIntPair<std::pair<int, int>> : std::true_type {};
+	template<typename T>
+	concept IntPair = IsIntPair<T>::value;
+
 	class Window
 	{
 	public:
+		struct Factory
+		{
+			std::string Title = "Vulkan";
+			std::int32_t ClientApi = glfw::WindowHints::NoApi;
+			std::int32_t Width = 800;
+			std::int32_t Height = 600;
+			bool Resizable = false;
+
+			auto Create(this const Factory& self) -> Window
+			{
+				glfw::glfwWindowHint(glfw::WindowHints::ClientApi, self.ClientApi);
+				glfw::glfwWindowHint(glfw::WindowHints::Resizable, self.Resizable);
+				auto window = glfw::glfwCreateWindow(self.Width, self.Height, self.Title.c_str(), nullptr, nullptr);
+				if (not window)
+					throw Error("Failed to create GLFW window");
+				return Window{GlfwWindowUniquePtr{ window }};
+			}
+
+			auto operator()(this const Factory& self) -> Window
+			{
+				return self.Create();
+			}
+		};
+
+		using WindowHints = std::pair<std::int32_t, std::int32_t>;
+
 		std::function<void(int width, int height)> OnFramebufferResize = [](int, int) {};
+
+		Window(const std::string& title, int width, int height, bool resizable, IntPair auto&&... hints)
+		{
+			(static_cast<void>(glfw::glfwWindowHint(hints.first, hints.second)), ...);
+			auto window = glfw::glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+			if (not window)
+				throw Error("Failed to create GLFW window");
+			window = GlfwWindowUniquePtr{ window };
+		}
 
 		Window(GlfwWindowUniquePtr windowIn) 
 			: window(std::move(windowIn))

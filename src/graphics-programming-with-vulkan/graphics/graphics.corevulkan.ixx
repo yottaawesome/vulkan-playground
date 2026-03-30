@@ -7,6 +7,7 @@ import :win32;
 import :stlhelpers;
 import :error;
 import :logging;
+import :graphics.vertex;
 
 export namespace Graphics
 {
@@ -37,10 +38,89 @@ export namespace Graphics
 				.CreateCommandBuffers();
 		}
 
+		auto CreateVertexBuffer(this CoreVulkan& self, std::span<const Vertex> vertices) -> Vulkan::BufferHandle
+		{
+			auto handle = Vulkan::BufferHandle{};
+
+			auto bufferInfo = vkr::VkBufferCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+				.pNext = nullptr,
+				.size = sizeof(Vertex) * vertices.size(),
+				.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+			};
+			auto result = Vulkan::Result{
+				vkr::vkCreateBuffer(
+					self.device->GetHandle(),
+					&bufferInfo,
+					nullptr,
+					&handle.Buffer
+				)};
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to create vertex buffer." };
+
+			auto memoryRequirements = vkr::VkMemoryRequirements{};
+			vkr::vkGetBufferMemoryRequirements(self.device->GetHandle(), handle.Buffer, &memoryRequirements);
+			auto chosenMemoryType = std::uint32_t{
+				Vulkan::FindMemoryType(
+					self.physicalDevice->GetHandle(),
+					memoryRequirements.memoryTypeBits,
+					vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+				)};
+
+			auto allocInfo = vkr::VkMemoryAllocateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+				.pNext = nullptr,
+				.allocationSize = memoryRequirements.size,
+				.memoryTypeIndex = chosenMemoryType
+			};
+			vkr::vkAllocateMemory(self.device->GetHandle(), &allocInfo, nullptr, &handle.Memory);
+
+			result = Vulkan::Result{ 
+				vkr::vkAllocateMemory(
+					self.device->GetHandle(), 
+					&allocInfo, 
+					nullptr, 
+					&handle.Memory
+				)};
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to allocate vertex buffer memory." };
+
+			vkr::vkBindBufferMemory(self.device->GetHandle(), handle.Buffer, handle.Memory, 0);
+
+			void* data;
+			vkr::vkMapMemory(
+				self.device->GetHandle(), 
+				handle.Memory, 
+				0, 
+				bufferInfo.size, 
+				0, 
+				&data
+			);
+			std::memcpy(data, vertices.data(), static_cast<std::size_t>(bufferInfo.size));
+			vkr::vkUnmapMemory(self.device->GetHandle(), handle.Memory);
+
+			return handle;
+		}
+
+		auto DestroyVertexBuffer(this CoreVulkan& self, Vulkan::BufferHandle& handle)
+		{
+			vkr::vkDestroyBuffer(self.device->GetHandle(), handle.Buffer, nullptr);
+			vkr::vkFreeMemory(self.device->GetHandle(), handle.Memory, nullptr);
+		}
+
 		void CleanupSwapChain(this CoreVulkan& self)
 		{
 			self.swapchainImageViews.clear();
 			self.swapchain.reset();
+		}
+
+		auto WaitForDeviceIdle(this CoreVulkan& self) -> decltype(self)
+		{
+			auto result = Vulkan::Result{ vkr::vkDeviceWaitIdle(self.device->GetHandle()) };
+			if (not result)
+				throw Vulkan::VulkanError{ result, "Failed to wait for device idle." };
+			return self;
 		}
 
 		void RecreateSwapChain(this CoreVulkan& self)
@@ -67,7 +147,7 @@ export namespace Graphics
 		// understand the synchronization mechanisms in place. The complexity here
 		// lies in the fact that some functions consume signals while others 
 		// produce them and the synchronisation happens between CPU-GPU and GPU-GPU.
-		auto DrawFrame(this CoreVulkan& self) -> decltype(self)
+		auto DrawFrame(this CoreVulkan& self, Vulkan::BufferHandle& vertexBuffer) -> decltype(self)
 		{
 			// [CPU wait] Blocks until stillRenderingFence[frameIndex] is signalled,
 			// guaranteeing the previous submit using this frame slot has completed.
@@ -90,7 +170,7 @@ export namespace Graphics
 
 			self.stillRenderingFences[self.frameIndex].Reset();
 			self.commandBuffers[self.frameIndex].Reset();
-			self.RecordCommandBuffer(acquiredImage.ImageIndex);
+			self.RecordCommandBuffer(acquiredImage.ImageIndex, vertexBuffer);
 
 			// Submission of the command buffer for execution to the graphics queue.
 			// [Consumes] imageAvailableSemaphore[frameIndex] — waits for the acquired
@@ -153,7 +233,7 @@ export namespace Graphics
 				}();
 			if (result.IsOutOfDate() or result.IsSuboptimal())
 				self.RecreateSwapChain();
-			if (result.Failed())
+			else if (result.Failed())
 				throw Vulkan::VulkanError{ result, "Failed to present swapchain image." };
 
 			self.frameIndex = (self.frameIndex + 1) % self.MaxFramesInFlight;
@@ -407,7 +487,9 @@ export namespace Graphics
 		auto CreateSyncObjects(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating synchronization objects...");
-
+			// Render finished semaphores need to match the swapchain image count. This is independent of the frames in flight.
+			// While frames in flight and swapchain image counts can be made to match, in practise it's common to have max 
+			// frames in flight = swapchain image count - 1.
 			for (auto i = 0u; i < self.swapchainImages.size(); i++)
 				self.renderFinishedSemaphores.emplace_back(Vulkan::Sync::BinarySemaphore::Create(self.device->GetHandle()));
 
@@ -468,10 +550,14 @@ export namespace Graphics
 				.pScissors = &scissor
 			};
 
+			auto bindingDescription = Vertex::GetBindingDescription();
+			auto attributeDescriptions = Vertex::GetAttributeDescription();
 			auto vertexInputInfo = vkr::VkPipelineVertexInputStateCreateInfo{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-				.vertexBindingDescriptionCount = 0,
-				.pVertexBindingDescriptions = nullptr,
+				.vertexBindingDescriptionCount = 1,
+				.pVertexBindingDescriptions = &bindingDescription,
+				.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size()),
+				.pVertexAttributeDescriptions = attributeDescriptions.data()
 			};
 			auto inputAssemblyInfo = vkr::VkPipelineInputAssemblyStateCreateInfo{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -556,7 +642,7 @@ export namespace Graphics
 			self.logger.Info("Creating command pool...");
 
 			self.commandPool = 
-				Vulkan::CommandPoolFactory{
+				Vulkan::CommandPool::Factory{
 					.Device = self.device->GetHandle(),
 					.CreateInfo = {
 						.flags = vkr::VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -569,13 +655,10 @@ export namespace Graphics
 
 		auto CreateCommandBuffers(this CoreVulkan& self) -> decltype(self)
 		{
+			// Each frame in flight needs its own command buffer to record commands for that frame.
 			self.logger.Info("Creating command buffers...");
-			auto factory = Vulkan::CommandBufferFactory{
-				.Device = self.device->GetHandle(),
-				.CommandPool = self.commandPool->GetHandle()
-			};
 			for (auto i = 0; i < MaxFramesInFlight; i++)
-				self.commandBuffers.emplace_back(factory());
+				self.commandBuffers.emplace_back(self.commandPool->CreatePrimaryCommandBuffer());
 			return decltype(self)(self);
 		}
 
@@ -646,7 +729,11 @@ export namespace Graphics
 			return self;
 		}
 
-		auto RecordCommandBuffer(this CoreVulkan& self, std::uint32_t imageIndex) -> decltype(self)
+		auto RecordCommandBuffer(
+			this CoreVulkan& self, 
+			std::uint32_t imageIndex,
+			Vulkan::BufferHandle& vertexBuffer
+		) -> decltype(self)
 		{
 			// Begin command buffer recording
 			self.commandBuffers[self.frameIndex]
@@ -704,7 +791,7 @@ export namespace Graphics
 						.extent = self.swapChainExtent
 					})
 				// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
-				.Draw(3, 1, 0, 0)
+				.BindAndDrawVertexBuffer(vertexBuffer.Buffer, 3, 1, 0, 0)
 				.EndRendering()
 				// Transition swapchain image: color attachment optimal -> present src
 				.PipelineBarrier2Ex(

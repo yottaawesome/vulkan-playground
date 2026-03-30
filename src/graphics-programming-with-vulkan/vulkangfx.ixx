@@ -11,3 +11,4 @@ export import :error;
 export import :logging;
 export import :string;
 export import :file;
+export import :util;

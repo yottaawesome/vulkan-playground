@@ -147,6 +147,15 @@
     <ClCompile Include="vulkan\vulkan.sync.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="graphics\graphics.vertex.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\util.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.buffer.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

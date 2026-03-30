@@ -19,7 +19,7 @@ try
 		{
 			Logger.Error("GLFW error {}: {}", code, description ? description : "Unknown error");
 		});
-	auto window = glfw::Window{ glfw::WindowFactory{.Resizable = true}() };
+	auto window = glfw::Window{ glfw::Window::Factory{.Resizable = true}() };
 
 	auto primaryMonitor = glfw::Monitor{};
 
@@ -30,15 +30,25 @@ try
 	auto gfx = Graphics::CoreVulkan{ &window };
 	gfx.Initialise();
 
+	auto vertices = std::array{
+		Graphics::Vertex{ glm::vec3{ 0.0f, -0.5f, 0.0f }, glm::vec3{ 1.0f, 0.0f, 0.0f } },
+		Graphics::Vertex{ glm::vec3{ 0.5f, 0.5f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } },
+		Graphics::Vertex{ glm::vec3{ -0.5f, 0.5f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 1.0f } }
+	};
+	auto buffer = Vulkan::BufferHandle{gfx.CreateVertexBuffer(vertices)};
+
 	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
 	// Note that the framebuffer size is in pixels.
 	window.OnFramebufferResize = [&gfx](int, int) { gfx.RecreateSwapChain(); };
 	while (window.StillOpen())
 	{
 		glfw::glfwPollEvents();
-		gfx.DrawFrame();
+		gfx.DrawFrame(buffer);
 	}
 	window.OnFramebufferResize = [](int, int) {};
+
+	gfx.WaitForDeviceIdle();
+	gfx.DestroyVertexBuffer(buffer);
 
 	return 0;
 }

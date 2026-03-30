@@ -170,10 +170,7 @@ export namespace Vulkan
 			return decltype(self)(self);
 		}
 
-		auto BindVertexBuffers(
-			this const CommandBuffer& self, 
-			vkr::VkBuffer& buffer
-		) -> decltype(self)
+		auto BindVertexBuffer(this const CommandBuffer& self, vkr::VkBuffer buffer) -> decltype(self)
 		{
 			auto offset = vkr::VkDeviceSize{};
 			vkr::vkCmdBindVertexBuffers(
@@ -183,6 +180,30 @@ export namespace Vulkan
 				&buffer, 
 				&offset
 			);
+			return decltype(self)(self);
+		}
+
+		auto BindIndexBuffer(this const CommandBuffer& self, vkr::VkBuffer buffer, vkr::VkIndexType indexType) -> decltype(self)
+		{
+			vkr::vkCmdBindIndexBuffer(
+				self.commandBuffer.get(),
+				buffer,
+				0,
+				indexType
+			);
+			return decltype(self)(self);
+		}
+
+		auto DrawIndexed(
+			this const CommandBuffer& self,
+			std::uint32_t indexCount,
+			std::uint32_t instanceCount,
+			std::uint32_t firstIndex,
+			std::int32_t vertexOffset,
+			std::uint32_t firstInstance
+		) -> decltype(self)
+		{
+			vkr::vkCmdDrawIndexed(self.commandBuffer.get(), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 			return decltype(self)(self);
 		}
 

@@ -35,7 +35,10 @@ try
 		Graphics::Vertex{ glm::vec3{ 0.5f, 0.5f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } },
 		Graphics::Vertex{ glm::vec3{ -0.5f, 0.5f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 1.0f } }
 	};
-	auto buffer = Vulkan::BufferHandle{gfx.CreateVertexBuffer(vertices)};
+	auto vertexBuffer = Vulkan::BufferHandle{gfx.CreateVertexBuffer(vertices)};
+
+	auto indices = std::array{ 0u, 1u, 2u };
+	auto indexBuffer = Vulkan::BufferHandle{ gfx.CreateIndexBuffer(indices) };
 
 	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
 	// Note that the framebuffer size is in pixels.
@@ -43,12 +46,13 @@ try
 	while (window.StillOpen())
 	{
 		glfw::glfwPollEvents();
-		gfx.DrawFrame(buffer);
+		gfx.DrawFrame(vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
 	}
 	window.OnFramebufferResize = [](int, int) {};
 
 	gfx.WaitForDeviceIdle();
-	gfx.DestroyBuffer(buffer);
+	gfx.DestroyBuffer(indexBuffer);
+	gfx.DestroyBuffer(vertexBuffer);
 
 	return 0;
 }

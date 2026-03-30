@@ -38,6 +38,60 @@ export namespace Graphics
 				.CreateCommandBuffers();
 		}
 
+		template<size_t N>
+		auto CreateIndexBuffer(this CoreVulkan& self, std::array<uint32_t, N> indices) -> Vulkan::BufferHandle
+		{
+			auto size = sizeof(uint32_t) * indices.size();
+			auto factory = Vulkan::BufferHandle::Factory{
+				.Device = self.device->GetHandle(),
+				.PhysicalDevice = self.physicalDevice->GetHandle(),
+				.bufferInfo = {
+					.size = size,
+					.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+					.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+				},
+				.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			};
+			auto stagingHandle = factory();
+
+			void* data;
+			vkr::vkMapMemory(self.device->GetHandle(), stagingHandle.Memory, 0, size, 0, &data);
+			std::memcpy(data, indices.data(), static_cast<std::size_t>(size));
+			vkr::vkUnmapMemory(self.device->GetHandle(), stagingHandle.Memory);
+
+			factory.bufferInfo.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			factory.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			auto gpuHandle = factory();
+
+			{
+				auto transientCommands = self.commandPool->CreatePrimaryCommandBuffer();
+				transientCommands.BeginOneTime();
+				auto copyInfo = vkr::VkBufferCopy{
+					.srcOffset = 0,
+					.dstOffset = 0,
+					.size = size
+				};
+				vkr::vkCmdCopyBuffer(transientCommands.GetHandle(), stagingHandle.Buffer, gpuHandle.Buffer, 1, &copyInfo);
+				transientCommands.End();
+				self.deviceQueue->SubmitBuffer(transientCommands.GetHandle());
+				self.deviceQueue->WaitIdle();
+			}
+
+			self.DestroyBuffer(stagingHandle);
+
+			return gpuHandle;
+		}
+
+		auto GetDevice(this CoreVulkan& self) noexcept -> vkr::VkDevice
+		{
+			return self.device->GetHandle();
+		}
+
+		auto GetPhysicalDevice(this CoreVulkan& self) noexcept -> vkr::VkPhysicalDevice
+		{
+			return self.physicalDevice->GetHandle();
+		}
+
 		auto CreateVertexBuffer(this CoreVulkan& self, std::span<const Vertex> vertices) -> Vulkan::BufferHandle
 		{
 			auto size = sizeof(Vertex) * vertices.size();
@@ -58,11 +112,12 @@ export namespace Graphics
 			vkr::vkMapMemory(self.device->GetHandle(), stagingHandle.Memory, 0, size, 0, &data);
 			std::memcpy(data, vertices.data(), static_cast<std::size_t>(size));
 			vkr::vkUnmapMemory(self.device->GetHandle(), stagingHandle.Memory);
-
+			
+			// Create GPU buffer
 			factory.bufferInfo.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			factory.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 			auto gpuHandle = factory();
-
+			// Copy from staging buffer to GPU buffer
 			{
 				auto transientCommands = self.commandPool->CreatePrimaryCommandBuffer();
 				transientCommands.BeginOneTime();
@@ -126,7 +181,12 @@ export namespace Graphics
 		// understand the synchronization mechanisms in place. The complexity here
 		// lies in the fact that some functions consume signals while others 
 		// produce them and the synchronisation happens between CPU-GPU and GPU-GPU.
-		auto DrawFrame(this CoreVulkan& self, Vulkan::BufferHandle& vertexBuffer) -> decltype(self)
+		auto DrawFrame(
+			this CoreVulkan& self, 
+			const Vulkan::BufferHandle& vertexBuffer, 
+			const Vulkan::BufferHandle& indexBuffer, 
+			std::uint32_t indexCount
+		) -> decltype(self)
 		{
 			// [CPU wait] Blocks until stillRenderingFence[frameIndex] is signalled,
 			// guaranteeing the previous submit using this frame slot has completed.
@@ -149,7 +209,13 @@ export namespace Graphics
 
 			self.stillRenderingFences[self.frameIndex].Reset();
 			self.commandBuffers[self.frameIndex].Reset();
-			self.RecordCommandBuffer(acquiredImage.ImageIndex, vertexBuffer);
+			//
+			//
+			// Record drawing commands
+			self.RecordCommandBuffer(acquiredImage.ImageIndex, vertexBuffer, indexBuffer, indexCount);
+			//
+			//
+			//
 
 			// Submission of the command buffer for execution to the graphics queue.
 			// [Consumes] imageAvailableSemaphore[frameIndex] — waits for the acquired
@@ -711,7 +777,9 @@ export namespace Graphics
 		auto RecordCommandBuffer(
 			this CoreVulkan& self, 
 			std::uint32_t imageIndex,
-			Vulkan::BufferHandle& vertexBuffer
+			const Vulkan::BufferHandle& vertexBuffer,
+			const Vulkan::BufferHandle& indexBuffer,
+			std::uint32_t indexCount
 		) -> decltype(self)
 		{
 			// Begin command buffer recording
@@ -764,13 +832,11 @@ export namespace Graphics
 						.minDepth = 0.f, 
 						.maxDepth = 1.f
 					})
-				.SetScissor(
-					vkr::VkRect2D{
-						.offset = { 0, 0 },
-						.extent = self.swapChainExtent
-					})
+				.SetScissor(vkr::VkRect2D{ .offset = { 0, 0 }, .extent = self.swapChainExtent })
 				// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
-				.BindAndDrawVertexBuffer(vertexBuffer.Buffer, 3, 1, 0, 0)
+				.BindVertexBuffer(vertexBuffer.Buffer)
+				.BindIndexBuffer(indexBuffer.Buffer, vkr::VkIndexType::VK_INDEX_TYPE_UINT32)
+				.DrawIndexed(indexCount, 1, 0, 0, 0)
 				.EndRendering()
 				// Transition swapchain image: color attachment optimal -> present src
 				.PipelineBarrier2Ex(

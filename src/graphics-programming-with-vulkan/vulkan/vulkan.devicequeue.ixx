@@ -30,6 +30,55 @@ export namespace Vulkan
 			return queueFamilyProperties;
 		}
 
+		auto WaitIdle(this const DeviceQueue& self) -> decltype(self)
+		{
+			auto result = Vulkan::Result{ vkr::vkQueueWaitIdle(self.queue) };
+			if (not result)
+				throw VulkanError{ result, "Failed to wait for device queue to become idle." };
+			return self;
+		}
+
+		auto SubmitBuffer(
+			this DeviceQueue& self, 
+			vkr::VkCommandBuffer commandBuffer
+		)
+		{
+			auto commandBuffers = std::array{ commandBuffer };
+			auto submitInfo = vkr::VkSubmitInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				.commandBufferCount = 1,
+				.pCommandBuffers = commandBuffers.data(),
+			};
+			auto result = Vulkan::Result{ vkr::vkQueueSubmit(self.queue, 1, &submitInfo, nullptr) };
+			if (not result)
+				throw VulkanError{ result, "Failed to submit command buffer to device queue." };
+			return self;
+		}
+
+		auto SubmitBuffers(
+			this const DeviceQueue& self,
+			std::span<const vkr::VkCommandBuffer>& commandBuffers,
+			std::span<const vkr::VkSemaphore>& waitSemaphores,
+			std::span<const vkr::VkSemaphore>& signalSemaphores,
+			vkr::VkFence fence = nullptr
+		) -> decltype(self)
+		{
+			auto submitInfo = vkr::VkSubmitInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				.waitSemaphoreCount = static_cast<std::uint32_t>(waitSemaphores.size()),
+				.pWaitSemaphores = waitSemaphores.data(),
+				.pWaitDstStageMask = nullptr,
+				.commandBufferCount = static_cast<std::uint32_t>(commandBuffers.size()),
+				.pCommandBuffers = commandBuffers.data(),
+				.signalSemaphoreCount = static_cast<std::uint32_t>(signalSemaphores.size()),
+				.pSignalSemaphores = signalSemaphores.data()
+			};
+			auto result = Vulkan::Result{ vkr::vkQueueSubmit(self.queue, 1, &submitInfo, fence) };
+			if (not result)
+				throw VulkanError{ result, "Failed to submit command buffers to device queue." };
+			return self;
+		}
+
 	private:
 		vkr::VkPhysicalDevice physicalDevice{};
 		std::uint32_t queueFamilyIndex = 0;

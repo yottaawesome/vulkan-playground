@@ -86,6 +86,15 @@ export namespace Vulkan
 			return decltype(self)(self);
 		}
 
+		auto BeginOneTime(this const CommandBuffer& self) -> decltype(self)
+		{
+			auto beginInfo = vkr::VkCommandBufferBeginInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+				.flags = vkr::VkCommandBufferUsageFlagBits::VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+			};
+			return self.Begin(beginInfo);
+		}
+
 		auto End(this const CommandBuffer& self) -> decltype(self)
 		{
 			auto result = vkr::vkEndCommandBuffer(self.commandBuffer.get());

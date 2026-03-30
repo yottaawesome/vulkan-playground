@@ -841,6 +841,25 @@ export namespace Graphics
 			};
 		}
 
+		auto BeginTransientCommandBuffer(this CoreVulkan& self) -> Vulkan::CommandBuffer
+		{
+			auto commandBuffer = self.commandPool->CreatePrimaryCommandBuffer();
+			commandBuffer.BeginOneTime();
+			return commandBuffer;
+		}
+
+		auto EndAndSubmitTransientCommandBuffer(
+			this CoreVulkan& self, 
+			Vulkan::CommandBuffer& commandBuffer
+		) -> decltype(self)
+		{
+			commandBuffer.End();
+			self.deviceQueue->SubmitBuffer(commandBuffer.GetHandle());
+			self.deviceQueue->WaitIdle();
+			commandBuffer.Free();
+			return decltype(self)(self);
+		}
+
 	private:
 		Log::Logger<"CoreVulkan"> logger;
 		constexpr static auto MaxFramesInFlight = 2u;

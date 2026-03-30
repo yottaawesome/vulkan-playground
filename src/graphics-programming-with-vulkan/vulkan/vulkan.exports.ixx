@@ -160,6 +160,8 @@ export namespace vkr
 		::VkMemoryRequirements,
 		::VkMemoryAllocateInfo,
 		::VkDeviceSize,
+		::VkCommandBufferUsageFlagBits,
+		::vkQueueWaitIdle,
 		::vkCmdBindVertexBuffers,
 		::vkMapMemory,
 		::vkUnmapMemory,

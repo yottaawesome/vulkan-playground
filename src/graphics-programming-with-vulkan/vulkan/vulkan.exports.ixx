@@ -11,6 +11,13 @@ export module vulkangfx:vulkan.exports;
 // Raw vulkan types and functions, not vk:: types.
 export namespace vkr
 {
+	template<auto VConstant>
+	struct Constant
+	{
+		static constexpr auto operator()() noexcept { return VConstant; }
+		operator std::remove_cvref_t<decltype(VConstant)>(this auto&&) noexcept { return VConstant; }
+	};
+
 	using
 		::VkInstance,
 		::VkInstanceCreateInfo,
@@ -161,6 +168,12 @@ export namespace vkr
 		::VkMemoryAllocateInfo,
 		::VkDeviceSize,
 		::VkCommandBufferUsageFlagBits,
+		::VkBufferUsageFlagBits,
+		::VkBufferUsageFlagBits2,
+		::VkBufferUsageFlags,
+		::VkBufferUsageFlags2,
+		::VkBufferCopy,
+		::vkCmdCopyBuffer,
 		::vkQueueWaitIdle,
 		::vkCmdBindVertexBuffers,
 		::vkMapMemory,
@@ -237,6 +250,19 @@ export namespace vkr
 		::vkQueueSubmit,
 		::vkQueuePresentKHR
 		;
+
+	namespace VkBufferUsageFlagBits2Constants
+	{
+		constexpr auto TransferSrc = Constant<VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT>{};
+		constexpr auto TransferDst = Constant<VK_BUFFER_USAGE_2_TRANSFER_DST_BIT>{};
+		constexpr auto UniformTexelBuffer = Constant<VK_BUFFER_USAGE_2_UNIFORM_TEXEL_BUFFER_BIT>{};
+		constexpr auto StorageTexelBuffer = Constant<VK_BUFFER_USAGE_2_STORAGE_TEXEL_BUFFER_BIT>{};
+		constexpr auto UniformBuffer = Constant<VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT>{};
+		constexpr auto StorageBuffer = Constant<VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT>{};
+		constexpr auto IndexBuffer = Constant<VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT>{};
+		constexpr auto VertexBuffer = Constant<VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT>{};
+		constexpr auto IndirectBuffer = Constant<VK_BUFFER_USAGE_2_INDIRECT_BUFFER_BIT>{};
+	}
 
 	// Synchronization2 64-bit flag constants (cannot be exported via `using` as they are
 	// static const variables, not enum values).
@@ -334,6 +360,8 @@ export namespace vkr
 		constexpr VkDebugUtilsMessageTypeFlagBitsEXT Performance = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 	}
 }
+
+
 
 // TODO: Left empty for now.
 export namespace vk

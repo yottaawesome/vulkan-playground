@@ -40,70 +40,49 @@ export namespace Graphics
 
 		auto CreateVertexBuffer(this CoreVulkan& self, std::span<const Vertex> vertices) -> Vulkan::BufferHandle
 		{
-			auto handle = Vulkan::BufferHandle{};
+			auto size = sizeof(Vertex) * vertices.size();
 
-			auto bufferInfo = vkr::VkBufferCreateInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-				.pNext = nullptr,
-				.size = sizeof(Vertex) * vertices.size(),
-				.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+			auto factory = Vulkan::BufferHandle::Factory{
+				.Device = self.device->GetHandle(),
+				.PhysicalDevice = self.physicalDevice->GetHandle(),
+				.bufferInfo = {
+					.size = size,
+					.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+					.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+				},
+				.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			};
-			auto result = Vulkan::Result{
-				vkr::vkCreateBuffer(
-					self.device->GetHandle(),
-					&bufferInfo,
-					nullptr,
-					&handle.Buffer
-				)};
-			if (not result)
-				throw Vulkan::VulkanError{ result, "Failed to create vertex buffer." };
-
-			auto memoryRequirements = vkr::VkMemoryRequirements{};
-			vkr::vkGetBufferMemoryRequirements(self.device->GetHandle(), handle.Buffer, &memoryRequirements);
-			auto chosenMemoryType = std::uint32_t{
-				Vulkan::FindMemoryType(
-					self.physicalDevice->GetHandle(),
-					memoryRequirements.memoryTypeBits,
-					vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-				)};
-
-			auto allocInfo = vkr::VkMemoryAllocateInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-				.pNext = nullptr,
-				.allocationSize = memoryRequirements.size,
-				.memoryTypeIndex = chosenMemoryType
-			};
-			vkr::vkAllocateMemory(self.device->GetHandle(), &allocInfo, nullptr, &handle.Memory);
-
-			result = Vulkan::Result{ 
-				vkr::vkAllocateMemory(
-					self.device->GetHandle(), 
-					&allocInfo, 
-					nullptr, 
-					&handle.Memory
-				)};
-			if (not result)
-				throw Vulkan::VulkanError{ result, "Failed to allocate vertex buffer memory." };
-
-			vkr::vkBindBufferMemory(self.device->GetHandle(), handle.Buffer, handle.Memory, 0);
+			auto stagingHandle = factory();
 
 			void* data;
-			vkr::vkMapMemory(
-				self.device->GetHandle(), 
-				handle.Memory, 
-				0, 
-				bufferInfo.size, 
-				0, 
-				&data
-			);
-			std::memcpy(data, vertices.data(), static_cast<std::size_t>(bufferInfo.size));
-			vkr::vkUnmapMemory(self.device->GetHandle(), handle.Memory);
+			vkr::vkMapMemory(self.device->GetHandle(), stagingHandle.Memory, 0, size, 0, &data);
+			std::memcpy(data, vertices.data(), static_cast<std::size_t>(size));
+			vkr::vkUnmapMemory(self.device->GetHandle(), stagingHandle.Memory);
 
-			return handle;
+			factory.bufferInfo.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			factory.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			auto gpuHandle = factory();
+
+			{
+				auto transientCommands = self.commandPool->CreatePrimaryCommandBuffer();
+				transientCommands.BeginOneTime();
+				auto copyInfo = vkr::VkBufferCopy{
+					.srcOffset = 0,
+					.dstOffset = 0,
+					.size = size
+				};
+				vkr::vkCmdCopyBuffer(transientCommands.GetHandle(), stagingHandle.Buffer, gpuHandle.Buffer, 1, &copyInfo);
+				transientCommands.End();
+				self.deviceQueue->SubmitBuffer(transientCommands.GetHandle());
+				self.deviceQueue->WaitIdle();
+			}
+
+			self.DestroyBuffer(stagingHandle);
+
+			return gpuHandle;
 		}
 
-		auto DestroyVertexBuffer(this CoreVulkan& self, Vulkan::BufferHandle& handle)
+		auto DestroyBuffer(this CoreVulkan& self, Vulkan::BufferHandle& handle)
 		{
 			vkr::vkDestroyBuffer(self.device->GetHandle(), handle.Buffer, nullptr);
 			vkr::vkFreeMemory(self.device->GetHandle(), handle.Memory, nullptr);

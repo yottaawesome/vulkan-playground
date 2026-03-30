@@ -48,7 +48,7 @@ try
 	window.OnFramebufferResize = [](int, int) {};
 
 	gfx.WaitForDeviceIdle();
-	gfx.DestroyVertexBuffer(buffer);
+	gfx.DestroyBuffer(buffer);
 
 	return 0;
 }

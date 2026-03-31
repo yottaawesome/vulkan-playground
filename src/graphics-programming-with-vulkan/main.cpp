@@ -57,7 +57,13 @@ try
 
 		glfw::glfwPollEvents();
 		gfx.BeginDraw().and_then(
-			[&gfx, &vertexBuffer, &indexBuffer, &indices, &rotation](Vulkan::Swapchain::NextSwapchainImage&& frameData) -> std::optional<Vulkan::Swapchain::NextSwapchainImage>
+			[
+				&gfx, 
+				&vertexBuffer, 
+				&indexBuffer, 
+				&indices, 
+				&rotation
+			](Vulkan::Swapchain::NextSwapchainImage&& frameData) -> std::optional<Vulkan::Swapchain::NextSwapchainImage>
 			{
 				gfx.CurrentCommandBuffer().Begin(); // comment this out if using gfx.RecordCommandBuffer()  vvvvvvvvv
 				gfx.SetModelMatrix(rotation);

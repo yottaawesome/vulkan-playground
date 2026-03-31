@@ -18,6 +18,7 @@ export namespace glm
 		::glm::ivec2,
 		::glm::ivec3,
 		::glm::ivec4,
+		::glm::rotate,
 		::glm::radians,
 		::glm::perspective,
 		::glm::lookAt

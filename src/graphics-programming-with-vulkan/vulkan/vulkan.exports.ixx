@@ -174,6 +174,8 @@ export namespace vkr
 		::VkBufferUsageFlags2,
 		::VkBufferCopy,
 		::VkIndexType,
+		::VkPushConstantRange,
+		::vkCmdPushConstants,
 		::vkCmdBindIndexBuffer,
 		::vkCmdDrawIndexed,
 		::vkCmdCopyBuffer,

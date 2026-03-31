@@ -43,10 +43,32 @@ try
 	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
 	// Note that the framebuffer size is in pixels.
 	window.OnFramebufferResize = [&gfx](int, int) { gfx.RecreateSwapChain(); };
+
+	auto start = std::chrono::high_resolution_clock::now();
+	auto angle = float{0.0f};
 	while (window.StillOpen())
 	{
+		auto now = std::chrono::high_resolution_clock::now();
+		auto diff = now - start;
+		start = now;
+		angle += std::chrono::duration<float>(diff).count()*20;
+
+		auto rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f });
+
 		glfw::glfwPollEvents();
-		gfx.DrawFrame(vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
+		gfx.BeginDraw().and_then(
+			[&gfx, &vertexBuffer, &indexBuffer, &indices, &rotation](Vulkan::Swapchain::NextSwapchainImage&& frameData) -> std::optional<Vulkan::Swapchain::NextSwapchainImage>
+			{
+				gfx.CurrentCommandBuffer().Begin(); // comment this out if using gfx.RecordCommandBuffer()  vvvvvvvvv
+				gfx.SetModelMatrix(rotation);
+				gfx.RecordCommandBufferBody(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
+				//gfx.RecordCommandBuffer(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
+				gfx.CurrentCommandBuffer().End(); // comment this out if using gfx.RecordCommandBuffer()    ^^^^^^^^^
+				gfx.EndDraw(frameData);
+				return frameData;
+			});
+
+		//gfx.DrawFrame(vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
 	}
 	window.OnFramebufferResize = [](int, int) {};
 

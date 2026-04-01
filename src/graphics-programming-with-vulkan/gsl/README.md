@@ -12,4 +12,4 @@ partitions. Other partitions may depend on `:gsl`.
 
 | Partition | Purpose                                       |
 |-----------|-----------------------------------------------|
-| `:gsl`    | Re-exports `gsl::not_null`, `gsl::span`, etc. |
+| `:gsl`    | Re-exports `gsl::not_null`, `gsl::span`, `gsl::czstring` |

@@ -18,8 +18,18 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │
 ├── :gsl                            [ground-level] GSL library re-exports
 │
-├── :stlhelpers                     [ground-level, internal] STL helper utilities
-│                                   (not exported from primary module)
+├── :error                          [ground-level] error types with source location
+│
+├── :string                         [ground-level] compile-time string utilities
+│
+├── :util                           [ground-level] miscellaneous utilities
+│
+├── :stlhelpers                     [ground-level] STL helper utilities
+│   └── :stlhelpers.collection
+│
+├── :file                           file I/O utilities
+│   ├── :file.file                  depends on :error
+│   └── :file.functions             depends on :error
 │
 ├── :win32                          Win32 API re-exports and wrappers
 │   ├── :win32.exports              [ground-level]
@@ -27,25 +37,48 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │   ├── :win32.raii                 depends on :raii, :win32.exports
 │   └── :win32.event                depends on :win32.exports, :win32.raii, :win32.error
 │
+├── :logging                        logging utilities
+│                                   depends on :win32, :error, :string, :file
+│
 ├── :glfw                           GLFW wrappers
 │   ├── :glfw.exports               [ground-level] raw GLFW symbol re-exports
 │   ├── :glfw.error                 depends on :glfw.exports
 │   ├── :glfw.raii                  depends on :raii, :glfw.exports, :glfw.error
-│   ├── :glfw.window                depends on :glfw.exports, :glfw.raii, :glfw.error, :gsl
+│   ├── :glfw.window                depends on :error, :gsl, :glfw.exports, :glfw.raii,
+│   │                                          :glfw.error
 │   ├── :glfw.monitor               depends on :glfw.exports, :glfw.error
 │   └── :glfw.functions             depends on :glfw.exports, :gsl
 │
 ├── :vulkan                         Vulkan API wrappers
 │   ├── :vulkan.exports             [ground-level] raw Vulkan symbol re-exports
 │   ├── :vulkan.error               depends on :vulkan.exports
+│   ├── :vulkan.formatters          depends on :vulkan.exports
 │   ├── :vulkan.raii                depends on :raii, :vulkan.exports
-│   ├── :vulkan.surface             depends on :vulkan.raii, :vulkan.error, :vulkan.exports
-│   ├── :vulkan.physicaldevice      depends on :vulkan.exports, :vulkan.error
-│   └── :vulkan.instance            depends on :vulkan.exports, :vulkan.error, :vulkan.raii,
-│                                              :vulkan.surface, :win32
+│   ├── :vulkan.instance            depends on :win32, :vulkan.exports, :vulkan.error,
+│   │                                          :vulkan.raii
+│   ├── :vulkan.surface             depends on :win32, :error, :vulkan.raii,
+│   │                                          :vulkan.error, :vulkan.exports
+│   ├── :vulkan.physicaldevice      depends on :raii, :stlhelpers, :vulkan.exports,
+│   │                                          :vulkan.error, :vulkan.formatters
+│   ├── :vulkan.device              depends on :raii, :vulkan.exports, :vulkan.error
+│   ├── :vulkan.devicequeue         depends on :error, :vulkan.exports, :vulkan.error
+│   ├── :vulkan.swapchain           depends on :error, :vulkan.exports, :vulkan.error
+│   ├── :vulkan.imageview           depends on :error, :vulkan.exports, :vulkan.error
+│   ├── :vulkan.shaders             depends on :error, :file, :stlhelpers,
+│   │                                          :vulkan.exports, :vulkan.error
+│   ├── :vulkan.pipeline            depends on :raii, :vulkan.exports, :vulkan.error,
+│   │                                          :vulkan.raii
+│   ├── :vulkan.commands            depends on :error, :vulkan.error, :vulkan.exports
+│   ├── :vulkan.buffer              depends on :error, :vulkan.exports, :vulkan.error
+│   ├── :vulkan.sync                depends on :error, :vulkan.exports, :vulkan.error
+│   ├── :vulkan.descriptors         depends on :error, :vulkan.exports, :vulkan.error
+│   └── :vulkan.uniformtransformations  depends on :glm
 │
 └── :graphics                       High-level graphics orchestration
-    └── :graphics.corevulkan        depends on :vulkan, :glfw, :gsl, :win32
+    ├── :graphics.vertex            depends on :vulkan, :glm, :util
+    └── :graphics.corevulkan        depends on :vulkan, :glfw, :gsl, :win32,
+                                               :stlhelpers, :error, :logging,
+                                               :graphics.vertex
 ```
 
 `main.cpp` is the application entry point and imports the `vulkangfx` module.
@@ -60,12 +93,12 @@ Layer 4 — Application         main.cpp
                                 │
 Layer 3 — Primary module       vulkangfx
                                 │
-Layer 2 — High-level           :graphics
+Layer 2 — High-level           :graphics, :logging
                                 │
-Layer 1 — Subsystem composites :glfw, :win32, :vulkan
+Layer 1 — Subsystem composites :glfw, :win32, :vulkan, :file
                                 │
-Layer 0 — Ground-level         :raii, :glm, :gsl, :stlhelpers,
-                               :win32.exports, :glfw.exports, :vulkan.exports
+Layer 0 — Ground-level         :raii, :glm, :gsl, :stlhelpers, :error, :string,
+                               :util, :win32.exports, :glfw.exports, :vulkan.exports
 ```
 
 ### Ground-level partitions
@@ -75,24 +108,27 @@ utilities. They must not depend on any other `vulkangfx` partitions (only on
 `std` and the external libraries they wrap). Other partitions may freely depend
 on them.
 
-`:stlhelpers` is ground-level but is **not** exported from the primary module
-interface. It is available as an internal implementation partition.
-
 ### Cross-subsystem dependencies
 
 Most sub-partitions only depend on siblings within their own subsystem and on
-ground-level partitions. The following partitions additionally depend on
-partitions from other subsystems:
+ground-level partitions. Ground-level partitions such as `:raii`, `:error`,
+`:gsl`, and `:stlhelpers` are widely used across subsystems and are not listed
+individually below. The following table highlights the more notable
+cross-subsystem dependencies:
 
-| Partition           | Cross-subsystem dependency | Reason |
-|---------------------|---------------------------|--------|
-| `:vulkan.instance`  | `:win32`                  | Win32 surface creation during instance setup |
-| `:glfw.window`      | `:gsl`                    | `gsl::not_null` for pointer contracts |
-| `:glfw.functions`   | `:gsl`                    | `gsl::not_null` for pointer contracts |
+| Partition                        | Cross-subsystem dependency | Reason |
+|----------------------------------|---------------------------|--------|
+| `:vulkan.instance`               | `:win32`                  | Win32 surface creation during instance setup |
+| `:vulkan.surface`                | `:win32`                  | Win32 surface creation |
+| `:vulkan.shaders`                | `:file`                   | Shader file loading |
+| `:vulkan.uniformtransformations` | `:glm`                    | Matrix types for uniform buffers |
+| `:glfw.window`                   | `:gsl`                    | `gsl::not_null` for pointer contracts |
+| `:glfw.functions`                | `:gsl`                    | `gsl::not_null` for pointer contracts |
+| `:graphics.corevulkan`           | `:logging`                | Initialization logging |
 
-These cross-subsystem edges mean `:vulkan` and `:glfw` are not fully
-self-contained — they sit at Layer 1 but have narrow, well-motivated reach-downs
-into ground-level partitions from other subsystems.
+These cross-subsystem edges mean `:vulkan`, `:glfw`, and `:graphics` are not
+fully self-contained — they sit at Layer 1–2 but have narrow, well-motivated
+reach-downs into ground-level and utility partitions from other subsystems.
 
 ### Composite partitions
 
@@ -110,11 +146,17 @@ Each subsystem lives in its own directory with a consistent structure:
 | `raii/`        | `:raii`        | Generic RAII smart pointer utilities |
 | `glm/`        | `:glm`         | GLM math library re-exports |
 | `gsl/`        | `:gsl`         | GSL library re-exports |
+| `error/`       | `:error`       | Error types with source location tracking (`RuntimeError`, `IndexOutOfRangeError`) |
+| `string/`      | `:string`      | Compile-time string utilities (`FixedString`) |
+| `util/`        | `:util`        | Miscellaneous utilities (`OffsetOf`) |
 | `stlhelpers/`  | `:stlhelpers`  | STL helpers — `Collection`, pipe adaptors, `NullMutex`, `ToVector` |
+| `file/`        | `:file`        | File I/O utilities (`File`, `ReadFileBytes`) |
 | `win32/`       | `:win32`       | Win32 API types, error handling, RAII wrappers, events |
+| `logging/`     | `:logging`     | Named logger with console and file output (`Logger`) |
 | `glfw/`        | `:glfw`        | GLFW window/monitor management, error handling, RAII wrappers |
-| `vulkan/`      | `:vulkan`      | Vulkan API types, instance/surface/physical-device management, error handling, RAII wrappers |
+| `vulkan/`      | `:vulkan`      | Vulkan API wrappers — instance, device, swapchain, pipeline, commands, buffers, synchronization, descriptors, shaders |
 | `graphics/`    | `:graphics`    | High-level Vulkan initialization and rendering orchestration |
+| `shaders/`     | —              | GLSL shader sources and compiled SPIR-V binaries |
 
 ## Conventions
 

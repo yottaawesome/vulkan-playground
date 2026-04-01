@@ -1,4 +1,5 @@
 #version 450
+#include "common.glsl"
 
 // Vertex shader outputs positions
 //vec2 hardcoded_positions[3] = vec2[](
@@ -23,6 +24,6 @@ layout(push_constant) uniform Model {
 } model;
 
 void main() {
-	gl_Position = model.transformation * vec4(input_position, 1.0);
+	gl_Position = camera.projection * camera.view * model.transformation * vec4(input_position, 1.0);
 	vertex_color = vec4(input_color, 1.0);
 }

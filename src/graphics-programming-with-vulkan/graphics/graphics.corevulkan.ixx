@@ -33,9 +33,62 @@ export namespace Graphics
 				.CreateSwapChain()
 				.CreateImageViews()
 				.CreateSyncObjects()
+				.CreateDescriptorSetLayout()
 				.CreateGraphicsPipeline()
 				.CreateCommandPool()
-				.CreateCommandBuffers();
+				.CreateCommandBuffers()
+				.CreateUniformBuffers()
+				.CreateDescriptorPool()
+				.CreateDescriptorSet();
+		}
+
+		auto CreateDescriptorPool(this CoreVulkan& self) -> decltype(auto)
+		{
+			auto poolSizes = std::array{
+				vkr::VkDescriptorPoolSize{
+					.type = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					.descriptorCount = 1,
+				}};
+			self.descriptorPool = Vulkan::DescriptorPool{poolSizes, 1, self.device->GetHandle()};
+			return decltype(self)(self);
+		}
+
+		auto CreateDescriptorSet(this CoreVulkan& self) -> decltype(auto)
+		{
+			self.descriptorSet = Vulkan::DescriptorSet::Create(
+				self.device->GetHandle(),
+				self.descriptorPool->GetHandle(),
+				self.descriptorSetLayout->GetHandle()
+			);
+
+			auto bufferInfo = vkr::VkDescriptorBufferInfo{
+				.buffer = self.uniformBuffer.Buffer,
+				.offset = 0,
+				.range = sizeof(Vulkan::UniformTransformations)
+			};
+			auto descriptorWrite = vkr::VkWriteDescriptorSet{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = self.descriptorSet->GetHandle(),
+				.dstBinding = 0,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.pBufferInfo = &bufferInfo
+			};
+			vkr::vkUpdateDescriptorSets(self.device->GetHandle(), 1, &descriptorWrite, 0, nullptr);
+
+			return decltype(self)(self);
+		}
+
+		auto SetViewProjection(
+			this CoreVulkan& self, 
+			const glm::mat4& view, 
+			const glm::mat4& projection
+		) -> decltype(auto)
+		{
+			auto transformations = Vulkan::UniformTransformations{ view, projection };
+			std::memcpy(self.uniformBufferLocation, &transformations, sizeof(transformations));
+			return decltype(self)(self);
 		}
 
 		void SetModelMatrix(this CoreVulkan& self, const glm::mat4& model)
@@ -221,7 +274,6 @@ export namespace Graphics
 			}
 			if (acquiredImage.Result.Failed() and not acquiredImage.Result.IsSuboptimal())
 				throw Vulkan::VulkanError{ acquiredImage.Result, "Failed to acquire swapchain image." };
-			auto& renderFinishedSemaphore = self.renderFinishedSemaphores[acquiredImage.ImageIndex];
 
 			renderingFence.Reset();
 			commandBuffer.Reset();
@@ -295,6 +347,11 @@ export namespace Graphics
 			else if (result.Failed())
 				throw Vulkan::VulkanError{ result, "Failed to present swapchain image." };
 
+			return decltype(self)(self);
+		}
+
+		auto AdvanceFrame(this CoreVulkan& self) -> decltype(self)
+		{
 			self.frameIndex = (self.frameIndex + 1) % self.MaxFramesInFlight;
 			return decltype(self)(self);
 		}
@@ -360,6 +417,13 @@ export namespace Graphics
 				// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
 				.BindVertexBuffer(vertexBuffer.Buffer)
 				.BindIndexBuffer(indexBuffer.Buffer, vkr::VkIndexType::VK_INDEX_TYPE_UINT32)
+				.BindDescriptorSets(
+					vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
+					self.pipelineLayout->GetHandle(),
+					0,
+					std::array{ self.descriptorSet->GetHandle() },
+					std::array<std::uint32_t, 0>{}
+				)
 				.DrawIndexed(indexCount, 1, 0, 0, 0)
 				.EndRendering()
 				// Transition swapchain image: color attachment optimal -> present src
@@ -517,6 +581,49 @@ export namespace Graphics
 
 		// Order of initialisation.
 	private:
+		auto CreateUniformBuffers(this CoreVulkan& self) -> decltype(self)
+		{
+			auto size = sizeof(Vulkan::UniformTransformations);
+
+			self.uniformBuffer = Vulkan::BufferHandle::Factory{
+				.Device = self.device->GetHandle(),
+				.PhysicalDevice = self.physicalDevice->GetHandle(),
+				.bufferInfo = {
+					.size = size,
+					.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+					.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+				},
+				.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			}();
+			vkr::vkMapMemory(
+				self.device->GetHandle(), 
+				self.uniformBuffer.Memory, 
+				0, 
+				size, 
+				0, 
+				&self.uniformBufferLocation
+			);
+
+			return decltype(self)(self);
+		}
+
+		auto CreateDescriptorSetLayout(this CoreVulkan& self) -> decltype(self)
+		{
+			self.logger.Info("Creating descriptor set layout...");
+			self.descriptorSetLayout = 
+				Vulkan::DescriptorSetLayout{
+					self.device->GetHandle(),
+					std::array{
+						vkr::VkDescriptorSetLayoutBinding{
+							.binding = 0,
+							.descriptorType = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+							.descriptorCount = 1,
+							.stageFlags = vkr::VkShaderStageFlagBits::VK_SHADER_STAGE_ALL_GRAPHICS,
+						}}
+				};
+			return self;
+		}
+
 		auto CreateInstance(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating Vulkan instance...");
@@ -882,12 +989,15 @@ export namespace Graphics
 							.offset = 0,
 							.size = sizeof(glm::mat4)
 						};
+					auto layouts = std::array{ self.descriptorSetLayout->GetHandle() };
 					auto pipelineLayoutFactory = 
 						Vulkan::PipelineLayoutFactory{
 							.Device = self.device->GetHandle(),
 							.CreateInfo = {
+								.setLayoutCount = static_cast<std::uint32_t>(layouts.size()),
+								.pSetLayouts = layouts.data(),
 								.pushConstantRangeCount = 1,
-								.pPushConstantRanges = &modelMatrixRange
+								.pPushConstantRanges = &modelMatrixRange,
 						}
 					};
 					return pipelineLayoutFactory();
@@ -1026,6 +1136,7 @@ export namespace Graphics
 			self.logger.Info("Tearing down Vulkan resources...");
 			self.device->WaitIdle();
 			self.CleanupSwapChain();
+			self.uniformBuffer.Destroy(self.device->GetHandle());
 			self.instance.DestroyDebugUtilsMessengerEXT(self.debugMessenger);
 			return self;
 		}
@@ -1082,10 +1193,15 @@ export namespace Graphics
 		std::vector<Vulkan::ImageView> swapchainImageViews;
 		std::optional<Vulkan::PipelineLayout> pipelineLayout;
 		std::optional<Vulkan::Pipeline> pipeline;
+		std::optional<Vulkan::DescriptorSetLayout> descriptorSetLayout;
 		std::optional<Vulkan::CommandPool> commandPool;
 		std::vector<Vulkan::CommandBuffer> commandBuffers;
 		std::vector<Vulkan::Sync::BinarySemaphore> imageAvailableSemaphores;
 		std::vector<Vulkan::Sync::BinarySemaphore> renderFinishedSemaphores;
 		std::vector<Vulkan::Sync::Fence> stillRenderingFences;
+		Vulkan::BufferHandle uniformBuffer;
+		void* uniformBufferLocation = nullptr;
+		std::optional<Vulkan::DescriptorSet> descriptorSet;
+		std::optional<Vulkan::DescriptorPool> descriptorPool;
 	};
 }

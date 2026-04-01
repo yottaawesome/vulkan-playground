@@ -75,6 +75,28 @@ export namespace Vulkan
 				throw VulkanError{result, "Failed to reset command buffer."};
 		}
 
+		auto BindDescriptorSets(
+			this const CommandBuffer& self,
+			vkr::VkPipelineBindPoint pipelineBindPoint,
+			vkr::VkPipelineLayout layout,
+			std::uint32_t firstSet,
+			const std::ranges::range auto& descriptorSets,
+			const std::ranges::range auto& dynamicOffsets
+		) -> decltype(self)
+		{
+			vkr::vkCmdBindDescriptorSets(
+				self.commandBuffer.get(),
+				pipelineBindPoint,
+				layout,
+				firstSet,
+				static_cast<std::uint32_t>(descriptorSets.size()),
+				descriptorSets.data(),
+				static_cast<std::uint32_t>(dynamicOffsets.size()),
+				dynamicOffsets.data()
+			);
+			return decltype(self)(self);
+		}
+
 		auto Begin(
 			this const CommandBuffer& self, 
 			const vkr::VkCommandBufferBeginInfo& beginInfo = vkr::VkCommandBufferBeginInfo{ .sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, }

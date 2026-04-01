@@ -17,3 +17,5 @@ export import :vulkan.pipeline;
 export import :vulkan.commands;
 export import :vulkan.sync;
 export import :vulkan.buffer;
+export import :vulkan.uniformtransformations;
+export import :vulkan.descriptors;

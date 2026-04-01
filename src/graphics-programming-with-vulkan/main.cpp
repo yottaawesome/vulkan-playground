@@ -45,7 +45,21 @@ try
 	window.OnFramebufferResize = [&gfx](int, int) { gfx.RecreateSwapChain(); };
 
 	auto start = std::chrono::high_resolution_clock::now();
-	auto angle = float{0.0f};
+	auto angle = float{90.0f};
+
+	auto rotation = glm::mat4{
+		glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f }) 
+	};
+	auto view = glm::lookAt(
+		glm::vec3(0.f, 0.f, 2.f),   // camera position
+		glm::vec3(0.f, 0.f, 0.f),   // look-at target (origin)
+		glm::vec3(0.f, 1.f, 0.f)    // up vector
+	);
+	auto projection = glm::perspective(
+		glm::radians(60.f), static_cast<float>(windowWidth) / windowHeight, 0.1f, 100.f
+	);
+	gfx.SetViewProjection(view, projection);
+	
 	while (window.StillOpen())
 	{
 		auto now = std::chrono::high_resolution_clock::now();
@@ -53,24 +67,20 @@ try
 		start = now;
 		angle += std::chrono::duration<float>(diff).count()*20;
 
-		auto rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f });
+		//auto rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f });
 
 		glfw::glfwPollEvents();
 		gfx.BeginDraw().and_then(
-			[
-				&gfx, 
-				&vertexBuffer, 
-				&indexBuffer, 
-				&indices, 
-				&rotation
-			](Vulkan::Swapchain::NextSwapchainImage&& frameData) -> std::optional<Vulkan::Swapchain::NextSwapchainImage>
+			[&gfx, &vertexBuffer, &indexBuffer, &indices, &rotation](
+				Vulkan::Swapchain::NextSwapchainImage&& frameData
+			) -> std::optional<Vulkan::Swapchain::NextSwapchainImage>
 			{
 				gfx.CurrentCommandBuffer().Begin(); // comment this out if using gfx.RecordCommandBuffer()  vvvvvvvvv
 				gfx.SetModelMatrix(rotation);
 				gfx.RecordCommandBufferBody(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
 				//gfx.RecordCommandBuffer(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
 				gfx.CurrentCommandBuffer().End(); // comment this out if using gfx.RecordCommandBuffer()    ^^^^^^^^^
-				gfx.EndDraw(frameData);
+				gfx.EndDraw(frameData).AdvanceFrame();
 				return frameData;
 			});
 

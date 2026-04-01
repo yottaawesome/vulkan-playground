@@ -1,4 +1,6 @@
 #version 450
+#include "common.glsl"
+
 // Fragment shader outputs colors
 layout(location = 0) in vec4 vertex_color;
 layout(location = 0) out vec4 outColor;

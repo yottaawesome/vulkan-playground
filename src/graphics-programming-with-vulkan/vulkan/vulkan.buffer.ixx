@@ -29,6 +29,15 @@ export namespace Vulkan
 		vkr::VkBuffer Buffer = nullptr;
 		vkr::VkDeviceMemory Memory = nullptr;
 
+		auto Destroy(this auto&& self, vkr::VkDevice device) noexcept
+		{
+			if (self.Buffer)
+				vkr::vkDestroyBuffer(device, self.Buffer, nullptr);
+			if (self.Memory)
+				vkr::vkFreeMemory(device, self.Memory, nullptr);
+			(self.Buffer = nullptr, self.Memory = nullptr);
+		}
+
 		struct Factory
 		{
 			vkr::VkDevice Device = nullptr;
@@ -37,7 +46,7 @@ export namespace Vulkan
 			vkr::VkMemoryPropertyFlags MemoryProperties = 0;
 
 			[[nodiscard]]
-			auto operator()(this Factory& self) -> BufferHandle
+			auto operator()(this auto&& self) -> BufferHandle
 			{
 				if (not self.Device)
 					throw Error::RuntimeError("BufferFactory requires a valid VkDevice.");

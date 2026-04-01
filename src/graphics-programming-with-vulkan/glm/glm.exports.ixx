@@ -21,6 +21,7 @@ export namespace glm
 		::glm::rotate,
 		::glm::radians,
 		::glm::perspective,
+		::glm::translate,
 		::glm::lookAt
 		;
 }

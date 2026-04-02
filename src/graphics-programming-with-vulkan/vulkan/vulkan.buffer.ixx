@@ -264,6 +264,9 @@ export namespace Vulkan
 		IndexBuffer(const IndexBuffer&) = delete;
 		auto operator=(const IndexBuffer&) -> IndexBuffer & = delete;
 
+		IndexBuffer(IndexBuffer&&) = default;
+		auto operator=(IndexBuffer&&) -> IndexBuffer& = default;
+
 		constexpr auto GetVertexCount(this auto&& self) noexcept -> std::size_t
 		{
 			return self.vertices.size();
@@ -276,12 +279,12 @@ export namespace Vulkan
 
 		auto GetBuffer(this auto&& self) noexcept -> vkr::VkBuffer
 		{
-			return self.buffer;
+			return self.buffer.get();
 		}
 
 		auto GetMemory(this auto&& self) noexcept -> vkr::VkDeviceMemory
 		{
-			return self.memory;
+			return self.memory.get();
 		}
 
 		auto Destroy(this auto&& self)
@@ -289,6 +292,14 @@ export namespace Vulkan
 			self.buffer.reset();
 			self.memory.reset();
 		}
+
+		auto MapMemoryAndCopy(this IndexBuffer& self)
+		{
+			vkr::vkMapMemory(self.device, self.memory.get(), 0, self.GetSize(), 0, &self.mapped);
+			std::memcpy(self.mapped, self.vertices.data(), static_cast<std::size_t>(self.GetSize()));
+			vkr::vkUnmapMemory(self.device, self.memory.get());
+		}
+
 	private:
 		void Create(
 			this IndexBuffer& self,
@@ -337,18 +348,13 @@ export namespace Vulkan
 						throw VulkanError{ result, "Failed to allocate buffer memory." };
 					return MemoryUniquePtr{ memoryHandle, MemoryDeleter(self.device) };
 				}();
-
 			vkr::vkBindBufferMemory(self.device, self.buffer.get(), self.memory.get(), 0);
-
-			void* data;
-			vkr::vkMapMemory(self.device, self.memory.get(), 0, self.GetSize(), 0, &data);
-			std::memcpy(data, self.vertices.data(), static_cast<std::size_t>(self.GetSize()));
-			vkr::vkUnmapMemory(self.device, self.memory.get());
 		}
 
 		std::vector<std::uint32_t> vertices;
 		vkr::VkDevice device = nullptr;
 		BufferUniquePtr buffer;
 		MemoryUniquePtr memory;
+		void* mapped = nullptr;
 	};
 }

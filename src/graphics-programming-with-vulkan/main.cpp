@@ -39,7 +39,7 @@ try
 	auto vertexBuffer = Vulkan::BufferHandle{gfx.CreateVertexBuffer(vertices)};
 
 	auto indices = std::array{ 0u, 3u, 2u, 0u, 1u, 3u };
-	auto indexBuffer = Vulkan::BufferHandle{ gfx.CreateIndexBuffer(indices) };
+	auto indexBuffer = Vulkan::IndexBuffer{ gfx.CreateIndexBuffer(indices) };
 
 	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
 	// Note that the framebuffer size is in pixels.
@@ -78,7 +78,7 @@ try
 			{
 				gfx.CurrentCommandBuffer().Begin(); // comment this out if using gfx.RecordCommandBuffer()  vvvvvvvvv
 				gfx.SetModelMatrix(rotation);
-				gfx.RecordCommandBufferBody(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
+				gfx.RecordCommandBufferBody(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer.ToBufferHandle(), static_cast<std::uint32_t>(indices.size()));
 				//gfx.RecordCommandBuffer(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
 				gfx.CurrentCommandBuffer().End(); // comment this out if using gfx.RecordCommandBuffer()    ^^^^^^^^^
 				gfx.EndDraw(frameData).AdvanceFrame();
@@ -90,7 +90,7 @@ try
 	window.OnFramebufferResize = [](int, int) {};
 
 	gfx.WaitForDeviceIdle();
-	gfx.DestroyBuffer(indexBuffer);
+	indexBuffer.Destroy();
 	gfx.DestroyBuffer(vertexBuffer);
 
 	return 0;

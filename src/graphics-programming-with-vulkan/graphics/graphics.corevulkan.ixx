@@ -104,29 +104,28 @@ export namespace Graphics
 		}
 
 		template<size_t N>
-		auto CreateIndexBuffer(this CoreVulkan& self, std::array<uint32_t, N> indices) -> Vulkan::BufferHandle
+		auto CreateIndexBuffer(this CoreVulkan& self, std::array<uint32_t, N> indices) -> Vulkan::IndexBuffer
 		{
 			auto size = sizeof(uint32_t) * indices.size();
-			auto factory = Vulkan::BufferHandle::Factory{
-				.Device = self.device->GetHandle(),
-				.PhysicalDevice = self.physicalDevice->GetHandle(),
-				.bufferInfo = {
-					.size = size,
-					.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-					.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
-				},
-				.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+
+			auto stagingBuffer = Vulkan::IndexBuffer{
+				std::vector<std::uint32_t>{ indices.begin(), indices.end() },
+				self.device->GetHandle(),
+				self.physicalDevice->GetHandle(),
+				static_cast<vkr::VkSharingMode>(vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE),
+				static_cast<vkr::VkBufferUsageFlagBits>(vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+				static_cast<vkr::VkMemoryPropertyFlagBits>(vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
 			};
-			auto stagingHandle = factory();
+			stagingBuffer.MapMemoryAndCopy();
 
-			void* data;
-			vkr::vkMapMemory(self.device->GetHandle(), stagingHandle.Memory, 0, size, 0, &data);
-			std::memcpy(data, indices.data(), static_cast<std::size_t>(size));
-			vkr::vkUnmapMemory(self.device->GetHandle(), stagingHandle.Memory);
-
-			factory.bufferInfo.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			factory.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-			auto gpuHandle = factory();
+			auto gpuBuffer = Vulkan::IndexBuffer{
+				std::vector<std::uint32_t>{ indices.begin(), indices.end() },
+				self.device->GetHandle(),
+				self.physicalDevice->GetHandle(),
+				static_cast<vkr::VkSharingMode>(vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE),
+				static_cast<vkr::VkBufferUsageFlagBits>(vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+				static_cast<vkr::VkMemoryPropertyFlagBits>(vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			};
 
 			{
 				auto transientCommands = self.commandPool->CreatePrimaryCommandBuffer();
@@ -136,15 +135,13 @@ export namespace Graphics
 					.dstOffset = 0,
 					.size = size
 				};
-				vkr::vkCmdCopyBuffer(transientCommands.GetHandle(), stagingHandle.Buffer, gpuHandle.Buffer, 1, &copyInfo);
+				vkr::vkCmdCopyBuffer(transientCommands.GetHandle(), stagingBuffer.GetBuffer(), gpuBuffer.GetBuffer(), 1, &copyInfo);
 				transientCommands.End();
 				self.deviceQueue->SubmitBuffer(transientCommands.GetHandle());
 				self.deviceQueue->WaitIdle();
 			}
 
-			self.DestroyBuffer(stagingHandle);
-
-			return gpuHandle;
+			return gpuBuffer;
 		}
 
 		auto GetDevice(this CoreVulkan& self) noexcept -> vkr::VkDevice

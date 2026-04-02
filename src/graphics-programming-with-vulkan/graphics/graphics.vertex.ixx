@@ -9,7 +9,10 @@ export namespace Graphics
 	struct Vertex
 	{
 		glm::vec3 position{};
-		glm::vec3 color{};
+		glm::vec2 uv{};
+
+		constexpr Vertex() = default;
+		constexpr Vertex(glm::vec3 position, glm::vec2 uv) : position(position), uv(uv) {}
 
 		static auto GetBindingDescription() -> vkr::VkVertexInputBindingDescription
 		{
@@ -32,8 +35,8 @@ export namespace Graphics
 				vkr::VkVertexInputAttributeDescription{
 					.location = 1,
 					.binding = 0,
-					.format = vkr::VkFormat::VK_FORMAT_R32G32B32_SFLOAT,
-					.offset = static_cast<std::uint32_t>(Util::OffsetOf(&Vertex::color))
+					.format = vkr::VkFormat::VK_FORMAT_R32G32_SFLOAT,
+					.offset = static_cast<std::uint32_t>(Util::OffsetOf(&Vertex::uv))
 				}
 			};
 		}

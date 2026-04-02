@@ -31,13 +31,14 @@ try
 	gfx.Initialise();
 
 	auto vertices = std::array{
-		Graphics::Vertex{ glm::vec3{ 0.0f, -0.5f, 0.0f }, glm::vec3{ 1.0f, 0.0f, 0.0f } },
-		Graphics::Vertex{ glm::vec3{ 0.5f, 0.5f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } },
-		Graphics::Vertex{ glm::vec3{ -0.5f, 0.5f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 1.0f } }
+		Graphics::Vertex{ glm::vec3{ -0.5f, -0.5f, 0.0f }, glm::vec2{ 0.0f, 1.0f} }, // top-left
+		Graphics::Vertex{ glm::vec3{ 0.5f, -0.5f, 0.0f }, glm::vec2{ 1.0f, 1.0f} }, // top-right
+		Graphics::Vertex{ glm::vec3{ -0.5f, 0.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f} }, // bottom-left
+		Graphics::Vertex{ glm::vec3{ 0.5f, 0.5f, 0.0f }, glm::vec2{ 1.0f, 0.0f} } // bottom-right
 	};
 	auto vertexBuffer = Vulkan::BufferHandle{gfx.CreateVertexBuffer(vertices)};
 
-	auto indices = std::array{ 0u, 1u, 2u };
+	auto indices = std::array{ 0u, 3u, 2u, 0u, 1u, 3u };
 	auto indexBuffer = Vulkan::BufferHandle{ gfx.CreateIndexBuffer(indices) };
 
 	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
@@ -45,7 +46,7 @@ try
 	window.OnFramebufferResize = [&gfx](int, int) { gfx.RecreateSwapChain(); };
 
 	auto start = std::chrono::high_resolution_clock::now();
-	auto angle = float{90.0f};
+	auto angle = float{0};
 
 	auto rotation = glm::mat4{
 		glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f }) 

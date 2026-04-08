@@ -33,32 +33,41 @@ export namespace Graphics
 				.CreateSwapChain()
 				.CreateImageViews()
 				.CreateSyncObjects()
-				.CreateDescriptorSetLayout()
+				.CreateDescriptorSetLayouts()
 				.CreateGraphicsPipeline()
 				.CreateCommandPool()
 				.CreateCommandBuffers()
 				.CreateUniformBuffers()
-				.CreateDescriptorPool()
-				.CreateDescriptorSet();
+				.CreateDescriptorPools()
+				.CreateDescriptorSets();
 		}
 
-		auto CreateDescriptorPool(this CoreVulkan& self) -> decltype(auto)
+		auto CreateDescriptorPools(this CoreVulkan& self) -> decltype(auto)
 		{
-			auto poolSizes = std::array{
+			auto uniformPoolSizes = std::array{
 				vkr::VkDescriptorPoolSize{
 					.type = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					.descriptorCount = 1,
 				}};
-			self.descriptorPool = Vulkan::DescriptorPool{poolSizes, 1, self.device->GetHandle()};
+			self.uniformPool = Vulkan::DescriptorPool{ uniformPoolSizes, 1, self.device->GetHandle()};
+
+			auto properties = self.physicalDevice->GetProperties();
+			auto texturePoolSizes = std::array{
+				vkr::VkDescriptorPoolSize{
+					.type = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.descriptorCount = 1024
+				}};
+			self.texturePool = Vulkan::DescriptorPool{ texturePoolSizes, 1024, self.device->GetHandle() };
+
 			return decltype(self)(self);
 		}
 
-		auto CreateDescriptorSet(this CoreVulkan& self) -> decltype(auto)
+		auto CreateDescriptorSets(this CoreVulkan& self) -> decltype(auto)
 		{
-			self.descriptorSet = Vulkan::DescriptorSet::Create(
+			self.uniformSet = Vulkan::DescriptorSet::Create(
 				self.device->GetHandle(),
-				self.descriptorPool->GetHandle(),
-				self.descriptorSetLayout->GetHandle()
+				self.uniformPool->GetHandle(),
+				self.uniformSetLayout->GetHandle()
 			);
 
 			auto bufferInfo = vkr::VkDescriptorBufferInfo{
@@ -68,7 +77,7 @@ export namespace Graphics
 			};
 			auto descriptorWrite = vkr::VkWriteDescriptorSet{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = self.descriptorSet->GetHandle(),
+				.dstSet = self.uniformSet->GetHandle(),
 				.dstBinding = 0,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
@@ -420,7 +429,7 @@ export namespace Graphics
 					vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
 					self.pipelineLayout->GetHandle(),
 					0,
-					std::array{ self.descriptorSet->GetHandle() },
+					std::array{ self.uniformSet->GetHandle() },
 					std::array<std::uint32_t, 0>{}
 				)
 				.DrawIndexed(indexCount, 1, 0, 0, 0)
@@ -606,10 +615,10 @@ export namespace Graphics
 			return decltype(self)(self);
 		}
 
-		auto CreateDescriptorSetLayout(this CoreVulkan& self) -> decltype(self)
+		auto CreateDescriptorSetLayouts(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating descriptor set layout...");
-			self.descriptorSetLayout = 
+			self.uniformSetLayout = 
 				Vulkan::DescriptorSetLayout{
 					self.device->GetHandle(),
 					std::array{
@@ -620,6 +629,19 @@ export namespace Graphics
 							.stageFlags = vkr::VkShaderStageFlagBits::VK_SHADER_STAGE_ALL_GRAPHICS,
 						}}
 				};
+
+			self.textureSetLayout =
+				Vulkan::DescriptorSetLayout{
+					self.device->GetHandle(),
+					std::array{
+						vkr::VkDescriptorSetLayoutBinding{
+							.binding = 0,
+							.descriptorType = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+							.descriptorCount = 1,
+							.stageFlags = vkr::VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT,
+						}}
+				};
+
 			return self;
 		}
 
@@ -988,7 +1010,7 @@ export namespace Graphics
 							.offset = 0,
 							.size = sizeof(glm::mat4)
 						};
-					auto layouts = std::array{ self.descriptorSetLayout->GetHandle() };
+					auto layouts = std::array{ self.uniformSetLayout->GetHandle() };
 					auto pipelineLayoutFactory = 
 						Vulkan::PipelineLayoutFactory{
 							.Device = self.device->GetHandle(),
@@ -1192,15 +1214,20 @@ export namespace Graphics
 		std::vector<Vulkan::ImageView> swapchainImageViews;
 		std::optional<Vulkan::PipelineLayout> pipelineLayout;
 		std::optional<Vulkan::Pipeline> pipeline;
-		std::optional<Vulkan::DescriptorSetLayout> descriptorSetLayout;
 		std::optional<Vulkan::CommandPool> commandPool;
 		std::vector<Vulkan::CommandBuffer> commandBuffers;
 		std::vector<Vulkan::Sync::BinarySemaphore> imageAvailableSemaphores;
 		std::vector<Vulkan::Sync::BinarySemaphore> renderFinishedSemaphores;
 		std::vector<Vulkan::Sync::Fence> stillRenderingFences;
+		
+		std::optional<Vulkan::DescriptorSetLayout> uniformSetLayout;
+		std::optional<Vulkan::DescriptorSet> uniformSet;
+		std::optional<Vulkan::DescriptorPool> uniformPool;
 		Vulkan::BufferHandle uniformBuffer;
 		void* uniformBufferLocation = nullptr;
-		std::optional<Vulkan::DescriptorSet> descriptorSet;
-		std::optional<Vulkan::DescriptorPool> descriptorPool;
+
+
+		std::optional<Vulkan::DescriptorSetLayout> textureSetLayout;
+		std::optional<Vulkan::DescriptorPool> texturePool;
 	};
 }

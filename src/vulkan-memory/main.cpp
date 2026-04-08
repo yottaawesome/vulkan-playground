@@ -4,14 +4,14 @@
 // demo to show how you might implement manual defragmentation in a 
 // sub-allocating memory pool.
 //
-// Demonstrates manual memory defragmentation with a sub-allocating pool.
-// Steps:
-//   1. Minimal Vulkan setup (instance + device, no window needed).
-//   2. Create a 4 KB memory pool backed by HOST_VISIBLE memory.
-//   3. Make five sub-allocations with varying sizes and alignments.
-//   4. Free two of them to create fragmentation (holes in the pool).
-//   5. Defragment — compact live data forward, closing all gaps.
-//   6. Verify data integrity after compaction.
+// Demonstrates manual memory defragmentation with sub-allocating pools.
+//
+// Part 1 — CPU-side (HOST_VISIBLE memory):
+//   Uses memmove on a persistently-mapped pointer to compact data.
+//
+// Part 2 — GPU-side (DEVICE_LOCAL memory):
+//   Uses vkCmdCopyBuffer with pipeline barriers to move data on the GPU.
+//   Shows the two-phase pattern: record commands, submit, then apply.
 
 #include <vulkan/vulkan.h>
 
@@ -57,6 +57,135 @@ auto VerifyPattern(
 			return false;
 	}
 	return true;
+}
+
+// --------------- GPU Demo Helpers ---------------
+
+struct StagingBuffer
+{
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
+	void* mapped = nullptr;
+	VkDeviceSize size = 0;
+};
+
+// Create a small dedicated staging buffer with HOST_VISIBLE memory.
+auto CreateStagingBuffer(
+	VkDevice device,
+	VkDeviceSize size,
+	VkBufferUsageFlags usage,
+	std::uint32_t hostVisibleMemTypeIndex
+) -> StagingBuffer
+{
+	auto sb = StagingBuffer{ .size = size };
+
+	auto bufInfo = VkBufferCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = size,
+		.usage = usage,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE
+	};
+	if (vkCreateBuffer(device, &bufInfo, nullptr, &sb.buffer) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create staging buffer.");
+
+	auto memReqs = VkMemoryRequirements{};
+	vkGetBufferMemoryRequirements(device, sb.buffer, &memReqs);
+
+	auto allocInfo = VkMemoryAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memReqs.size,
+		.memoryTypeIndex = hostVisibleMemTypeIndex
+	};
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &sb.memory) != VK_SUCCESS)
+		throw std::runtime_error("Failed to allocate staging memory.");
+
+	vkBindBufferMemory(device, sb.buffer, sb.memory, 0);
+	vkMapMemory(device, sb.memory, 0, size, 0, &sb.mapped);
+
+	return sb;
+}
+
+void DestroyStagingBuffer(VkDevice device, StagingBuffer& sb)
+{
+	if (sb.mapped) { vkUnmapMemory(device, sb.memory); sb.mapped = nullptr; }
+	if (sb.buffer) { vkDestroyBuffer(device, sb.buffer, nullptr); sb.buffer = VK_NULL_HANDLE; }
+	if (sb.memory) { vkFreeMemory(device, sb.memory, nullptr); sb.memory = VK_NULL_HANDLE; }
+}
+
+// Begin recording a single-use command buffer.
+void BeginOneTimeCommands(VkCommandBuffer cmd)
+{
+	auto beginInfo = VkCommandBufferBeginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+	};
+	vkBeginCommandBuffer(cmd, &beginInfo);
+}
+
+// End, submit, and wait for a command buffer to complete.
+void SubmitAndWait(VkDevice device, VkQueue queue, VkCommandBuffer cmd)
+{
+	vkEndCommandBuffer(cmd);
+
+	auto submitInfo = VkSubmitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd
+	};
+
+	auto fenceInfo = VkFenceCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+	};
+	auto fence = VkFence{};
+	vkCreateFence(device, &fenceInfo, nullptr, &fence);
+	vkQueueSubmit(queue, 1, &submitInfo, fence);
+	vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+	vkDestroyFence(device, fence, nullptr);
+}
+
+// Upload a repeating byte pattern to a GPU buffer via a staging copy.
+void UploadPattern(
+	VkDevice device, VkQueue queue, VkCommandBuffer cmd,
+	VkBuffer dstBuffer, VkDeviceSize size,
+	unsigned char pattern, std::uint32_t hostVisibleMemTypeIndex
+)
+{
+	auto staging = CreateStagingBuffer(
+		device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, hostVisibleMemTypeIndex);
+	std::memset(staging.mapped, pattern, size);
+
+	BeginOneTimeCommands(cmd);
+	auto copy = VkBufferCopy{ .srcOffset = 0, .dstOffset = 0, .size = size };
+	vkCmdCopyBuffer(cmd, staging.buffer, dstBuffer, 1, &copy);
+	SubmitAndWait(device, queue, cmd);
+
+	DestroyStagingBuffer(device, staging);
+}
+
+// Read back a GPU buffer via staging and verify its contents match a byte pattern.
+auto VerifyGpuPattern(
+	VkDevice device, VkQueue queue, VkCommandBuffer cmd,
+	VkBuffer srcBuffer, VkDeviceSize size,
+	unsigned char expected, std::uint32_t hostVisibleMemTypeIndex
+) -> bool
+{
+	auto staging = CreateStagingBuffer(
+		device, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, hostVisibleMemTypeIndex);
+
+	BeginOneTimeCommands(cmd);
+	auto copy = VkBufferCopy{ .srcOffset = 0, .dstOffset = 0, .size = size };
+	vkCmdCopyBuffer(cmd, srcBuffer, staging.buffer, 1, &copy);
+	SubmitAndWait(device, queue, cmd);
+
+	auto ptr = static_cast<const unsigned char*>(staging.mapped);
+	auto ok = true;
+	for (VkDeviceSize i = 0; i < size; ++i)
+	{
+		if (ptr[i] != expected) { ok = false; break; }
+	}
+
+	DestroyStagingBuffer(device, staging);
+	return ok;
 }
 
 auto main() -> int
@@ -114,7 +243,7 @@ try
 	std::println("Max memory allocations: {}", deviceProps.limits.maxMemoryAllocationCount);
 	std::println("");
 
-	// Create a logical device with one queue (unused — we only need the device handle).
+	// Create a logical device with one queue.
 	auto queuePriority = 1.0f;
 	auto queueInfo = VkDeviceQueueCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -162,11 +291,11 @@ try
 	}
 	std::println("Using memory type index: {}", *memTypeIndex);
 
-	// ------------------------------------------------------------------
-	//  Memory Pool Demo
-	// ------------------------------------------------------------------
+	// ==================================================================
+	//  CPU Memory Pool Demo — HOST_VISIBLE defragmentation
+	// ==================================================================
 
-	auto integrityOk = false;
+	auto cpuIntegrityOk = false;
 
 	// The pool must be destroyed BEFORE vkDestroyDevice, because its
 	// destructor calls vkUnmapMemory / vkFreeMemory on the device.
@@ -261,15 +390,148 @@ try
 			pool.GetLargestFreeBlock());
 
 		// Verify data integrity: patterns should survive the compaction.
-		integrityOk =
+		cpuIntegrityOk =
 			VerifyPattern(pool, *allocA, 0xAA) and
 			VerifyPattern(pool, *allocC, 0xCC) and
 			VerifyPattern(pool, *allocE, 0xEE);
 
-		std::println("\n  Data integrity after defrag: {}",
-			integrityOk ? "PASSED" : "FAILED");
+		std::println("\n  CPU data integrity after defrag: {}",
+			cpuIntegrityOk ? "PASSED" : "FAILED");
 
-	} // <-- pool destroyed here, BEFORE device teardown
+	} // <-- cpu pool destroyed here, BEFORE device teardown
+
+	// ==================================================================
+	//  GPU Memory Pool Demo — DEVICE_LOCAL defragmentation
+	// ==================================================================
+
+	auto gpuIntegrityOk = true;
+
+	std::println("\n\n========================================");
+	std::println(" GPU Memory Pool Demo (DEVICE_LOCAL)");
+	std::println("========================================");
+
+	{
+		auto gpuMemTypeIndex = FindMemoryType(
+			physicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+
+		if (not gpuMemTypeIndex)
+		{
+			std::println("  No DEVICE_LOCAL memory type — skipping GPU demo.");
+		}
+		else
+		{
+			std::println("  Using DEVICE_LOCAL memory type index: {}\n", *gpuMemTypeIndex);
+
+			// Command infrastructure for GPU copies.
+			auto queue = VkQueue{};
+			vkGetDeviceQueue(device, 0, 0, &queue);
+
+			auto cmdPoolInfo = VkCommandPoolCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = 0
+			};
+			auto cmdPool = VkCommandPool{};
+			vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &cmdPool);
+
+			auto cmdAllocInfo = VkCommandBufferAllocateInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				.commandPool = cmdPool,
+				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				.commandBufferCount = 1
+			};
+			auto cmd = VkCommandBuffer{};
+			vkAllocateCommandBuffers(device, &cmdAllocInfo, &cmd);
+
+			// Nested scope: GpuMemoryPool must be destroyed before the command pool.
+			{
+				// 8 KB DEVICE_LOCAL pool.
+				// TRANSFER_SRC | TRANSFER_DST are required for staging and defrag copies.
+				constexpr auto GpuPoolSize = VkDeviceSize{ 8192 };
+				auto gpuPool = Memory::GpuMemoryPool{
+					device, GpuPoolSize, *gpuMemTypeIndex,
+					VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+					| VK_BUFFER_USAGE_TRANSFER_DST_BIT
+					| VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+				};
+
+				std::println("--- Initial GPU Pool ---");
+				gpuPool.PrintState();
+
+				// Allocate three GPU buffers.
+				auto gpuA = gpuPool.Allocate(512, 256);
+				auto gpuB = gpuPool.Allocate(1024, 256);
+				auto gpuC = gpuPool.Allocate(256, 256);
+
+				if (not gpuA or not gpuB or not gpuC)
+				{
+					std::println(std::cerr, "  GPU allocation failed.");
+					gpuIntegrityOk = false;
+				}
+				else
+				{
+					// Upload byte patterns to the GPU via staging.
+					UploadPattern(device, queue, cmd, gpuA->Buffer, gpuA->Size, 0xAA, *memTypeIndex);
+					UploadPattern(device, queue, cmd, gpuB->Buffer, gpuB->Size, 0xBB, *memTypeIndex);
+					UploadPattern(device, queue, cmd, gpuC->Buffer, gpuC->Size, 0xCC, *memTypeIndex);
+
+					std::println("\n--- After 3 GPU Allocations (A=512, B=1024, C=256) ---");
+					gpuPool.PrintState();
+
+					// Free B to create a hole in the middle.
+					std::println("\n>>> Freeing GPU buffer B (1024 bytes)...\n");
+					gpuPool.Free(*gpuB);
+
+					std::println("--- After Freeing B (fragmented) ---");
+					gpuPool.PrintState();
+
+					// Phase 1: Record GPU defrag commands into a command buffer.
+					std::println("\n>>> Recording defrag commands...\n");
+					BeginOneTimeCommands(cmd);
+					auto gpuMoves = gpuPool.RecordDefrag(cmd);
+
+					std::println("  {} GPU copy command(s) recorded:", gpuMoves.size());
+					for (const auto& m : gpuMoves)
+					{
+						std::println("    vkCmdCopyBuffer: {} bytes, offset {} -> {}",
+							m.Size, m.SrcOffset, m.DstOffset);
+					}
+
+					// Submit to the GPU and wait for all copies to finish.
+					std::println("\n>>> Submitting to GPU queue and waiting...\n");
+					SubmitAndWait(device, queue, cmd);
+
+					// Phase 2: Destroy old buffers and update internal tracking.
+					gpuPool.ApplyDefrag(gpuMoves);
+
+					// Update caller-side handles from the move list.
+					for (const auto& m : gpuMoves)
+					{
+						if (gpuA->Buffer == m.OldBuffer) { gpuA->Buffer = m.NewBuffer; gpuA->Offset = m.DstOffset; }
+						if (gpuC->Buffer == m.OldBuffer) { gpuC->Buffer = m.NewBuffer; gpuC->Offset = m.DstOffset; }
+					}
+
+					std::println("--- After GPU Defragmentation ---");
+					gpuPool.PrintState();
+
+					std::println("\n  Largest contiguous block: {} bytes.",
+						gpuPool.GetLargestFreeBlock());
+
+					// Verify data integrity by reading back from the GPU.
+					gpuIntegrityOk =
+						VerifyGpuPattern(device, queue, cmd, gpuA->Buffer, gpuA->Size, 0xAA, *memTypeIndex)
+						and VerifyGpuPattern(device, queue, cmd, gpuC->Buffer, gpuC->Size, 0xCC, *memTypeIndex);
+
+					std::println("\n  GPU data integrity after defrag: {}",
+						gpuIntegrityOk ? "PASSED" : "FAILED");
+				}
+
+			} // <-- gpuPool destroyed here
+
+			vkDestroyCommandPool(device, cmdPool, nullptr);
+		}
+	}
 
 	// ------------------------------------------------------------------
 	//  Cleanup
@@ -278,7 +540,7 @@ try
 	vkDestroyDevice(device, nullptr);
 	vkDestroyInstance(instance, nullptr);
 
-	return integrityOk ? 0 : 1;
+	return (cpuIntegrityOk and gpuIntegrityOk) ? 0 : 1;
 }
 catch (const std::exception& ex)
 {

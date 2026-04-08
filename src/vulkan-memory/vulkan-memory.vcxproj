@@ -137,6 +137,7 @@
     <ClCompile Include="vulkanmem.ixx" />
     <ClCompile Include="vulkan.exports.ixx" />
     <ClCompile Include="memory.pool.ixx" />
+    <ClCompile Include="gpu.memory.pool.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

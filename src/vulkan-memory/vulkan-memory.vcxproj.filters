@@ -27,6 +27,9 @@
     <ClCompile Include="memory.pool.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gpu.memory.pool.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

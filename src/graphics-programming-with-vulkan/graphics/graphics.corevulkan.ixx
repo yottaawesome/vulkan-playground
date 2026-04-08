@@ -39,7 +39,36 @@ export namespace Graphics
 				.CreateCommandBuffers()
 				.CreateUniformBuffers()
 				.CreateDescriptorPools()
-				.CreateDescriptorSets();
+				.CreateDescriptorSets()
+				.CreateTextureSampler();
+		}
+
+		auto CreateTextureSampler(this CoreVulkan& self) -> decltype(auto)
+		{
+			self.textureSampler = 
+				Vulkan::TextureSampler::Factory{
+					.Device = self.device->GetHandle(),
+					.Info = vkr::VkSamplerCreateInfo{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+						.magFilter = vkr::VkFilter::VK_FILTER_LINEAR,
+						.minFilter = vkr::VkFilter::VK_FILTER_LINEAR,
+						.mipmapMode = vkr::VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR,
+						.addressModeU = vkr::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+						.addressModeV = vkr::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+						.addressModeW = vkr::VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT,
+						.mipLodBias = 0.f,
+						.anisotropyEnable = false,
+						.maxAnisotropy = 1.f,
+						.compareEnable = false,
+						.compareOp = vkr::VkCompareOp::VK_COMPARE_OP_ALWAYS,
+						.minLod = 0.f,
+						.maxLod = 0.f,
+						.borderColor = vkr::VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+						.unnormalizedCoordinates = false,
+					}
+				}();
+
+			return decltype(self)(self);
 		}
 
 		auto CreateDescriptorPools(this CoreVulkan& self) -> decltype(auto)
@@ -1229,5 +1258,6 @@ export namespace Graphics
 
 		std::optional<Vulkan::DescriptorSetLayout> textureSetLayout;
 		std::optional<Vulkan::DescriptorPool> texturePool;
+		std::optional<Vulkan::TextureSampler> textureSampler;
 	};
 }

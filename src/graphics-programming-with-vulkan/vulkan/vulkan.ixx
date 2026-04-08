@@ -20,3 +20,4 @@ export import :vulkan.buffer;
 export import :vulkan.uniformtransformations;
 export import :vulkan.descriptors;
 export import :vulkan.formatters;
+export import :vulkan.texturesampler;

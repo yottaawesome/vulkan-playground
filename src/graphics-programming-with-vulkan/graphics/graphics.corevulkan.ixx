@@ -109,17 +109,19 @@ export namespace Graphics
 			auto size = sizeof(uint32_t) * indices.size();
 
 			auto stagingBuffer = Vulkan::IndexBuffer{
-				std::vector<std::uint32_t>{ indices.begin(), indices.end() },
+				size,
 				self.device->GetHandle(),
 				self.physicalDevice->GetHandle(),
 				static_cast<vkr::VkSharingMode>(vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE),
 				static_cast<vkr::VkBufferUsageFlagBits>(vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
 				static_cast<vkr::VkMemoryPropertyFlagBits>(vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
 			};
-			stagingBuffer.MapMemoryAndCopy();
+			stagingBuffer.MapMemory([&indices](void* data) {
+				std::memcpy(data, indices.data(), sizeof(uint32_t) * indices.size());
+			});
 
 			auto gpuBuffer = Vulkan::IndexBuffer{
-				std::vector<std::uint32_t>{ indices.begin(), indices.end() },
+				size,
 				self.device->GetHandle(),
 				self.physicalDevice->GetHandle(),
 				static_cast<vkr::VkSharingMode>(vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE),

@@ -1,0 +1,11 @@
+{
+  "name": "vmd",
+  "version": "1.0.1",
+  "dependencies": [
+    "vulkan",
+    "glfw3",
+    "glm",
+    "glslang",
+    "vulkan-utility-libraries"
+  ]
+}

@@ -13,7 +13,7 @@ export namespace Vulkan
 		TextureSamplerDeleter(vkr::VkDevice device) : Device(device) 
 		{
 			if (not device)
-				throw Error::RuntimeError("Device must be valid to create TextureSamplerDeleter.");
+				throw Error::RuntimeError{"Device must be valid to create TextureSamplerDeleter."};
 		}
 		void operator()(this auto&& self, vkr::VkSampler sampler) noexcept
 		{

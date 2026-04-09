@@ -5,4 +5,5 @@ export import :vulkan.instance;
 export import :vulkan.device;
 export import :vulkan.physicaldevice;
 export import :vulkan.vma.allocator;
-export import :vulkan.surface;
+export import :vulkan.surface; 
+export import :vulkan.swapchain;

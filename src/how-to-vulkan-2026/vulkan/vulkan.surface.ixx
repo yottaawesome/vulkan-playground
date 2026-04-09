@@ -1,5 +1,6 @@
 export module vulkan26:vulkan.surface;
 import std;
+import :error;
 import :vulkan.exports;
 import :vulkan.error;
 
@@ -12,12 +13,17 @@ export namespace vk
 			: instance(instanceIn)
 		{
 			if (not instance)
-				throw std::invalid_argument("Instance must not be null.");
+				throw ::Error::RuntimeError{ "Instance must not be null." };
 		}
 
-		constexpr void operator()(VkSurfaceKHR surface) const noexcept
+		void operator()(this const auto& self, VkSurfaceKHR surface) noexcept
 		{
-			vkDestroySurfaceKHR(instance, surface, nullptr);
+			vkDestroySurfaceKHR(self.instance, surface, nullptr);
+		}
+
+		constexpr auto GetInstance(this const auto& self) noexcept -> VkInstance
+		{
+			return self.instance;
 		}
 	private:
 		VkInstance instance = nullptr;
@@ -34,15 +40,15 @@ export namespace vk
 		) -> Surface
 		{
 			if (not instance)
-				throw std::invalid_argument("Instance must not be null.");
+				throw ::Error::RuntimeError{ "Instance must not be null." };
 			if (not surface)
-				throw std::invalid_argument("Surface must not be null.");
+				throw ::Error::RuntimeError{ "Surface must not be null." };
 			if (not physicalDevice)
-				throw std::invalid_argument("Physical device must not be null.");
+				throw ::Error::RuntimeError{ "Physical device must not be null." };
 			return Surface{ SurfaceUniquePtr{ surface, SurfaceDeleter{instance} }, physicalDevice };
 		}
 
-		auto Get(this const auto& self) noexcept -> VkSurfaceKHR
+		constexpr auto Get(this const auto& self) noexcept -> VkSurfaceKHR
 		{
 			return self.surface.get();
 		}

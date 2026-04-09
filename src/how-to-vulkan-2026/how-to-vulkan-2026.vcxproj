@@ -150,6 +150,7 @@
     <ClCompile Include="vulkan\vulkan.device.ixx" />
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
     <ClCompile Include="vulkan\vulkan.surface.ixx" />
+    <ClCompile Include="vulkan\vulkan.swapchain.ixx" />
     <ClCompile Include="vulkan\vulkan.vma.allocator.ixx" />
     <ClCompile Include="win32\win32.ixx" />
   </ItemGroup>

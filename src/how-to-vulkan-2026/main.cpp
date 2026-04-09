@@ -78,7 +78,7 @@ try
 	auto pickedDevice = 
 		[&physicalDevices] -> vk::PhysicalDevice
 		{
-			for (const auto& device : physicalDevices)
+			for (const vk::VkPhysicalDevice& device : physicalDevices)
 			{
 				auto props = vk::VkPhysicalDeviceProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
 				vk::vkGetPhysicalDeviceProperties2(device, &props);
@@ -99,7 +99,7 @@ try
 	// Queues. On most devices, the first queue family will support graphics, 
 	// compute and transfer, but this is not guaranteed.
 	auto suitableQueueFamilyIndex = 
-		[](const vk::PhysicalDevice& pickedDevice) static->std::uint32_t
+		[&pickedDevice] -> std::uint32_t
 		{
 			auto count = std::uint32_t{};
 			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, nullptr);
@@ -120,7 +120,7 @@ try
 				return static_cast<std::uint32_t>(index);
 			}
 			throw std::runtime_error("No suitable queue family found.");
-		}(pickedDevice);
+		}();
 
 	//
 	// 
@@ -190,11 +190,7 @@ try
 	// Create the VMA allocator. We need to provide it with the Vulkan 
 	// function pointers, so that it can call Vulkan functions internally.
 	auto allocator = 
-		[](
-			const vk::PhysicalDevice& pickedDevice, 
-			const vk::Device& device, 
-			const vk::Instance& instance
-		) -> vk::vma::Allocator
+		[&pickedDevice, &device, &instance] -> vk::vma::Allocator
 		{
 			auto vkFunctions = vma::VmaVulkanFunctions{
 				.vkGetInstanceProcAddr = vk::vkGetInstanceProcAddr,
@@ -212,9 +208,11 @@ try
 			if (not result)
 				throw vk::Error{ result.result };
 			return allocator;
-		}(pickedDevice, device, instance);
+		}();
 
-	auto window = sdl3::Window{ "Vulkan-2026", 1280u, 720u, sdl3::WindowFlags::Vulkan };
+	constexpr auto width = 1280u;
+	constexpr auto height = 720u;
+	auto window = sdl3::Window{ "Vulkan-2026", width, height, sdl3::WindowFlags::Vulkan };
 	auto surface = vk::Surface{vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get()))};
 	auto surfaceCaps = vk::VkSurfaceCapabilitiesKHR{};
 	vk::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pickedDevice.Get(), surface.Get(), &surfaceCaps);
@@ -224,25 +222,51 @@ try
 	//
 	//
 	// Swapchain creation.
-	auto windowSize = window.GetWindowSize();
-	auto swapchainExtent = vk::VkExtent2D{ surfaceCaps.currentExtent };
-	if (surfaceCaps.currentExtent.width == 0xFFFFFFFF) 
-	{
-		swapchainExtent = { 
-			.width = static_cast<std::uint32_t>(windowSize.x), 
-			.height = static_cast<std::uint32_t>(windowSize.y)
-		};
-	}
+	auto windowSize = glm::vec2{ window.GetWindowSize() };
+	auto swapchainExtent = 
+		[&surfaceCaps, &windowSize] -> vk::VkExtent2D
+		{
+			if (surfaceCaps.currentExtent.width != 0xFFFFFFFF)
+				return { surfaceCaps.currentExtent };
+			return {
+				.width = static_cast<std::uint32_t>(windowSize.x),
+				.height = static_cast<std::uint32_t>(windowSize.y)
+			};
+		}();
+
 	constexpr auto imageFormat = vk::VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
-	auto swapchainCreateInfo = vk::VkSwapchainCreateInfoKHR{
-		// todo fill out
-	};
-	auto swapchain = vk::VkSwapchainKHR{};
-	// todo create the swapchain with vkCreateSwapchainKHR, and check the result for errors.
+
+	auto swapchain = 
+		[&device, &surface, &surfaceCaps, &swapchainExtent, &imageFormat] -> vk::Swapchain
+		{
+			auto swapchainCreateInfo = vk::VkSwapchainCreateInfoKHR{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+				.surface = surface.Get(),
+				.minImageCount = surfaceCaps.minImageCount,
+				.imageFormat = imageFormat,
+				.imageColorSpace = vk::VkColorSpaceKHR::VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+				.imageExtent = {
+					.width = swapchainExtent.width, 
+					.height = swapchainExtent.height 
+				},
+				.imageArrayLayers = 1,
+				.imageUsage = vk::VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+				.preTransform = vk::VkSurfaceTransformFlagBitsKHR::VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+				.compositeAlpha = vk::VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+				.presentMode = vk::VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR
+			};
+			auto swapchain = vk::VkSwapchainKHR{};
+			auto result = vk::Result{ vk::vkCreateSwapchainKHR(device.Get(), &swapchainCreateInfo, nullptr, &swapchain) };
+			if (not result)
+				throw vk::Error{ result.result };
+			return vk::Swapchain{ vk::SwapchainUniquePtr{ swapchain, vk::SwapchainDeleter{device.Get()} } };
+		}();
+	
+	auto swapchainImages = std::vector<VkImage>{ swapchain.GetSwapchainImages() };
 
 	return 0;
 }
-catch(const std::exception& e)
+catch (const std::exception& e)
 {
 	std::println("Error: {}", e.what());
 	return 1;

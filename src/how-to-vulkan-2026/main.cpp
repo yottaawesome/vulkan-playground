@@ -264,6 +264,26 @@ try
 	
 	auto swapchainImages = std::vector<VkImage>{ swapchain.GetSwapchainImages() };
 
+	//
+	//
+	// Select a depth format. We need to find a format that supports being used as a depth-stencil attachment, and that is supported by the device.
+	auto depthFormat = 
+		[&pickedDevice] -> vk::VkFormat
+		{
+			constexpr auto candidates = std::array{ vk::VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT, vk::VkFormat::VK_FORMAT_D24_UNORM_S8_UINT };
+			const auto formatSupportsDepthAttachment = 
+				[&pickedDevice](vk::VkFormat candidate) -> bool
+				{
+					auto formatProps = vk::VkFormatProperties{};
+					vk::vkGetPhysicalDeviceFormatProperties(pickedDevice.Get(), candidate, &formatProps);
+					return (formatProps.optimalTilingFeatures & vk::VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0;
+				};
+			auto filter = candidates | std::ranges::views::filter(formatSupportsDepthAttachment);
+			return filter.empty() 
+				? throw Error::RuntimeError{ "No suitable depth format found." } 
+				: filter.front();
+		}();
+
 	return 0;
 }
 catch (const std::exception& e)

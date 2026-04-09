@@ -9,7 +9,7 @@ export module vulkan26:vulkan.exports;
 
 export namespace vk
 {
-	using 
+	using
 		::VkInstance,
 		::VkInstanceCreateInfo,
 		::VkPhysicalDevice,
@@ -58,6 +58,10 @@ export namespace vk
 		::VkCompositeAlphaFlagBitsKHR,
 		::VkPresentModeKHR,
 		::VkImage,
+		::VkFormatProperties,
+		::VkFormatProperties2,
+		::VkFormatFeatureFlagBits,
+		::vkGetPhysicalDeviceFormatProperties,
 		::vkGetSwapchainImagesKHR,
 		::vkDestroySwapchainKHR,
 		::vkCreateSwapchainKHR,

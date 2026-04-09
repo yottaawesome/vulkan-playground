@@ -61,7 +61,7 @@ try
 
 	// Get a list of the physical devices.
 	auto physicalDevices =
-		[](auto& instance) static -> std::vector<vk::VkPhysicalDevice>
+		[&instance] -> std::vector<vk::VkPhysicalDevice>
 		{
 			auto physicalDeviceCount = std::uint32_t{};
 			auto status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, nullptr) };
@@ -72,11 +72,11 @@ try
 			if (not status)
 				throw vk::Error{ status.result };
 			return physicalDevices;
-		}(instance);
+		}();
 
 	// Pick the first discrete device.
 	auto pickedDevice = 
-		[](auto& physicalDevices) static->vk::PhysicalDevice
+		[&physicalDevices] -> vk::PhysicalDevice
 		{
 			for (const auto& device : physicalDevices)
 			{
@@ -87,7 +87,7 @@ try
 					return device;
 			}
 			throw std::runtime_error("No Vulkan-compatible discrete GPUs found.");
-		}(physicalDevices);
+		}();
 
 	//
 	//

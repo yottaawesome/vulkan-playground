@@ -3,3 +3,5 @@ export import :win32;
 export import :vulkan;
 export import :sdl3;
 export import :raii;
+export import :glm;
+export import :error;

@@ -215,13 +215,24 @@ try
 		}(pickedDevice, device, instance);
 
 	auto window = sdl3::Window{ "Vulkan-2026", 1280u, 720u, sdl3::WindowFlags::Vulkan };
-	auto surface = vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get()));
+	auto surface = vk::Surface{vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get()))};
+	auto surfaceCaps = vk::VkSurfaceCapabilitiesKHR{};
+	vk::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pickedDevice.Get(), surface.Get(), &surfaceCaps);
 
 	//
 	//
 	//
 	//
 	// Swapchain creation.
+	auto windowSize = window.GetWindowSize();
+	auto swapchainExtent = vk::VkExtent2D{ surfaceCaps.currentExtent };
+	if (surfaceCaps.currentExtent.width == 0xFFFFFFFF) 
+	{
+		swapchainExtent = { 
+			.width = static_cast<std::uint32_t>(windowSize.x), 
+			.height = static_cast<std::uint32_t>(windowSize.y)
+		};
+	}
 	constexpr auto imageFormat = vk::VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
 	auto swapchainCreateInfo = vk::VkSwapchainCreateInfoKHR{
 		// todo fill out

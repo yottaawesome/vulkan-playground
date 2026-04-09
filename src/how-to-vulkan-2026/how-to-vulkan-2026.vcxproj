@@ -132,6 +132,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="error\error.ixx" />
+    <ClCompile Include="glm\glm.exports.ixx" />
+    <ClCompile Include="glm\glm.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="raii\raii.ixx" />
     <ClCompile Include="sdl3\sdl3.error.ixx" />

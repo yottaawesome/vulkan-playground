@@ -66,6 +66,15 @@
     <ClCompile Include="vulkan\vulkan.surface.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="glm\glm.exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glm\glm.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="error\error.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

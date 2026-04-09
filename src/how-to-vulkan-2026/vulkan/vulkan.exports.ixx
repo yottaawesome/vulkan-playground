@@ -50,6 +50,8 @@ export namespace vk
 		::VkFormat,
 		::VkSwapchainCreateInfoKHR,
 		::VkSwapchainKHR,
+		::VkExtent2D,
+		::vkGetPhysicalDeviceSurfaceCapabilitiesKHR,
 		::vkDestroySurfaceKHR,
 		::vkGetInstanceProcAddr,
 		::vkGetDeviceProcAddr,

@@ -9,6 +9,7 @@ export namespace sdl3
 {
 	using 
 		::SDL_Window,
+		::SDL_GetWindowSize,
 		::SDL_Init,
 		::SDL_Quit,
 		::SDL_CreateWindow,

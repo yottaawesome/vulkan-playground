@@ -2,6 +2,7 @@ export module vulkan26:sdl3.window;
 import std;
 import :sdl3.error;
 import :sdl3.exports;
+import :glm;
 
 export namespace sdl3
 {
@@ -39,6 +40,14 @@ export namespace sdl3
 				SDL_DestroyWindow(self.window);
 			self.window = std::exchange(other.window, nullptr);
 			return self;
+		}
+
+		auto GetWindowSize(this const auto& self) noexcept -> glm::ivec2
+		{
+			auto w = int{};
+			auto h = int{};
+			SDL_GetWindowSize(self.window, &w, &h);
+			return { w, h };
 		}
 
 		constexpr auto Get(this const auto& self) noexcept -> SDL_Window*

@@ -190,7 +190,7 @@ try
 	// Create the VMA allocator. We need to provide it with the Vulkan 
 	// function pointers, so that it can call Vulkan functions internally.
 	auto allocator = 
-		[&pickedDevice, &device, &instance] -> vk::vma::Allocator
+		[&pickedDevice, &device, &instance] -> vma::Allocator
 		{
 			auto vkFunctions = vma::VmaVulkanFunctions{
 				.vkGetInstanceProcAddr = vk::vkGetInstanceProcAddr,
@@ -282,6 +282,68 @@ try
 			return filter.empty() 
 				? throw Error::RuntimeError{ "No suitable depth format found." } 
 				: filter.front();
+		}();
+
+	// TODO finish this
+	struct DepthImage
+	{
+		vk::VkImage image{};
+		vma::VmaAllocation allocation{};
+		vk::VkImageView depthImageView{};
+	};
+	auto depthImage = 
+		[depthFormat, &allocator, &windowSize, &device] -> DepthImage
+		{
+			auto depthImageCi = vk::VkImageCreateInfo{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+				.imageType = vk::VkImageType::VK_IMAGE_TYPE_2D,
+				.format = depthFormat,
+				.extent{.width = static_cast<std::uint32_t>(windowSize.x), .height = static_cast<std::uint32_t>(windowSize.y), .depth = 1 },
+				.mipLevels = 1,
+				.arrayLayers = 1,
+				.samples = vk::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
+				.tiling = vk::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
+				.usage = vk::VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+				.initialLayout = vk::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+			};
+			auto allocCi = vma::VmaAllocationCreateInfo{
+				.flags = vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+				.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO,
+			};
+			auto depthImageAllocation = DepthImage{};
+			auto result = vk::Result{ 
+				vma::vmaCreateImage(
+					allocator.Get(), 
+					&depthImageCi, 
+					&allocCi, 
+					&depthImageAllocation.image, 
+					&depthImageAllocation.allocation, 
+					nullptr
+				)};
+			if (not result)
+				throw vk::Error{ result.result };
+
+			auto depthViewCi = vk::VkImageViewCreateInfo{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
+				.image = depthImageAllocation.image,
+				.viewType = vk::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D, 
+				.format = depthFormat, 
+				.subresourceRange{
+					.aspectMask = vk::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT, 
+					.levelCount = 1, 
+					.layerCount = 1 
+				} 
+			};
+			result = vk::vkCreateImageView(
+				device.Get(), 
+				&depthViewCi, 
+				nullptr, 
+				&depthImageAllocation.depthImageView
+			);
+			if (not result)
+				throw vk::Error{ result.result };
+
+			return depthImageAllocation;
 		}();
 
 	return 0;

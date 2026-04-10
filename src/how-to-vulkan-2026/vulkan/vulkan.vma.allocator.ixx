@@ -3,7 +3,7 @@ import std;
 import :vulkan.exports;
 import :vulkan.error;
 
-export namespace vk::vma
+export namespace vma
 {
 	class Allocator
 	{
@@ -20,7 +20,7 @@ export namespace vk::vma
 			: allocator(allocatorIn)
 		{
 			if (not allocator)
-				throw Error{ VkResult::VK_ERROR_INITIALIZATION_FAILED };
+				throw vk::Error{ VkResult::VK_ERROR_INITIALIZATION_FAILED };
 		}
 		constexpr auto Get(this const auto& self) noexcept -> VmaAllocator
 		{

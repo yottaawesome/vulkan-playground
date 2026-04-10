@@ -44,7 +44,7 @@ export namespace Vulkan
 			}
 		};
 
-		TextureSampler(TextureSamplerUniquePtr samplerIn) noexcept 
+		TextureSampler(TextureSamplerUniquePtr samplerIn) 
 			: sampler(std::move(samplerIn)) 
 		{
 			if (not sampler)

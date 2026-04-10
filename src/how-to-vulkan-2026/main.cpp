@@ -16,7 +16,7 @@ try
 		throw sdl3::Error::Error{};
 	auto result = vk::Result{ volk::volkInitialize() };
 	if (not result)
-		throw vk::Error{ result.result };
+		throw vk::Error{ result };
 
 	// Create the Vulkan instance.
 	auto instance = 
@@ -54,8 +54,8 @@ try
 			auto instance = vk::VkInstance{};
 			auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
 			if (not status)
-				throw vk::Error{ status.result };	
-			return instance;
+				throw vk::Error{ status };	
+			return vk::Instance{ vk::InstanceUniquePtr{ instance} };
 		}();
 	volk::volkLoadInstance(instance.Get());
 
@@ -66,11 +66,11 @@ try
 			auto physicalDeviceCount = std::uint32_t{};
 			auto status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, nullptr) };
 			if (not status)
-				throw vk::Error{ status.result };
+				throw vk::Error{ status };
 			auto physicalDevices = std::vector<vk::VkPhysicalDevice>{ physicalDeviceCount };
 			status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, physicalDevices.data()) };
 			if (not status)
-				throw vk::Error{ status.result };
+				throw vk::Error{ status };
 			return physicalDevices;
 		}();
 
@@ -179,7 +179,7 @@ try
 			auto device = vk::VkDevice{};
 			auto result = vk::Result{vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device)};
 			if (not result)
-				throw vk::Error{ result.result };
+				throw vk::Error{ result };
 			volk::LoadDevice(device);
 			return vk::Device{device};
 		}(suitableQueueFamilyIndex, pickedDevice);
@@ -206,7 +206,7 @@ try
 			auto allocator = vma::VmaAllocator{};
 			auto result = vk::Result{ vma::vmaCreateAllocator(&allocatorCI, &allocator) };
 			if (not result)
-				throw vk::Error{ result.result };
+				throw vk::Error{ result };
 			return allocator;
 		}();
 
@@ -258,7 +258,7 @@ try
 			auto swapchain = vk::VkSwapchainKHR{};
 			auto result = vk::Result{ vk::vkCreateSwapchainKHR(device.Get(), &swapchainCreateInfo, nullptr, &swapchain) };
 			if (not result)
-				throw vk::Error{ result.result };
+				throw vk::Error{ result };
 			return vk::Swapchain{ vk::SwapchainUniquePtr{ swapchain, vk::SwapchainDeleter{device.Get()} } };
 		}();
 	
@@ -321,7 +321,7 @@ try
 					nullptr
 				)};
 			if (not result)
-				throw vk::Error{ result.result };
+				throw vk::Error{ result };
 
 			auto depthViewCi = vk::VkImageViewCreateInfo{
 				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
@@ -341,7 +341,7 @@ try
 				&depthImageAllocation.depthImageView
 			);
 			if (not result)
-				throw vk::Error{ result.result };
+				throw vk::Error{ result };
 
 			return depthImageAllocation;
 		}();

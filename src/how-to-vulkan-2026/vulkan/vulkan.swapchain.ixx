@@ -64,11 +64,11 @@ export namespace vk
 			auto swapchainImagesCount = uint32_t{};
 			auto result = Result{ vkGetSwapchainImagesKHR(device, self.Get(), &swapchainImagesCount, nullptr) };
 			if (not result)
-				throw Error{ result.result };
+				throw Error{ result };
 			auto swapchainImages = std::vector<VkImage>(swapchainImagesCount);
 			result = vkGetSwapchainImagesKHR(device, self.Get(), &swapchainImagesCount, swapchainImages.data());
 			if (not result)
-				throw Error{ result.result };
+				throw Error{ result };
 			return swapchainImages;
 		}
 

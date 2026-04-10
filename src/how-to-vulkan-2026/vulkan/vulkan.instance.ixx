@@ -1,35 +1,24 @@
 export module vulkan26:vulkan.instance;
 import std;
+import :raii;
 import :vulkan.error;
 import :vulkan.exports;
-import :raii;
+import :vulkan.resource;
 
 export namespace vk
 {
-	class Instance
+	struct InstanceDeleter
 	{
-	public:
-		~Instance()
+		static void operator()(vk::VkInstance instance)
 		{
-			if (instance)
-				vkDestroyInstance(instance, nullptr);
+			vk::vkDestroyInstance(instance, nullptr);
 		}
-		constexpr Instance(VkInstance instanceIn)
-			: instance(instanceIn)
-		{
-			if (not instance)
-				throw Error{ VkResult::VK_ERROR_INITIALIZATION_FAILED };
-		}
+	};
+	using InstanceUniquePtr = std::unique_ptr<std::remove_pointer_t<vk::VkInstance>, InstanceDeleter>;
 
-		Instance(Instance const&) = delete;
-		Instance& operator=(Instance const&) = delete;
-
-		constexpr auto Get(this const auto& self) noexcept -> VkInstance
-		{
-			return self.instance;
-		}
-
-	private:
-		VkInstance instance = nullptr;
+	struct Instance : TypedResource<InstanceUniquePtr>
+	{
+		constexpr Instance(InstanceUniquePtr instanceIn)
+			: TypedResource(std::move(instanceIn)) { }
 	};
 }

@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="vulkan-memory.vcxproj" Id="b0c7913c-ea26-4d47-a358-fbcd5e3688e1" />
+</Solution>

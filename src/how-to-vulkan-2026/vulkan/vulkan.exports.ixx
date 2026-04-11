@@ -9,17 +9,6 @@ export module vulkan26:vulkan.exports;
 
 export namespace vk
 {
-	template<auto VFn>
-	struct S
-	{
-		auto operator()()
-		{
-			VFn(nullptr, nullptr, nullptr);
-		}
-	};
-
-	constexpr auto SS = S<[](auto, auto, auto) {vkDestroyImageView(nullptr, nullptr, nullptr); }>{};
-
 	using
 		::VkInstance,
 		::VkInstanceCreateInfo,
@@ -82,7 +71,6 @@ export namespace vk
 		::VkImageViewCreateInfo,
 		::VkImageViewType,
 		::VkImageAspectFlagBits,
-		::VkImage_T,
 		::vkDestroyImageView,
 		::vkDestroyImage,
 		::vkCreateImageView,

@@ -18,6 +18,12 @@
     <ClCompile Include="volkus.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk.exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

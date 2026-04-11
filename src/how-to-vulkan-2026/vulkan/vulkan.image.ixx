@@ -56,7 +56,6 @@ export namespace vk
 	};
 	using ImageUniquePtr = std::unique_ptr<std::remove_pointer_t<vk::VkImage>, ImageDeleter>;
 
-	// According to the VMA header, vmaDestroyImage() is shorthand for vkDestroyImage() and vmaFreeMemory().
 	class VmaImageDeleter
 	{
 	public:
@@ -71,6 +70,7 @@ export namespace vk
 		}
 		auto operator()(this const VmaImageDeleter& self, vk::VkImage image)
 		{
+			// According to the VMA header, vmaDestroyImage() is shorthand for vkDestroyImage() and vmaFreeMemory().
 			vma::vmaDestroyImage(self.allocator, image, self.allocation);
 		}
 		constexpr auto GetAllocator(this const VmaImageDeleter& self) -> vma::VmaAllocator
@@ -90,6 +90,35 @@ export namespace vk
 	//
 	//
 	//
-	using Image = TypedResource<ImageDeleter>;
-	using VmaImage = TypedResource<VmaImageDeleter>;
+	using Image = TypedResource<ImageUniquePtr>;
+	using VmaImage = TypedResource<VmaImageUniquePtr>;
+
+	class DepthImage
+	{
+	public:
+		constexpr DepthImage(VmaImage depthImageIn, ImageView depthImageViewIn)
+			: depthImage(std::move(depthImageIn)), depthImageView(std::move(depthImageViewIn))
+		{ 
+			if (not depthImage)
+				throw ::Error::RuntimeError{ "Depth image cannot be null" };
+			if (not depthImageView)
+				throw ::Error::RuntimeError{ "Depth image view cannot be null" };
+		}
+		constexpr auto GetImage(this const DepthImage& self) noexcept -> vk::VkImage
+		{
+			return *self.depthImage;
+		}
+		constexpr auto GetView(this const DepthImage& self) noexcept -> vk::VkImageView
+		{
+			return *self.depthImageView;
+		}
+		constexpr auto Destroy(this auto& self) noexcept
+		{
+			self.depthImage.Destroy();
+			self.depthImageView.Destroy();
+		}
+	private:
+		VmaImage depthImage;
+		ImageView depthImageView;
+	};
 }

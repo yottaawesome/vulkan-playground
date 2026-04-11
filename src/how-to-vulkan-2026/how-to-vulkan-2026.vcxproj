@@ -142,6 +142,9 @@
     <ClCompile Include="sdl3\sdl3.ixx" />
     <ClCompile Include="sdl3\sdl3.misc.ixx" />
     <ClCompile Include="sdl3\sdl3.window.ixx" />
+    <ClCompile Include="tinyobj\tinyobj.exports.ixx" />
+    <ClCompile Include="tinyobj\tinyobj.functions.ixx" />
+    <ClCompile Include="tinyobj\tinyobj.ixx" />
     <ClCompile Include="util\util.ixx" />
     <ClCompile Include="vulkan26.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />

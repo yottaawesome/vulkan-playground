@@ -284,15 +284,8 @@ try
 				: filter.front();
 		}();
 
-	// TODO finish this
-	struct DepthImage
-	{
-		vk::VkImage image{};
-		vma::VmaAllocation allocation{};
-		vk::VkImageView depthImageView{};
-	};
 	auto depthImage = 
-		[depthFormat, &allocator, &windowSize, &device] -> DepthImage
+		[depthFormat, &allocator, &windowSize, &device] -> vk::DepthImage
 		{
 			auto depthImageCi = vk::VkImageCreateInfo{
 				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -310,22 +303,25 @@ try
 				.flags = vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
 				.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO,
 			};
-			auto depthImageAllocation = DepthImage{};
+			
+			auto allocation = vma::VmaAllocation{};
+			auto image = vk::VkImage{};
 			auto result = vk::Result{ 
 				vma::vmaCreateImage(
 					allocator.Get(), 
 					&depthImageCi, 
 					&allocCi, 
-					&depthImageAllocation.image, 
-					&depthImageAllocation.allocation, 
+					&image, 
+					&allocation, 
 					nullptr
 				)};
 			if (not result)
 				throw vk::Error{ result };
+			auto imageUniquePtr = vk::VmaImageUniquePtr{ image, vk::VmaImageDeleter{allocator.Get(), allocation} };
 
 			auto depthViewCi = vk::VkImageViewCreateInfo{
 				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
-				.image = depthImageAllocation.image,
+				.image = image,
 				.viewType = vk::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D, 
 				.format = depthFormat, 
 				.subresourceRange{
@@ -334,16 +330,20 @@ try
 					.layerCount = 1 
 				} 
 			};
+			auto depthImageView = vk::VkImageView{};
 			result = vk::vkCreateImageView(
 				device.Get(), 
 				&depthViewCi, 
 				nullptr, 
-				&depthImageAllocation.depthImageView
+				&depthImageView
 			);
 			if (not result)
 				throw vk::Error{ result };
 
-			return depthImageAllocation;
+			return vk::DepthImage{ 
+				vk::VmaImage{ std::move(imageUniquePtr) }, 
+				vk::ImageView{ vk::ImageViewUniquePtr{ depthImageView, vk::ImageViewDeleter{device.Get()} } } 
+			};
 		}();
 
 	return 0;

@@ -32,7 +32,7 @@ export namespace vk
 	class TypedResource
 	{
 	public:
-		using pointer = T::pointer;
+		using pointer = typename T::pointer;
 		constexpr TypedResource(T resourceIn)
 			: resource(std::move(resourceIn))
 		{
@@ -50,6 +50,10 @@ export namespace vk
 		constexpr auto operator*(this const auto& self) noexcept -> pointer
 		{
 			return self.resource.get();
+		}
+		explicit constexpr operator bool(this const auto& self) noexcept
+		{
+			return static_cast<bool>(self.resource);
 		}
 	protected:
 		T resource;

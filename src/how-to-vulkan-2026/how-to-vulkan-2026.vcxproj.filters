@@ -87,6 +87,15 @@
     <ClCompile Include="util\util.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tinyobj\tinyobj.exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyobj\tinyobj.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyobj\tinyobj.functions.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

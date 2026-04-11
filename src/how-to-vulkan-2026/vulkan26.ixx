@@ -6,3 +6,4 @@ export import :raii;
 export import :glm;
 export import :error;
 export import :util;
+export import :tinyobj;

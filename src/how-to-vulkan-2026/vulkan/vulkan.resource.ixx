@@ -16,7 +16,7 @@ export namespace vk
 			if (not device)
 				throw ::Error::RuntimeError{ "Device cannot be nullptr" };
 		}
-		constexpr auto operator()(this const auto& self, vk::VkImage image) noexcept
+		constexpr auto operator()(this const auto& self, auto image) noexcept
 		{
 			static_assert(util::FalseType<decltype(self)>::value, "This method must be implemented.");
 		}

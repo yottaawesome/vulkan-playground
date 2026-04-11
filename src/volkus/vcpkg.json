@@ -1,0 +1,19 @@
+{
+  "name": "volkus",
+  "version": "1.0.0",
+  "dependencies": [
+    "vulkan",
+    {
+      "name": "sdl3",
+      "features": [ "vulkan" ]
+    },
+    "glm",
+    "tinyobjloader",
+    "stb",
+    "tinygltf",
+    "ktx",
+    "glslang",
+    "vulkan-memory-allocator",
+    "volk"
+  ]
+}

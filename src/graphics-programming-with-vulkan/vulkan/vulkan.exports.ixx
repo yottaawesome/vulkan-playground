@@ -344,6 +344,21 @@ export namespace vkr
 		return string_VkResult(result);
 	}
 
+	struct VulkanVersion
+	{
+		std::uint32_t Major = 0;
+		std::uint32_t Minor = 0;
+		std::uint32_t Patch = 0;
+		constexpr auto ToVulkanVersion(this VulkanVersion self) noexcept -> std::uint32_t
+		{
+			return VK_MAKE_VERSION(self.Major, self.Minor, self.Patch);
+		}
+		constexpr operator std::uint32_t(this VulkanVersion self) noexcept
+		{
+			return VK_MAKE_VERSION(self.Major, self.Minor, self.Patch);
+		}
+	};
+
 	constexpr auto MakeVersion(
 		std::uint32_t major, 
 		std::uint32_t minor, 

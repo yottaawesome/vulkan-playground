@@ -94,7 +94,6 @@ try
 	//
 	//
 	// Logical device and queues.
-	
 	//
 	// Queues. On most devices, the first queue family will support graphics, 
 	// compute and transfer, but this is not guaranteed.
@@ -266,6 +265,8 @@ try
 
 	//
 	//
+	//
+	//
 	// Select a depth format. We need to find a format that supports being used as a depth-stencil attachment, and that is supported by the device.
 	auto depthFormat = 
 		[&pickedDevice] -> vk::VkFormat
@@ -346,6 +347,11 @@ try
 			};
 		}();
 
+	//
+	//
+	//
+	//
+	// Loading a mesh
 	auto meshData = 
 		[] static -> Mesh::MeshData
 		{

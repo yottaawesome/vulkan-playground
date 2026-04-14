@@ -349,7 +349,7 @@ export namespace vkr
 		std::uint32_t Major = 0;
 		std::uint32_t Minor = 0;
 		std::uint32_t Patch = 0;
-		constexpr auto ToVulkanVersion(this VulkanVersion self) noexcept -> std::uint32_t
+		constexpr auto ToVersion(this VulkanVersion self) noexcept -> std::uint32_t
 		{
 			return VK_MAKE_VERSION(self.Major, self.Minor, self.Patch);
 		}
@@ -357,27 +357,41 @@ export namespace vkr
 		{
 			return VK_MAKE_VERSION(self.Major, self.Minor, self.Patch);
 		}
+
+		static constexpr auto MakeVersion(
+			std::uint32_t major,
+			std::uint32_t minor,
+			std::uint32_t patch
+		) noexcept -> std::uint32_t
+		{
+			return VK_MAKE_VERSION(major, minor, patch);
+		}
 	};
 
-	constexpr auto MakeVersion(
-		std::uint32_t major, 
-		std::uint32_t minor, 
-		std::uint32_t patch
-	) noexcept -> std::uint32_t
+	struct ApiVersion
 	{
-		return VK_MAKE_VERSION(major, minor, patch);
-	}
-
-	constexpr auto MakeApiVersion(
-		std::uint32_t major, 
-		std::uint32_t minor, 
-		std::uint32_t patch
-	) noexcept -> std::uint32_t
-	{
-		// First parameter is variant.
-		// See: https://docs.vulkan.org/refpages/latest/refpages/source/VK_MAKE_API_VERSION.html
-		return VK_MAKE_API_VERSION(0, major, minor, patch);
-	}
+		std::uint32_t Major = 0;
+		std::uint32_t Minor = 0;
+		std::uint32_t Patch = 0;
+		constexpr auto ToVersion(this ApiVersion self) noexcept -> std::uint32_t
+		{
+			return VK_MAKE_API_VERSION(0, self.Major, self.Minor, self.Patch);
+		}
+		explicit constexpr operator std::uint32_t(this ApiVersion self) noexcept
+		{
+			return VK_MAKE_API_VERSION(0, self.Major, self.Minor, self.Patch);
+		}
+		static constexpr auto MakeVersion(
+			std::uint32_t major,
+			std::uint32_t minor,
+			std::uint32_t patch
+		) noexcept -> std::uint32_t
+		{
+			// First parameter is variant.
+			// See: https://docs.vulkan.org/refpages/latest/refpages/source/VK_MAKE_API_VERSION.html
+			return VK_MAKE_API_VERSION(0, major, minor, patch);
+		}
+	};
 
 	enum class Versions : std::uint32_t
 	{

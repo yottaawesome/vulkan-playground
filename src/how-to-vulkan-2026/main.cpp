@@ -346,6 +346,28 @@ try
 			};
 		}();
 
+	auto meshData = 
+		[] -> Mesh::MeshData
+		{
+			auto tinyobjData = tinyobj::FileData{ tinyobj::FileData::From("assets\\suzanne.obj") };
+			auto indexCount = std::uint64_t{ tinyobjData.Shapes[0].mesh.indices.size() };
+			auto vertices = std::vector<Mesh::Vertex>{};
+			auto indices = std::vector<std::uint16_t>{};
+			// Load vertex and index data
+			// The value of the position's and normal's y-axis, and the texture coordinate's v-axis are flipped. This is done to accommodate for Vulkan's coordinate system. Otherwise the model and the texture image would appear upside down.
+			for (auto& index : tinyobjData.Shapes[0].mesh.indices) 
+			{
+				auto v = Mesh::Vertex{
+					.Pos = { tinyobjData.Attrib.vertices[index.vertex_index * 3], -tinyobjData.Attrib.vertices[index.vertex_index * 3 + 1], tinyobjData.Attrib.vertices[index.vertex_index * 3 + 2] },
+					.Normal = { tinyobjData.Attrib.normals[index.normal_index * 3], -tinyobjData.Attrib.normals[index.normal_index * 3 + 1], tinyobjData.Attrib.normals[index.normal_index * 3 + 2] },
+					.Uv = { tinyobjData.Attrib.texcoords[index.texcoord_index * 2], 1.0 - tinyobjData.Attrib.texcoords[index.texcoord_index * 2 + 1] }
+				};
+				vertices.push_back(v);
+				indices.push_back(static_cast<std::uint16_t>(indices.size()));
+			}
+			return { vertices , indices};
+		}();
+
 	return 0;
 }
 catch (const std::exception& e)

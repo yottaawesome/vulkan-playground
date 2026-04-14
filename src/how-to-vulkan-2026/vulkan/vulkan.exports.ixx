@@ -71,6 +71,7 @@ export namespace vk
 		::VkImageViewCreateInfo,
 		::VkImageViewType,
 		::VkImageAspectFlagBits,
+		::VkDeviceSize,
 		::vkDestroyImageView,
 		::vkDestroyImage,
 		::vkCreateImageView,

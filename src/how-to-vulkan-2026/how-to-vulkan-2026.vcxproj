@@ -136,6 +136,7 @@
     <ClCompile Include="glm\glm.exports.ixx" />
     <ClCompile Include="glm\glm.ixx" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mesh\mesh.ixx" />
     <ClCompile Include="raii\raii.ixx" />
     <ClCompile Include="sdl3\sdl3.error.ixx" />
     <ClCompile Include="sdl3\sdl3.exports.ixx" />

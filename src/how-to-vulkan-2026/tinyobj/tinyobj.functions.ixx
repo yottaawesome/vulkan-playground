@@ -6,7 +6,7 @@ export namespace tinyobj
 {
 	struct FileData
 	{
-		std::vector<attrib_t> Attribs;
+		attrib_t Attrib;
 		std::vector<shape_t> Shapes;
 		std::vector<material_t> Materials;
 		std::string Warning;
@@ -22,7 +22,7 @@ export namespace tinyobj
 			if (not LoadObj(&attrib, &shapes, &materials, &warn, &err, path.string().c_str()))
 				throw std::runtime_error{ "Failed to load OBJ file: " + err };
 			return { 
-				.Attribs = { std::move(attrib) }, 
+				.Attrib = std::move(attrib), 
 				.Shapes = std::move(shapes), 
 				.Materials = std::move(materials),
 				.Warning = std::move(warn),

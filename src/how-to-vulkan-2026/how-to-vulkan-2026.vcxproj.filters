@@ -96,6 +96,9 @@
     <ClCompile Include="tinyobj\tinyobj.functions.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mesh\mesh.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

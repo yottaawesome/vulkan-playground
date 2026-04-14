@@ -7,3 +7,4 @@ export import :glm;
 export import :error;
 export import :util;
 export import :tinyobj;
+export import :mesh;

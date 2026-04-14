@@ -10,9 +10,9 @@ export namespace Vulkan::Instance
 	struct AppInfo
 	{
 		std::string_view ApplicationName = "Graphics Programming with Vulkan and C++";
-		std::uint32_t ApplicationVersion = vkr::MakeVersion(1, 0, 0);
+		std::uint32_t ApplicationVersion = vkr::VulkanVersion{ 1u, 0u, 0u };
 		std::string_view EngineName = "Vulkangeance";
-		std::uint32_t EngineVersion = vkr::MakeVersion(1, 0, 0);
+		std::uint32_t EngineVersion = vkr::VulkanVersion{ 1u, 0u, 0u };
 		std::uint32_t ApiVersion = static_cast<std::uint32_t>(vkr::Versions::Vulkan14);
 
 		auto ToVkApplicationInfo(this const AppInfo& self) noexcept -> vkr::VkApplicationInfo
@@ -57,9 +57,9 @@ export namespace Vulkan::Instance
 	{
 		AppInfo ApplicationInfo{
 			.ApplicationName = "Graphics Programming with Vulkan and C++",
-			.ApplicationVersion = vkr::MakeVersion(1, 0, 0),
+			.ApplicationVersion = vkr::VulkanVersion{ 1u, 0u, 0u },
 			.EngineName = "Vulkangeance",
-			.EngineVersion = vkr::MakeVersion(1, 0, 0),
+			.EngineVersion = vkr::VulkanVersion{ 1u, 0u, 0u },
 			.ApiVersion = static_cast<std::uint32_t>(vkr::Versions::Vulkan14)
 		};
 		InstanceInfo InstanceInfo{

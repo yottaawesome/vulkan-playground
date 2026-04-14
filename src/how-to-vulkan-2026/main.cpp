@@ -347,7 +347,7 @@ try
 		}();
 
 	auto meshData = 
-		[] -> Mesh::MeshData
+		[] static -> Mesh::MeshData
 		{
 			auto tinyobjData = tinyobj::FileData{ tinyobj::FileData::From("assets\\suzanne.obj") };
 			auto indexCount = std::uint64_t{ tinyobjData.Shapes[0].mesh.indices.size() };

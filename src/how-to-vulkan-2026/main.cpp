@@ -8,23 +8,31 @@ try
 {
 	//
 	//
+	// 
+	// 
+	// Initialisation of SDL, and initial load of Volk (stage 1).
+	[] static -> void
+	{
+		auto init = sdl3::Init{ sdl3::InitFlags::Video };
+		if (not sdl3::vk::SDL_Vulkan_LoadLibrary(nullptr))
+			throw sdl3::Error::Error{};
+		auto result = vk::Result{ volk::volkInitialize() };
+		if (not result)
+			throw vk::Error{ result };
+	}();
+
+	//
+	//
 	//
 	//
 	// Instance and physical device selection.
-	auto init = sdl3::Init{ sdl3::InitFlags::Video };
-	if (not sdl3::vk::SDL_Vulkan_LoadLibrary(nullptr))
-		throw sdl3::Error::Error{};
-	auto result = vk::Result{ volk::volkInitialize() };
-	if (not result)
-		throw vk::Error{ result };
-
 	// Create the Vulkan instance.
 	auto instance = 
 		[] static -> vk::Instance
 		{
 			// Get SDL to tell us the required instance extensions for Vulkan.
 			auto instanceExtensions = 
-				[] static->std::span<const char* const>
+				[] static -> std::span<const char* const>
 				{
 					auto instanceExtensionsCount = std::uint32_t{};
 					return { sdl3::vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };

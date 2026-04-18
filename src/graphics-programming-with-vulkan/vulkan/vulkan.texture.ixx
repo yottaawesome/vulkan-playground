@@ -15,23 +15,22 @@ export namespace Vulkan
 
 		~Texture() { Destroy(); }
 
-		Texture() = default;
-
 		Texture(
+			vkr::VkDevice device,
 			vkr::VkImage image,
 			vkr::VkImageView imageView,
 			vkr::VkDeviceMemory memory,
 			vkr::VkDescriptorSet descriptorSet
-		) : image(image), imageView(imageView), memory(memory), descriptorSet(descriptorSet) 
+		) : device(device), image(image), imageView(imageView), memory(memory), descriptorSet(descriptorSet) 
 		{
 			if (not image)
 				throw ::Error::RuntimeError{ "Texture image cannot be nullptr." };
-			if (not imageView)
-				throw ::Error::RuntimeError{ "Texture image view cannot be nullptr." };
+			//if (not imageView)
+				//throw ::Error::RuntimeError{ "Texture image view cannot be nullptr." };
 			if (not memory)
 				throw ::Error::RuntimeError{ "Texture memory cannot be nullptr." };
-			if (not descriptorSet)
-				throw ::Error::RuntimeError{ "Texture descriptor set cannot be nullptr." };
+			//if (not descriptorSet)
+				//throw ::Error::RuntimeError{ "Texture descriptor set cannot be nullptr." };
 		}
 
 		Texture(const Texture&) = delete;
@@ -128,8 +127,6 @@ export namespace Vulkan
 		vkr::VkPhysicalDevice physicalDevice
 	) -> Texture
 	{
-		auto texture = Texture{};
-
 		auto imageCreateInfo = vkr::VkImageCreateInfo{
 			.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.imageType = vkr::VkImageType::VK_IMAGE_TYPE_2D,
@@ -147,12 +144,13 @@ export namespace Vulkan
 			.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
 			.initialLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
 		};
-		auto result = Result{ vkr::vkCreateImage(device, &imageCreateInfo, nullptr, texture.GetImageHandleAddress()) };
+		vkr::VkImage image = nullptr;
+		auto result = Result{ vkr::vkCreateImage(device, &imageCreateInfo, nullptr, &image) };
 		if (not result)
 			throw VulkanError{ result, "Failed to create image." };
 
 		auto memoryRequirements = vkr::VkMemoryRequirements{};
-		vkr::vkGetImageMemoryRequirements(device, texture.GetImageHandle(), &memoryRequirements);
+		vkr::vkGetImageMemoryRequirements(device, image, &memoryRequirements);
 		auto chosen_memory_type = std::uint32_t{ FindMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, properties) };
 
 		auto allocationInfo = vkr::VkMemoryAllocateInfo{
@@ -160,15 +158,15 @@ export namespace Vulkan
 			.allocationSize = memoryRequirements.size,
 			.memoryTypeIndex = chosen_memory_type
 		};
-
+		vkr::VkDeviceMemory memory = nullptr;
 		result = Result{
-			vkr::vkAllocateMemory(device, &allocationInfo, nullptr, texture.GetMemoryHandleAddress())
+			vkr::vkAllocateMemory(device, &allocationInfo, nullptr, &memory)
 		};
 		if (not result)
 			throw std::runtime_error("Failed to allocate image memory!");
 
-		vkr::vkBindImageMemory(device, texture.GetImageHandle(), texture.GetMemoryHandle(), 0);
+		vkr::vkBindImageMemory(device, image, memory, 0);
 
-		return texture;
+		return Texture{ device, image, nullptr, memory, nullptr };
 	}
 }

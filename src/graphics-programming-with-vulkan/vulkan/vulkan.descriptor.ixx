@@ -35,15 +35,17 @@ export namespace Vulkan
 			};
 
 			// https://docs.vulkan.org/refpages/latest/refpages/source/vkCreateDescriptorSetLayout.html
+			auto raw = vkr::VkDescriptorSetLayout{};
 			auto result = Result{
 				vkr::vkCreateDescriptorSetLayout(
 					device,
 					&layoutInfo,
 					nullptr,
-					std::out_ptr(layout)
+					&raw
 				) };
 			if (not result)
 				throw Vulkan::VulkanError{ result, "Failed to create descriptor set layout." };
+			layout = DescriptorSetLayoutUniquePtr{ raw, DescriptorSetLayoutDeleter{ device } };
 		}
 
 		DescriptorSetLayout(DescriptorSetLayoutUniquePtr layoutIn)
@@ -93,15 +95,17 @@ export namespace Vulkan
 				.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size()),
 				.pPoolSizes = poolSizes.data(),
 			};
+			auto raw = vkr::VkDescriptorPool{};
 			auto result = Result{
 				vkr::vkCreateDescriptorPool(
 					device,
 					&poolInfo,
 					nullptr,
-					std::out_ptr(pool)
+					&raw
 				)};
 			if (not result)
 				throw VulkanError{ result, "Failed to create descriptor pool." };
+			pool = DescriptorPoolUniquePtr{ raw, DescriptorPoolDeleter{ device } };
 		}
 
 		constexpr auto GetHandle(this const DescriptorPool& self) noexcept -> vkr::VkDescriptorPool

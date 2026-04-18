@@ -219,13 +219,13 @@ export namespace Vulkan::Instance
 		void DestroyDebugUtilsMessengerEXT(
 			this const MainInstance& self,
 			vkr::VkDebugUtilsMessengerEXT debugMessenger
-		)
-		{
+		) noexcept
+		try {
 			if (not debugMessenger)
 				return;
 			auto fn = self.GetInstanceProcAddr<vkr::PFN_vkDestroyDebugUtilsMessengerEXT>("vkDestroyDebugUtilsMessengerEXT");
 			fn(self.Handle.get(), debugMessenger, nullptr);
-		}
+		} catch (...) { }
 
 		auto SetupDebugMessenger(
 			this MainInstance& self, 

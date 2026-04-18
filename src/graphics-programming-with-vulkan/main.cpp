@@ -14,8 +14,10 @@ try
 {
 	Logger.Info("Application started.");
 
-	std::signal(SIGABRT,
-		[](int)
+	// These are only here to allow breakpoints to be hit in the event of an unhandled exception or abort signal.
+	std::signal(
+		SIGABRT,
+		[](int signal)
 		{
 			int x = 10;
 		});
@@ -73,7 +75,7 @@ try
 	);
 	gfx.SetViewProjection(view, projection);
 
-	auto texture = Vulkan::Texture{ gfx.CreateTexture("paving-stones.jpg") };
+	auto texture = Vulkan::Texture{ gfx.CreateTexture("assets/paving-stones.jpg") };
 	
 	while (window.StillOpen())
 	{

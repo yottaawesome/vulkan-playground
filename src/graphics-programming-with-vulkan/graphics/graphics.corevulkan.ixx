@@ -16,8 +16,10 @@ export namespace Graphics
 	{
 	public:
 		~CoreVulkan()
-		{
+		try {
 			Teardown();
+		} catch (...) {
+			// Swallow exceptions to prevent std::terminate() during stack unwinding.
 		}
 
 		explicit CoreVulkan(gsl::not_null<glfw::Window*> window)	
@@ -118,15 +120,6 @@ export namespace Graphics
 			);
 
 			vkr::vkUnmapMemory(self.device->GetHandle(), stagingBuffer.Memory);
-
-
-			/*auto CreateImage(
-				glm::ivec2 size,
-				vkr::VkBufferUsageFlags usage,
-				vkr::VkMemoryPropertyFlags properties,
-				vkr::VkDevice device,
-				vkr::VkPhysicalDevice physicalDevice
-			) -> Texture*/
 
 			Vulkan::Texture texture = Vulkan::CreateImage(
 				imageExtents,

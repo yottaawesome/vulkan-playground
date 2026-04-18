@@ -168,6 +168,12 @@
     <ClCompile Include="vulkan\vulkan.texture.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="stb\stb.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stb\stb.exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

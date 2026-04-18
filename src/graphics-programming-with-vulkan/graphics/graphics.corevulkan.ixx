@@ -8,6 +8,7 @@ import :stlhelpers;
 import :error;
 import :logging;
 import :graphics.vertex;
+import :stb;
 
 export namespace Graphics
 {
@@ -77,7 +78,51 @@ export namespace Graphics
 		) -> Vulkan::Texture
 		{
 			//TODO
-			return Vulkan ::Texture{};
+			auto fileBytes = File::ReadFileBytes(filePath);
+			auto imageExtents = glm::ivec2{};
+			int channels;
+			stb::stbi_uc* pixelData = 
+				stb::stbi_load_from_memory(
+					reinterpret_cast<stbi_uc*>(const_cast<std::byte*>(fileBytes.data())),
+					fileBytes.size(),
+					&imageExtents.x,
+					&imageExtents.y,
+					&channels,
+					stb::STBI_rgb_alpha
+				);
+			if (not pixelData)
+				throw Error::RuntimeError(std::format("Failed to load image from file: {}", filePath.string()));
+
+			auto bufferSize = size_t{ static_cast<size_t>(imageExtents.x * imageExtents.y * 4) }; // 4 bytes per pixel (RGBA)
+			auto stagingBuffer = Vulkan::BufferHandle{
+				Vulkan::BufferHandle::Factory{
+					.Device = self.device->GetHandle(),
+					.PhysicalDevice = self.physicalDevice->GetHandle(),
+					.bufferInfo = {
+						.size = bufferSize,
+						.usage = vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+						.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+					},
+					.MemoryProperties = vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+				}()
+			};
+
+			void* data;
+			vkr::vkMapMemory(
+				self.device->GetHandle(),
+				stagingBuffer.Memory, 
+				0, 
+				bufferSize,
+				0, 
+				&data
+			);
+
+			vkr::vkUnmapMemory(self.device->GetHandle(), stagingBuffer.Memory);
+
+			stagingBuffer.Destroy(self.device->GetHandle());
+			stb::stbi_image_free(pixelData);
+
+			return Vulkan::Texture{};
 		}
 
 		auto SetTexture(this CoreVulkan& self, const Vulkan::Texture& texture) -> decltype(auto)

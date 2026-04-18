@@ -4,6 +4,7 @@ import :error;
 
 export namespace File
 {
+	[[nodiscard]]
 	auto ReadFileBytes(const std::filesystem::path& filePath) -> std::vector<std::byte>
 	{
 		auto file = std::ifstream(filePath, std::ios::ate | std::ios::binary);

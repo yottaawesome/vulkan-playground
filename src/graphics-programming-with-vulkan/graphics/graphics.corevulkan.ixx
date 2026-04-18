@@ -119,10 +119,26 @@ export namespace Graphics
 
 			vkr::vkUnmapMemory(self.device->GetHandle(), stagingBuffer.Memory);
 
+
+			/*auto CreateImage(
+				glm::ivec2 size,
+				vkr::VkBufferUsageFlags usage,
+				vkr::VkMemoryPropertyFlags properties,
+				vkr::VkDevice device,
+				vkr::VkPhysicalDevice physicalDevice
+			) -> Texture*/
+
+			Vulkan::Texture texture = Vulkan::CreateImage(
+				imageExtents,
+				vkr::VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT | vkr::VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT,
+				vkr::VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				self.device->GetHandle(),
+				self.physicalDevice->GetHandle()
+			);
 			stagingBuffer.Destroy(self.device->GetHandle());
 			stb::stbi_image_free(pixelData);
 
-			return Vulkan::Texture{};
+			return texture;
 		}
 
 		auto SetTexture(this CoreVulkan& self, const Vulkan::Texture& texture) -> decltype(auto)

@@ -4,6 +4,7 @@ import :vulkan.exports;
 import :vulkan.error;
 import :vulkan.buffer;
 import :vulkan.error;
+import :glm;
 
 export namespace Vulkan
 {
@@ -64,6 +65,10 @@ export namespace Vulkan
 		{
 			return self.image;
 		}
+		constexpr auto GetImageHandleAddress(this auto&& self) noexcept -> vkr::VkImage*
+		{
+			return &self.image;
+		}
 		constexpr auto GetImageViewHandle(this auto&& self) noexcept -> vkr::VkImageView
 		{
 			return self.imageView;
@@ -71,6 +76,10 @@ export namespace Vulkan
 		constexpr auto GetMemoryHandle(this auto&& self) noexcept -> vkr::VkDeviceMemory
 		{
 			return self.memory;
+		}
+		constexpr auto GetMemoryHandleAddress(this auto&& self) noexcept -> vkr::VkDeviceMemory*
+		{
+			return &self.memory;
 		}
 		constexpr auto GetDescriptorSetHandle(this auto&& self) noexcept -> vkr::VkDescriptorSet
 		{
@@ -109,9 +118,57 @@ export namespace Vulkan
 
 	struct Texture::Factory
 	{
-		auto operator()(this auto&& self) -> Texture
-		{
-			return Texture{};
-		}
 	};
+
+	auto CreateImage(
+		glm::ivec2 size, 
+		vkr::VkBufferUsageFlags usage, 
+		vkr::VkMemoryPropertyFlags properties,
+		vkr::VkDevice device,
+		vkr::VkPhysicalDevice physicalDevice
+	) -> Texture
+	{
+		auto texture = Texture{};
+
+		auto imageCreateInfo = vkr::VkImageCreateInfo{
+			.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.imageType = vkr::VkImageType::VK_IMAGE_TYPE_2D,
+			.format = vkr::VkFormat::VK_FORMAT_R8G8B8A8_SRGB,
+			.extent = {
+				static_cast<std::uint32_t>(size.x),
+				static_cast<std::uint32_t>(size.y),
+				1
+			},
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = vkr::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
+			.tiling = vkr::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
+			.usage = usage,
+			.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+		};
+		auto result = Result{ vkr::vkCreateImage(device, &imageCreateInfo, nullptr, texture.GetImageHandleAddress()) };
+		if (not result)
+			throw VulkanError{ result, "Failed to create image." };
+
+		auto memoryRequirements = vkr::VkMemoryRequirements{};
+		vkr::vkGetImageMemoryRequirements(device, texture.GetImageHandle(), &memoryRequirements);
+		auto chosen_memory_type = std::uint32_t{ FindMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, properties) };
+
+		auto allocationInfo = vkr::VkMemoryAllocateInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memoryRequirements.size,
+			.memoryTypeIndex = chosen_memory_type
+		};
+
+		result = Result{
+			vkr::vkAllocateMemory(device, &allocationInfo, nullptr, texture.GetMemoryHandleAddress())
+		};
+		if (not result)
+			throw std::runtime_error("Failed to allocate image memory!");
+
+		vkr::vkBindImageMemory(device, texture.GetImageHandle(), texture.GetMemoryHandle(), 0);
+
+		return texture;
+	}
 }

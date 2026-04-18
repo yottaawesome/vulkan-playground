@@ -1,3 +1,4 @@
+#include <csignal>
 import std;
 import vulkangfx;
 
@@ -12,6 +13,17 @@ auto wWinMain(
 try
 {
 	Logger.Info("Application started.");
+
+	std::signal(SIGABRT,
+		[](int)
+		{
+			int x = 10;
+		});
+	std::set_terminate(
+		[] 
+		{
+			int x = 10;
+		});
 
 	auto context = glfw::Context{};
 	glfw::SetErrorCallback(

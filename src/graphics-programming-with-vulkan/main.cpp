@@ -60,6 +60,8 @@ try
 		glm::radians(60.f), static_cast<float>(windowWidth) / windowHeight, 0.1f, 100.f
 	);
 	gfx.SetViewProjection(view, projection);
+
+	auto texture = Vulkan::Texture{ gfx.CreateTexture("paving-stones.jpg") };
 	
 	while (window.StillOpen())
 	{
@@ -72,13 +74,20 @@ try
 
 		glfw::glfwPollEvents();
 		gfx.BeginDraw().and_then(
-			[&gfx, &vertexBuffer, &indexBuffer, &indices, &rotation](
+			[&gfx, &vertexBuffer, &indexBuffer, &indices, &rotation, &texture](
 				Vulkan::Swapchain::NextSwapchainImage&& frameData
 			) -> std::optional<Vulkan::Swapchain::NextSwapchainImage>
 			{
 				gfx.CurrentCommandBuffer().Begin(); // comment this out if using gfx.RecordCommandBuffer()  vvvvvvvvv
 				gfx.SetModelMatrix(rotation);
-				gfx.RecordCommandBufferBody(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer.ToBufferHandle(), static_cast<std::uint32_t>(indices.size()));
+				gfx.RecordCommandBufferBody(
+					gfx.CurrentCommandBuffer(), 
+					frameData.ImageIndex, 
+					vertexBuffer, 
+					indexBuffer.ToBufferHandle(), 
+					static_cast<std::uint32_t>(indices.size()),
+					texture
+				);
 				//gfx.RecordCommandBuffer(gfx.CurrentCommandBuffer(), frameData.ImageIndex, vertexBuffer, indexBuffer, static_cast<std::uint32_t>(indices.size()));
 				gfx.CurrentCommandBuffer().End(); // comment this out if using gfx.RecordCommandBuffer()    ^^^^^^^^^
 				gfx.EndDraw(frameData).AdvanceFrame();

@@ -284,7 +284,8 @@ export namespace vkr
 		::vkCmdDraw,
 		::vkCmdPipelineBarrier2,
 		::vkQueueSubmit,
-		::vkQueuePresentKHR
+		::vkQueuePresentKHR,
+		::vkDestroyImage
 		;
 
 	namespace VkBufferUsageFlagBits2Constants

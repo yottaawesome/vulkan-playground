@@ -71,6 +71,30 @@ export namespace Graphics
 			return decltype(self)(self);
 		}
 
+		auto CreateTexture(
+			this CoreVulkan& self, 
+			const std::filesystem::path& filePath
+		) -> Vulkan::Texture
+		{
+			//TODO
+			return Vulkan ::Texture{};
+		}
+
+		auto SetTexture(this CoreVulkan& self, const Vulkan::Texture& texture) -> decltype(auto)
+		{
+			self.commandBuffers[self.frameIndex]
+				.BindDescriptorSets(
+					vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
+					self.pipelineLayout->GetHandle(),
+					1, // set index 1 is for textures
+					std::array{ texture.GetDescriptorSetHandle() },
+					std::array<std::uint32_t, 0>{}
+				);
+
+
+			return decltype(self)(self);
+		}
+
 		auto CreateDescriptorPools(this CoreVulkan& self) -> decltype(auto)
 		{
 			auto uniformPoolSizes = std::array{
@@ -399,7 +423,8 @@ export namespace Graphics
 			std::uint32_t imageIndex,
 			const Vulkan::BufferHandle& vertexBuffer,
 			const Vulkan::BufferHandle& indexBuffer,
-			std::uint32_t indexCount
+			std::uint32_t indexCount,
+			const Vulkan::Texture& texture
 		)
 		{
 				// Transition swapchain image: undefined -> color attachment optimal
@@ -492,12 +517,13 @@ export namespace Graphics
 			std::uint32_t imageIndex,
 			const Vulkan::BufferHandle& vertexBuffer,
 			const Vulkan::BufferHandle& indexBuffer,
-			std::uint32_t indexCount
+			std::uint32_t indexCount,
+			const Vulkan::Texture& texture
 		) -> decltype(self)
 		{
 			// Begin command buffer recording
 			commandBuffer.Begin();
-			self.RecordCommandBufferBody(commandBuffer, imageIndex, vertexBuffer, indexBuffer, indexCount);
+			self.RecordCommandBufferBody(commandBuffer, imageIndex, vertexBuffer, indexBuffer, indexCount, texture);
 			commandBuffer.End();
 
 			return decltype(self)(self);
@@ -511,7 +537,8 @@ export namespace Graphics
 			this CoreVulkan& self, 
 			const Vulkan::BufferHandle& vertexBuffer, 
 			const Vulkan::BufferHandle& indexBuffer, 
-			std::uint32_t indexCount
+			std::uint32_t indexCount,
+			const Vulkan::Texture& texture
 		) -> decltype(self)
 		{
 			auto& renderingFence = self.stillRenderingFences[self.frameIndex];
@@ -543,7 +570,7 @@ export namespace Graphics
 			//
 			//
 			// Record drawing commands
-			self.RecordCommandBuffer(commandBuffer, acquiredImage.ImageIndex, vertexBuffer, indexBuffer, indexCount);
+			self.RecordCommandBuffer(commandBuffer, acquiredImage.ImageIndex, vertexBuffer, indexBuffer, indexCount, texture);
 			//
 			//
 			//

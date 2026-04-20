@@ -4,7 +4,7 @@
 Provides raw symbol re-exports, error handling, RAII smart pointer aliases,
 instance creation, device management, swapchain, pipeline, command buffers,
 buffer management, synchronization primitives, descriptor sets, shader loading,
-and image views.
+image views, texture management, and texture samplers.
 
 ## Dependency rules
 
@@ -22,6 +22,7 @@ and image views.
   - `:vulkan.physicaldevice` depends on `:stlhelpers` (for collection
     utilities).
   - `:vulkan.uniformtransformations` depends on `:glm` (for matrix types).
+  - `:vulkan.texture` depends on `:glm` (for `glm::ivec2` image dimensions).
 
 ## Partitions
 
@@ -46,3 +47,5 @@ and image views.
 | `:vulkan.sync`                   | internal     | `Vulkan::Sync::TimelineSemaphore`, `BinarySemaphore`, `Fence`  |
 | `:vulkan.descriptors`            | internal     | `Vulkan::DescriptorSetLayout`, `DescriptorPool`, `DescriptorSet` |
 | `:vulkan.uniformtransformations` | internal     | `Vulkan::UniformTransformations` (depends on `:glm`)           |
+| `:vulkan.texture`                | internal     | `Vulkan::Texture`, `CreateImage` — image/memory/descriptor ownership and lifecycle (depends on `:vulkan.buffer`, `:vulkan.imageview`, `:glm`) |
+| `:vulkan.texturesampler`         | internal     | `Vulkan::TextureSampler`, `TextureSamplerDeleter`, `TextureSamplerUniquePtr` |

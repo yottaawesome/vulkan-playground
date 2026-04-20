@@ -27,6 +27,9 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 ├── :stlhelpers                     [ground-level] STL helper utilities
 │   └── :stlhelpers.collection
 │
+├── :stb                            [ground-level] stb_image library re-exports
+│   └── :stb.exports
+│
 ├── :file                           file I/O utilities
 │   ├── :file.file                  depends on :error
 │   └── :file.functions             depends on :error
@@ -72,13 +75,16 @@ vulkangfx                          primary module interface (vulkangfx.ixx)
 │   ├── :vulkan.buffer              depends on :error, :vulkan.exports, :vulkan.error
 │   ├── :vulkan.sync                depends on :error, :vulkan.exports, :vulkan.error
 │   ├── :vulkan.descriptors         depends on :error, :vulkan.exports, :vulkan.error
-│   └── :vulkan.uniformtransformations  depends on :glm
+│   ├── :vulkan.uniformtransformations  depends on :glm
+│   ├── :vulkan.texture             depends on :vulkan.exports, :vulkan.error,
+│   │                                          :vulkan.buffer, :vulkan.imageview, :glm
+│   └── :vulkan.texturesampler      depends on :error, :vulkan.exports, :vulkan.error
 │
 └── :graphics                       High-level graphics orchestration
     ├── :graphics.vertex            depends on :vulkan, :glm, :util
     └── :graphics.corevulkan        depends on :vulkan, :glfw, :gsl, :win32,
                                                :stlhelpers, :error, :logging,
-                                               :graphics.vertex
+                                               :graphics.vertex, :stb
 ```
 
 `main.cpp` is the application entry point and imports the `vulkangfx` module.
@@ -98,7 +104,8 @@ Layer 2 — High-level           :graphics, :logging
 Layer 1 — Subsystem composites :glfw, :win32, :vulkan, :file
                                 │
 Layer 0 — Ground-level         :raii, :glm, :gsl, :stlhelpers, :error, :string,
-                               :util, :win32.exports, :glfw.exports, :vulkan.exports
+                               :util, :stb, :win32.exports, :glfw.exports,
+                               :vulkan.exports
 ```
 
 ### Ground-level partitions
@@ -122,9 +129,11 @@ cross-subsystem dependencies:
 | `:vulkan.surface`                | `:win32`                  | Win32 surface creation |
 | `:vulkan.shaders`                | `:file`                   | Shader file loading |
 | `:vulkan.uniformtransformations` | `:glm`                    | Matrix types for uniform buffers |
+| `:vulkan.texture`                | `:glm`                    | `glm::ivec2` for image dimensions |
 | `:glfw.window`                   | `:gsl`                    | `gsl::not_null` for pointer contracts |
 | `:glfw.functions`                | `:gsl`                    | `gsl::not_null` for pointer contracts |
 | `:graphics.corevulkan`           | `:logging`                | Initialization logging |
+| `:graphics.corevulkan`           | `:stb`                    | Image loading for textures |
 
 These cross-subsystem edges mean `:vulkan`, `:glfw`, and `:graphics` are not
 fully self-contained — they sit at Layer 1–2 but have narrow, well-motivated
@@ -154,7 +163,8 @@ Each subsystem lives in its own directory with a consistent structure:
 | `win32/`       | `:win32`       | Win32 API types, error handling, RAII wrappers, events |
 | `logging/`     | `:logging`     | Named logger with console and file output (`Logger`) |
 | `glfw/`        | `:glfw`        | GLFW window/monitor management, error handling, RAII wrappers |
-| `vulkan/`      | `:vulkan`      | Vulkan API wrappers — instance, device, swapchain, pipeline, commands, buffers, synchronization, descriptors, shaders |
+| `stb/`         | `:stb`         | stb_image library re-exports for image loading |
+| `vulkan/`      | `:vulkan`      | Vulkan API wrappers — instance, device, swapchain, pipeline, commands, buffers, synchronization, descriptors, shaders, textures, samplers |
 | `graphics/`    | `:graphics`    | High-level Vulkan initialization and rendering orchestration |
 | `shaders/`     | —              | GLSL shader sources and compiled SPIR-V binaries |
 

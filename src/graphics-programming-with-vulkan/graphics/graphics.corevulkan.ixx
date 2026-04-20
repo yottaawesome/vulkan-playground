@@ -74,6 +74,101 @@ export namespace Graphics
 			return decltype(self)(self);
 		}
 
+		void CopyBufferToImage(this auto&& self, vkr::VkBuffer buffer, vkr::VkImage image, glm::ivec2 image_size)
+		{
+			auto transientCommands = self.commandPool->CreatePrimaryCommandBuffer();
+			transientCommands.BeginOneTime();
+			auto region = vkr::VkBufferImageCopy{
+				.bufferOffset = 0,
+				.bufferRowLength = 0,
+				.bufferImageHeight = 0,
+				.imageSubresource = {
+					.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+					.mipLevel = 0,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				},
+				.imageOffset = { 0, 0, 0 },
+				.imageExtent = {
+					static_cast<std::uint32_t>(image_size.x), 
+					static_cast<std::uint32_t>(image_size.y), 
+					1 
+				}
+			};
+			
+			vkr::vkCmdCopyBufferToImage(
+				transientCommands.GetHandle(), 
+				buffer, 
+				image, 
+				vkr::VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+				1, 
+				&region
+			);
+		}
+		
+		void TransitionImageLayout(
+			this auto&& self,
+			vkr::VkImage image,
+			vkr::VkImageLayout old_layout,
+			vkr::VkImageLayout new_layout
+		)
+		{
+			auto localCommandBuffer = self.commandPool->CreatePrimaryCommandBuffer();
+			localCommandBuffer.BeginOneTime();
+			auto barrier = vkr::VkImageMemoryBarrier{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				.oldLayout = old_layout,
+				.newLayout = new_layout,
+				.srcQueueFamilyIndex = vkr::QueueFamilyIgnored,
+				.dstQueueFamilyIndex = vkr::QueueFamilyIgnored,
+				.image = image,
+				.subresourceRange = { 
+					.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+				}
+			};
+
+			auto sourceStage = vkr::VkPipelineStageFlags{};
+			auto destinationStage = vkr::VkPipelineStageFlags{};
+
+			if (old_layout == vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED and
+				new_layout == vkr::VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+			)
+			{
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = vkr::VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
+				sourceStage = vkr::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				destinationStage = vkr::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+			}
+			else if (
+				old_layout == vkr::VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL and
+				new_layout == vkr::VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			)
+			{
+				barrier.srcAccessMask = vkr::VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = vkr::VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT;
+				sourceStage = vkr::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+				destinationStage = vkr::VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			}
+
+			vkr::vkCmdPipelineBarrier(
+				localCommandBuffer.GetHandle(), 
+				sourceStage, 
+				destinationStage, 
+				0, 
+				0, 
+				nullptr, 
+				0, 
+				nullptr, 
+				1,
+				&barrier
+			);
+			localCommandBuffer.End();
+		}
+
 		auto CreateTexture(
 			this CoreVulkan& self, 
 			const std::filesystem::path& filePath
@@ -118,8 +213,9 @@ export namespace Graphics
 				0, 
 				&data
 			);
-
+			std::memcpy(data, pixelData, bufferSize);
 			vkr::vkUnmapMemory(self.device->GetHandle(), stagingBuffer.Memory);
+			stb::stbi_image_free(pixelData);
 
 			Vulkan::Texture texture = Vulkan::CreateImage(
 				imageExtents,
@@ -128,8 +224,20 @@ export namespace Graphics
 				self.device->GetHandle(),
 				self.physicalDevice->GetHandle()
 			);
+
+			self.TransitionImageLayout(
+				texture.GetImageHandle(), 
+				vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED, 
+				vkr::VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+			);
+			self.CopyBufferToImage(stagingBuffer.Buffer, texture.GetImageHandle(), imageExtents);
+			self.TransitionImageLayout(
+				texture.GetImageHandle(), 
+				vkr::VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+				vkr::VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			);
+
 			stagingBuffer.Destroy(self.device->GetHandle());
-			stb::stbi_image_free(pixelData);
 
 			return texture;
 		}

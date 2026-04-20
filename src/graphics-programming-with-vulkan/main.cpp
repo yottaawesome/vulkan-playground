@@ -2,7 +2,7 @@
 import std;
 import vulkangfx;
 
-auto Logger = Log::Logger<"Main">{};
+constexpr auto Logger = Log::Logger<"Main">{};
 
 auto wWinMain(
 	Win32::HINSTANCE,

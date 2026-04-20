@@ -4,6 +4,7 @@ import :vulkan.exports;
 import :vulkan.error;
 import :vulkan.buffer;
 import :vulkan.error;
+import :vulkan.imageview;
 import :glm;
 
 export namespace Vulkan
@@ -13,15 +14,18 @@ export namespace Vulkan
 	public:
 		struct Factory;
 
-		~Texture() { Destroy(); }
+		~Texture() 
+		{ 
+			Destroy(); 
+		}
 
 		Texture(
 			vkr::VkDevice device,
 			vkr::VkImage image,
-			vkr::VkImageView imageView,
+			ImageView imageView,
 			vkr::VkDeviceMemory memory,
 			vkr::VkDescriptorSet descriptorSet
-		) : device(device), image(image), imageView(imageView), memory(memory), descriptorSet(descriptorSet) 
+		) : device(device), image(image), imageView(std::move(imageView)), memory(memory), descriptorSet(descriptorSet) 
 		{
 			if (not image)
 				throw ::Error::RuntimeError{ "Texture image cannot be nullptr." };
@@ -37,10 +41,9 @@ export namespace Vulkan
 		auto operator=(const Texture&) -> Texture & = delete;
 
 		Texture(Texture&& other) noexcept
-			: image(other.image), imageView(other.imageView), memory(other.memory), descriptorSet(other.descriptorSet)
+			: image(other.image), imageView(std::move(other.imageView)), memory(other.memory), descriptorSet(other.descriptorSet)
 		{
 			other.image = nullptr;
-			other.imageView = nullptr;
 			other.memory = nullptr;
 			other.descriptorSet = nullptr;
 		}
@@ -50,52 +53,56 @@ export namespace Vulkan
 				return *this;
 			this->~Texture(); // Clean up existing resources.
 			image = other.image;
-			imageView = other.imageView;
+			imageView = std::move(other.imageView);
 			memory = other.memory;
 			descriptorSet = other.descriptorSet;
 			other.image = nullptr;
-			other.imageView = nullptr;
 			other.memory = nullptr;
 			other.descriptorSet = nullptr;
 			return *this;
 		}
 
-		constexpr auto GetImageHandle(this auto&& self) noexcept -> vkr::VkImage
+		constexpr auto GetImageHandle(this const Texture& self) noexcept -> vkr::VkImage
 		{
 			return self.image;
 		}
-		constexpr auto GetImageHandleAddress(this auto&& self) noexcept -> vkr::VkImage*
+		constexpr auto GetImageHandleAddress(this Texture& self) noexcept -> vkr::VkImage*
 		{
 			return &self.image;
 		}
-		constexpr auto GetImageViewHandle(this auto&& self) noexcept -> vkr::VkImageView
+		constexpr auto GetImageView(this const Texture& self) noexcept -> vkr::VkImageView
 		{
-			return self.imageView;
+			return self.imageView.GetHandle();
 		}
-		constexpr auto GetMemoryHandle(this auto&& self) noexcept -> vkr::VkDeviceMemory
+		constexpr auto SetImageView(this Texture& self, ImageView&& newImageView) noexcept
+		{
+			self.imageView = std::move(newImageView);
+		}
+
+		constexpr auto GetMemoryHandle(this const Texture& self) noexcept -> vkr::VkDeviceMemory
 		{
 			return self.memory;
 		}
-		constexpr auto GetMemoryHandleAddress(this auto&& self) noexcept -> vkr::VkDeviceMemory*
+		constexpr auto GetMemoryHandleAddress(this Texture& self) noexcept -> vkr::VkDeviceMemory*
 		{
 			return &self.memory;
 		}
-		constexpr auto GetDescriptorSetHandle(this auto&& self) noexcept -> vkr::VkDescriptorSet
+		constexpr auto GetDescriptorSetHandle(this const Texture& self) noexcept -> vkr::VkDescriptorSet
 		{
 			return self.descriptorSet;
 		}
-		constexpr auto Destroy(this auto&& self) noexcept
+		constexpr auto GetDescriptorSetHandleAddress(this Texture& self) noexcept -> vkr::VkDescriptorSet*
+		{
+			return &self.descriptorSet;
+		}
+		constexpr auto Destroy(this Texture& self) noexcept
 		{
 			if (self.descriptorSet)
 			{
 				// Descriptor sets are implicitly freed when the pool is reset or destroyed.
 				self.descriptorSet = nullptr;
 			}
-			if (self.imageView)
-			{
-				vkr::vkDestroyImageView(self.device, self.imageView, nullptr);
-				self.imageView = nullptr;
-			}
+			self.imageView.Destroy();
 			if (self.image)
 			{
 				vkr::vkDestroyImage(self.device, self.image, nullptr);
@@ -110,7 +117,7 @@ export namespace Vulkan
 	private:
 		vkr::VkDevice device = nullptr;
 		vkr::VkImage image = nullptr;
-		vkr::VkImageView imageView = nullptr;
+		ImageView imageView;
 		vkr::VkDeviceMemory memory = nullptr;
 		vkr::VkDescriptorSet descriptorSet = nullptr;
 	};
@@ -167,6 +174,6 @@ export namespace Vulkan
 
 		vkr::vkBindImageMemory(device, image, memory, 0);
 
-		return Texture{ device, image, nullptr, memory, nullptr };
+		return Texture{ device, image, ImageView{}, memory, nullptr };
 	}
 }

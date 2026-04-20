@@ -15,16 +15,13 @@ try
 	Logger.Info("Application started.");
 
 	// These are only here to allow breakpoints to be hit in the event of an unhandled exception or abort signal.
-	std::signal(
-		SIGABRT,
-		[](int signal)
-		{
-			int x = 10;
+	std::signal(SIGABRT, 
+		[]([[maybe_unused]] int signal) { 
+			[[maybe_unused]] int x = 10; 
 		});
 	std::set_terminate(
-		[] 
-		{
-			int x = 10;
+		[] { 
+			[[maybe_unused]] int x = 10; 
 		});
 
 	auto context = glfw::Context{};

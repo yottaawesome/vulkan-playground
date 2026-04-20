@@ -104,6 +104,9 @@ export namespace Graphics
 				1, 
 				&region
 			);
+			transientCommands.End();
+			self.deviceQueue->SubmitBuffer(transientCommands.GetHandle());
+			self.deviceQueue->WaitIdle();
 		}
 		
 		void TransitionImageLayout(
@@ -167,6 +170,8 @@ export namespace Graphics
 				&barrier
 			);
 			localCommandBuffer.End();
+			self.deviceQueue->SubmitBuffer(localCommandBuffer.GetHandle());
+			self.deviceQueue->WaitIdle();
 		}
 
 		auto CreateTexture(
@@ -181,7 +186,7 @@ export namespace Graphics
 			stb::stbi_uc* pixelData = 
 				stb::stbi_load_from_memory(
 					reinterpret_cast<stbi_uc*>(const_cast<std::byte*>(fileBytes.data())),
-					fileBytes.size(),
+					static_cast<int>(fileBytes.size()),
 					&imageExtents.x,
 					&imageExtents.y,
 					&channels,
@@ -237,6 +242,55 @@ export namespace Graphics
 				vkr::VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			);
 
+			auto imageView = 
+				Vulkan::ImageView::Factory{
+					.Device = self.device->GetHandle(),
+					.Image = texture.GetImageHandle(),
+					.ViewType = vkr::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
+					.Format = vkr::VkFormat::VK_FORMAT_R8G8B8A8_SRGB,
+					.Components {
+						.r = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+						.g = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+						.b = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+						.a = vkr::VkComponentSwizzle::VK_COMPONENT_SWIZZLE_IDENTITY,
+					},
+					.SubresourceRange {
+						.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = 1,
+						.baseArrayLayer = 0,
+						.layerCount = 1
+					}
+				}();
+			texture.SetImageView(std::move(imageView));
+
+			auto layouts = std::array{ self.textureSetLayout->GetHandle() };
+			auto set_info = vkr::VkDescriptorSetAllocateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+				.descriptorPool = self.texturePool->GetHandle(),
+				.descriptorSetCount = static_cast<std::uint32_t>(layouts.size()),
+				.pSetLayouts = layouts.data()
+			};
+
+			auto result = Vulkan::Result{vkr::vkAllocateDescriptorSets(self.device->GetHandle(), &set_info, texture.GetDescriptorSetHandleAddress())};
+			if (not result) 
+				throw Vulkan::VulkanError{ result, "Failed to allocate descriptor set for texture." };
+
+			auto image_info = vkr::VkDescriptorImageInfo{};
+			image_info.imageLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			image_info.imageView = texture.GetImageView();
+			image_info.sampler = self.textureSampler->GetHandle();
+
+			vkr::VkWriteDescriptorSet descriptor_write = {};
+			descriptor_write.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptor_write.dstSet = texture.GetDescriptorSetHandle();
+			descriptor_write.dstBinding = 0;
+			descriptor_write.dstArrayElement = 0;
+			descriptor_write.descriptorType = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptor_write.descriptorCount = 1;
+			descriptor_write.pImageInfo = &image_info;
+
+			vkr::vkUpdateDescriptorSets(self.device->GetHandle(), 1, &descriptor_write, 0, nullptr);
 			stagingBuffer.Destroy(self.device->GetHandle());
 
 			return texture;
@@ -253,7 +307,6 @@ export namespace Graphics
 					std::array<std::uint32_t, 0>{}
 				);
 
-
 			return decltype(self)(self);
 		}
 
@@ -264,7 +317,7 @@ export namespace Graphics
 					.type = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					.descriptorCount = 1,
 				}};
-			self.uniformPool = Vulkan::DescriptorPool{ uniformPoolSizes, 1, self.device->GetHandle()};
+			self.uniformPool = Vulkan::DescriptorPool{ uniformPoolSizes, 1, self.device->GetHandle(), vkr::VkDescriptorPoolCreateFlags{ 0 } };
 
 			auto properties = self.physicalDevice->GetProperties();
 			auto texturePoolSizes = std::array{
@@ -272,7 +325,12 @@ export namespace Graphics
 					.type = vkr::VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 					.descriptorCount = 1024
 				}};
-			self.texturePool = Vulkan::DescriptorPool{ texturePoolSizes, 1024, self.device->GetHandle() };
+			self.texturePool = Vulkan::DescriptorPool{ 
+				texturePoolSizes, 
+				1024, 
+				self.device->GetHandle(), 
+				vkr::VkDescriptorPoolCreateFlags{ vkr::VkDescriptorPoolCreateFlagBits::VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT } 
+			};
 
 			return decltype(self)(self);
 		}
@@ -586,7 +644,7 @@ export namespace Graphics
 			const Vulkan::BufferHandle& vertexBuffer,
 			const Vulkan::BufferHandle& indexBuffer,
 			std::uint32_t indexCount,
-			const Vulkan::Texture& texture
+			[[maybe_unused]]const Vulkan::Texture& texture
 		)
 		{
 				// Transition swapchain image: undefined -> color attachment optimal
@@ -641,6 +699,13 @@ export namespace Graphics
 				// Draw the hardcoded triangle (3 vertices defined in the vertex shader)
 				.BindVertexBuffer(vertexBuffer.Buffer)
 				.BindIndexBuffer(indexBuffer.Buffer, vkr::VkIndexType::VK_INDEX_TYPE_UINT32)
+				.BindDescriptorSets(
+					vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
+					self.pipelineLayout->GetHandle(),
+					1, // set index 1 is for textures
+					std::array{ texture.GetDescriptorSetHandle() },
+					std::array<std::uint32_t, 0>{}
+				)
 				.BindDescriptorSets(
 					vkr::VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
 					self.pipelineLayout->GetHandle(),
@@ -1077,7 +1142,7 @@ export namespace Graphics
 			self.logger.Info("Creating image views...");
 
 			self.swapchainImageViews.clear();
-			auto factory = Vulkan::ImageViewFactory{
+			auto factory = Vulkan::ImageView::Factory{
 				.Device = self.device->GetHandle(),
 				.ViewType = vkr::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
 				.Format = self.swapChainSurfaceFormat.format,
@@ -1228,7 +1293,7 @@ export namespace Graphics
 							.offset = 0,
 							.size = sizeof(glm::mat4)
 						};
-					auto layouts = std::array{ self.uniformSetLayout->GetHandle() };
+					auto layouts = std::array{ self.uniformSetLayout->GetHandle(), self.textureSetLayout->GetHandle() };
 					auto pipelineLayoutFactory = 
 						Vulkan::PipelineLayoutFactory{
 							.Device = self.device->GetHandle(),
@@ -1237,8 +1302,8 @@ export namespace Graphics
 								.pSetLayouts = layouts.data(),
 								.pushConstantRangeCount = 1,
 								.pPushConstantRanges = &modelMatrixRange,
-						}
-					};
+							}
+						};
 					return pipelineLayoutFactory();
 				}();
 

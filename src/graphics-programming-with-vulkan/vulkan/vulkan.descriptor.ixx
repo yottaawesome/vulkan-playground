@@ -52,7 +52,7 @@ export namespace Vulkan
 			: layout(std::move(layoutIn))
 		{}
 
-		constexpr auto GetHandle(this const DescriptorSetLayout& self) noexcept -> vkr::VkDescriptorSetLayout
+		constexpr auto GetHandle(this auto&& self) noexcept -> vkr::VkDescriptorSetLayout
 		{
 			return self.layout.get();
 		}
@@ -86,11 +86,13 @@ export namespace Vulkan
 		DescriptorPool(
 			std::ranges::range auto&& poolSizes, 
 			std::uint32_t maxSets, 
-			vkr::VkDevice device
+			vkr::VkDevice device,
+			vkr::VkDescriptorPoolCreateFlags flags
 		)
 		{
 			auto poolInfo = vkr::VkDescriptorPoolCreateInfo{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+				.flags = flags,
 				.maxSets = maxSets,
 				.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size()),
 				.pPoolSizes = poolSizes.data(),

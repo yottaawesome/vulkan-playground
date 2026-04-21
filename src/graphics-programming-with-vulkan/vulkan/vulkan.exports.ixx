@@ -202,6 +202,7 @@ export namespace vkr
 		::VkImageMemoryBarrier,
 		::VkAccessFlagBits,
 		::VkDescriptorImageInfo,
+		::VkImageUsageFlags,
 		::VkDescriptorPoolCreateFlags,
 		::VkDescriptorPoolCreateFlagBits,
 		::vkCmdPipelineBarrier,

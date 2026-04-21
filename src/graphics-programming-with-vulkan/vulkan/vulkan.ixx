@@ -22,3 +22,4 @@ export import :vulkan.descriptors;
 export import :vulkan.formatters;
 export import :vulkan.texturesampler;
 export import :vulkan.texture;
+export import :vulkan.depthtesting;

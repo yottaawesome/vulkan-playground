@@ -163,6 +163,7 @@
     <ClCompile Include="raii\raii.ixx" />
     <ClCompile Include="vulkan\vulkan.buffer.ixx" />
     <ClCompile Include="vulkan\vulkan.commands.ixx" />
+    <ClCompile Include="vulkan\vulkan.depthtesting.ixx" />
     <ClCompile Include="vulkan\vulkan.descriptor.ixx" />
     <ClCompile Include="vulkan\vulkan.devicequeue.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />

@@ -1,29 +1,12 @@
 export module vulkangfx:vulkan.buffer;
 import std;
+import :error;
 import :vulkan.exports;
 import :vulkan.error;
-import :error;
+import :vulkan.memory;
 
 export namespace Vulkan
 {
-	auto FindMemoryType(
-		vkr::VkPhysicalDevice physicalDevice,
-		std::uint32_t typeFilter,
-		vkr::VkMemoryPropertyFlags properties
-	) -> std::uint32_t
-	{
-		auto memProperties = vkr::VkPhysicalDeviceMemoryProperties{};
-		vkr::vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-		for (std::uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-		{
-			bool passesTypeFilter = typeFilter & (1 << i);
-			bool hasRequiredProperties = (memProperties.memoryTypes[i].propertyFlags & properties) == properties;
-			if (passesTypeFilter and hasRequiredProperties)
-				return i;
-		}
-		throw Error::RuntimeError("Failed to find suitable memory type.");
-	}
-
 	struct BufferHandle
 	{
 		vkr::VkBuffer Buffer = nullptr;
@@ -92,22 +75,6 @@ export namespace Vulkan
 		}
 	};
 	using BufferUniquePtr = std::unique_ptr<std::remove_pointer_t<vkr::VkBuffer>, BufferDeleter>;
-	struct MemoryDeleter
-	{
-		vkr::VkDevice Device = nullptr;
-		MemoryDeleter() = default;
-		MemoryDeleter(vkr::VkDevice device) : Device(device)
-		{
-			if (not Device)
-				throw Error::RuntimeError("MemoryDeleter requires a valid VkDevice.");
-		}
-		void operator()(this const MemoryDeleter& self, vkr::VkDeviceMemory memoryHandle) noexcept
-		{
-			vkr::vkFreeMemory(self.Device, memoryHandle, nullptr);
-		}
-	};
-	using MemoryUniquePtr = std::unique_ptr<std::remove_pointer_t<vkr::VkDeviceMemory>, MemoryDeleter>;
-
 
 	class VulkanBuffer
 	{
@@ -133,37 +100,6 @@ export namespace Vulkan
 		}
 	protected:
 		BufferUniquePtr buffer;
-	};
-
-	class VulkanMemory
-	{
-	public:
-		VulkanMemory() = default;
-
-		static auto CreateMemory(
-			vkr::VkDevice device,
-			vkr::VkBuffer buffer,
-			vkr::VkPhysicalDevice physicalDevice,
-			vkr::VkMemoryPropertyFlags memoryProperties
-		) -> MemoryUniquePtr
-		{
-			auto memoryRequirements = vkr::VkMemoryRequirements{};
-			vkr::vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
-			auto chosenMemoryType = Vulkan::FindMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, memoryProperties);
-			auto allocInfo = vkr::VkMemoryAllocateInfo{
-				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-				.pNext = nullptr,
-				.allocationSize = memoryRequirements.size,
-				.memoryTypeIndex = chosenMemoryType
-			};
-			auto memoryHandle = vkr::VkDeviceMemory{};
-			auto result = Vulkan::Result{ vkr::vkAllocateMemory(device, &allocInfo, nullptr, &memoryHandle) };
-			if (not result)
-				throw VulkanError{ result, "Failed to allocate buffer memory." };
-			return MemoryUniquePtr{ memoryHandle, MemoryDeleter(device) };
-		}
-	protected:
-		MemoryUniquePtr memory;
 	};
 
 	class GenericBuffer
@@ -303,7 +239,7 @@ export namespace Vulkan
 				throw Error::RuntimeError("BufferFactory requires a valid VkPhysicalDevice.");
 
 			self.buffer = VulkanBuffer::CreateBuffer(self.size, self.device, static_cast<vkr::VkBufferUsageFlagBits>(vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | additionalUsageFlags), sharingMode);
-			self.memory = VulkanMemory::CreateMemory(self.device, self.buffer.get(), physicalDevice, memoryProperties);
+			self.memory = DeviceMemory::CreateMemory(self.device, self.buffer.get(), physicalDevice, memoryProperties);
 
 			vkr::vkBindBufferMemory(self.device, self.buffer.get(), self.memory.get(), 0);
 			void* data;
@@ -361,7 +297,7 @@ export namespace Vulkan
 				throw Error::RuntimeError("BufferFactory requires a valid VkPhysicalDevice.");
 
 			self.buffer = VulkanBuffer::CreateBuffer(self.size, self.device, static_cast<vkr::VkBufferUsageFlagBits>(vkr::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT | additionalUsageFlags), sharingMode);
-			self.memory = VulkanMemory::CreateMemory(self.device, self.buffer.get(), physicalDevice, memoryProperties);
+			self.memory = CreateMemory(self.device, self.buffer.get(), physicalDevice, memoryProperties);
 			vkr::vkBindBufferMemory(self.device, self.buffer.get(), self.memory.get(), 0);
 		}
 	};

@@ -647,7 +647,7 @@ export namespace Graphics
 			[[maybe_unused]]const Vulkan::Texture& texture
 		)
 		{
-				// Transition swapchain image: undefined -> color attachment optimal
+			// Transition swapchain image: undefined -> color attachment optimal
 			commandBuffer
 				.PipelineBarrier2Ex(
 					vkr::VkImageMemoryBarrier2{

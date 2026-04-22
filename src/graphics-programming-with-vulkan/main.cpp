@@ -23,6 +23,14 @@ try
 		[] { 
 			[[maybe_unused]] int x = 10; 
 		});
+	Win32::AddVectoredExceptionHandler(
+		1, 
+		[]([[maybe_unused]] Win32::PEXCEPTION_POINTERS exceptionInfo) -> Win32::LONG
+		{
+			[[maybe_unused]] int x = 10;
+			return Win32::Exception::ContinueSearch;
+		}
+	);
 
 	auto context = glfw::Context{};
 	glfw::SetErrorCallback(

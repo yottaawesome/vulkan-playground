@@ -4,7 +4,7 @@ import :vulkan.exports;
 import :vulkan.error;
 import :vulkan.buffer;
 import :vulkan.error;
-import :vulkan.imageview;
+import :vulkan.image;
 import :glm;
 
 export namespace Vulkan
@@ -151,7 +151,7 @@ export namespace Vulkan
 			.sharingMode = vkr::VkSharingMode::VK_SHARING_MODE_EXCLUSIVE,
 			.initialLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
 		};
-		vkr::VkImage image = nullptr;
+		auto image = vkr::VkImage{};
 		auto result = Result{ vkr::vkCreateImage(device, &imageCreateInfo, nullptr, &image) };
 		if (not result)
 			throw VulkanError{ result, "Failed to create image." };

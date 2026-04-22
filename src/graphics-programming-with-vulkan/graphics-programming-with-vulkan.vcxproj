@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="concepts\concepts.ixx" />
     <ClCompile Include="error\error.ixx" />
     <ClCompile Include="file\file.file.ixx" />
     <ClCompile Include="file\file.functions.ixx" />
@@ -168,11 +169,12 @@
     <ClCompile Include="vulkan\vulkan.devicequeue.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
     <ClCompile Include="vulkan\vulkan.formatters.ixx" />
-    <ClCompile Include="vulkan\vulkan.imageview.ixx" />
+    <ClCompile Include="vulkan\vulkan.image.ixx" />
     <ClCompile Include="vulkan\vulkan.instance.ixx" />
     <ClCompile Include="vulkan\vulkan.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />
     <ClCompile Include="vulkan\vulkan.device.ixx" />
+    <ClCompile Include="vulkan\vulkan.memory.ixx" />
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
     <ClCompile Include="vulkan\vulkan.pipeline.ixx" />
     <ClCompile Include="vulkan\vulkan.raii.ixx" />

@@ -123,7 +123,7 @@
     <ClCompile Include="file\file.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.imageview.ixx">
+    <ClCompile Include="vulkan\vulkan.image.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.shader.ixx">
@@ -175,6 +175,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\vulkan.depthtesting.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.memory.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="concepts\concepts.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

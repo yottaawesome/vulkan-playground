@@ -17,6 +17,9 @@ export namespace Win32
 		::DWORD,
 		::HRESULT,
 		::HWND,
+		::PEXCEPTION_POINTERS,
+		::LONG,
+		::AddVectoredExceptionHandler,
 		::AllocConsole,
 		::FreeConsole,
 		::GetModuleHandleW,
@@ -32,6 +35,16 @@ export namespace Win32
 		::CloseHandle,
 		::MessageBoxA
 		;
+
+	namespace Exception
+	{
+		enum : LONG
+		{
+			ContinueSearch = EXCEPTION_CONTINUE_SEARCH,
+			ContinueExecution = EXCEPTION_CONTINUE_EXECUTION,
+			ExecuteHandler = EXCEPTION_EXECUTE_HANDLER
+		};
+	}
 
 	namespace EventAccess
 	{

@@ -103,6 +103,7 @@ export namespace vkr
 		::VkCullModeFlagBits,
 		::VkCullModeFlags,
 		::VkPipelineMultisampleStateCreateInfo,
+		::VkPipelineDepthStencilStateCreateInfo,
 		::VkSampleCountFlagBits,
 		::VkSampleCountFlags,
 		::VkPipelineColorBlendAttachmentState,
@@ -328,6 +329,8 @@ export namespace vkr
 		constexpr VkPipelineStageFlags2
 			None = VK_PIPELINE_STAGE_2_NONE,
 			ColorAttachmentOutput = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			EarlyFragmentTests = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+			LateFragmentTests = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 			BottomOfPipe = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
 	}
 
@@ -335,7 +338,9 @@ export namespace vkr
 	{
 		constexpr VkAccessFlags2
 			None = VK_ACCESS_2_NONE,
-			ColorAttachmentWrite = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			ColorAttachmentWrite = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			DepthStencilAttachmentRead = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			DepthStencilAttachmentWrite = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
 
 	auto VersionToString(std::uint32_t version) noexcept -> std::string

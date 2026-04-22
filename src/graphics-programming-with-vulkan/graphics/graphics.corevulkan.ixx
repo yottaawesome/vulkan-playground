@@ -35,6 +35,7 @@ export namespace Graphics
 				.CreateLogicalDevice()
 				.CreateSwapChain()
 				.CreateImageViews()
+				.CreateDepthResources()
 				.CreateSyncObjects()
 				.CreateDescriptorSetLayouts()
 				.CreateGraphicsPipeline()
@@ -491,6 +492,7 @@ export namespace Graphics
 
 		void CleanupSwapChain(this CoreVulkan& self)
 		{
+			self.depthImage.reset();
 			self.swapchainImageViews.clear();
 			self.swapchain.reset();
 		}
@@ -521,6 +523,7 @@ export namespace Graphics
 			self.CleanupSwapChain();
 			self.CreateSwapChain();
 			self.CreateImageViews();
+			self.CreateDepthResources();
 		}
 		
 		struct FrameData
@@ -669,6 +672,29 @@ export namespace Graphics
 							.layerCount = 1
 						}
 					})
+				// Transition depth image: undefined -> depth attachment optimal.
+				// We discard prior contents each frame (LOAD_OP_CLEAR), so UNDEFINED
+				// as oldLayout is valid and cheapest on every recreate.
+				.PipelineBarrier2Ex(
+					vkr::VkImageMemoryBarrier2{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.srcStageMask = vkr::PipelineStage2::EarlyFragmentTests | vkr::PipelineStage2::LateFragmentTests,
+						.srcAccessMask = vkr::Access2::None,
+						.dstStageMask = vkr::PipelineStage2::EarlyFragmentTests | vkr::PipelineStage2::LateFragmentTests,
+						.dstAccessMask = vkr::Access2::DepthStencilAttachmentWrite,
+						.oldLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.srcQueueFamilyIndex = vkr::QueueFamilyIgnored,
+						.dstQueueFamilyIndex = vkr::QueueFamilyIgnored,
+						.image = self.depthImage->GetImage(),
+						.subresourceRange = {
+							.aspectMask = vkr::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT,
+							.baseMipLevel = 0,
+							.levelCount = 1,
+							.baseArrayLayer = 0,
+							.layerCount = 1
+						}
+					})
 				// Begin dynamic rendering
 				.BeginRendering(
 					vkr::VkRect2D{
@@ -682,6 +708,14 @@ export namespace Graphics
 						.loadOp = vkr::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
 						.storeOp = vkr::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE,
 						.clearValue = vkr::VkClearValue{.color = {.float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } }
+					},
+					vkr::VkRenderingAttachmentInfo{
+						.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+						.imageView = self.depthImage->GetImageView(),
+						.imageLayout = vkr::VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						.loadOp = vkr::VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
+						.storeOp = vkr::VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE,
+						.clearValue = vkr::VkClearValue{.depthStencil = { 1.0f, 0 } }
 					}
 				)
 				// Bind pipeline and set dynamic state
@@ -1170,6 +1204,26 @@ export namespace Graphics
 			return decltype(self)(self);
 		}
 
+		auto CreateDepthResources(this CoreVulkan& self) -> decltype(self)
+		{
+			self.logger.Info("Creating depth resources...");
+
+			static constexpr auto candidateFormats = std::array{
+				vkr::VkFormat::VK_FORMAT_D32_SFLOAT,
+				vkr::VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT,
+				vkr::VkFormat::VK_FORMAT_D24_UNORM_S8_UINT
+			};
+
+			self.depthImage = Vulkan::DepthImage::Factory{
+				.Device = self.device->GetHandle(),
+				.PhysicalDevice = self.physicalDevice->GetHandle(),
+				.Extent = self.swapChainExtent,
+				.CandidateFormats = candidateFormats
+			}();
+
+			return decltype(self)(self);
+		}
+
 		auto CreateSyncObjects(this CoreVulkan& self) -> decltype(self)
 		{
 			self.logger.Info("Creating synchronization objects...");
@@ -1310,7 +1364,17 @@ export namespace Graphics
 			auto pipelineRenderingInfo = vkr::VkPipelineRenderingCreateInfo{
 				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 				.colorAttachmentCount = 1,
-				.pColorAttachmentFormats = &self.swapChainSurfaceFormat.format
+				.pColorAttachmentFormats = &self.swapChainSurfaceFormat.format,
+				.depthAttachmentFormat = self.depthImage->GetFormat(),
+			};
+
+			auto depthStencilInfo = vkr::VkPipelineDepthStencilStateCreateInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+				.depthTestEnable = true,
+				.depthWriteEnable = true,
+				.depthCompareOp = vkr::VkCompareOp::VK_COMPARE_OP_LESS,
+				.depthBoundsTestEnable = false,
+				.stencilTestEnable = false,
 			};
 
 			auto colorBlendingInfo = vkr::VkPipelineColorBlendStateCreateInfo{
@@ -1331,6 +1395,7 @@ export namespace Graphics
 					.pViewportState = &viewportInfo,
 					.pRasterizationState = &rasterizationStateInfo,
 					.pMultisampleState = &multisamplingInfo,
+					.pDepthStencilState = &depthStencilInfo,
 					.pColorBlendState = &colorBlendingInfo,
 					.pDynamicState = &dynamicStateInfo,
 					.layout = self.pipelineLayout->GetHandle(),
@@ -1495,6 +1560,7 @@ export namespace Graphics
 		std::optional<Vulkan::Swapchain> swapchain;
 		Vulkan::SwapchainImages swapchainImages;
 		std::vector<Vulkan::ImageView> swapchainImageViews;
+		std::optional<Vulkan::DepthImage> depthImage;
 		std::optional<Vulkan::PipelineLayout> pipelineLayout;
 		std::optional<Vulkan::Pipeline> pipeline;
 		std::optional<Vulkan::CommandPool> commandPool;

@@ -165,6 +165,28 @@ export namespace Vulkan
 			return decltype(self)(self);
 		}
 
+		// Convenience overload that also binds a depth attachment. Same pointer-
+		// lifetime caveat as the color-only overload: safe because vkCmdBeginRendering
+		// consumes the data during the call.
+		auto BeginRendering(
+			this const CommandBuffer& self,
+			const vkr::VkRect2D& renderArea,
+			const vkr::VkRenderingAttachmentInfo& colorAttachment,
+			const vkr::VkRenderingAttachmentInfo& depthAttachment
+		) -> decltype(self)
+		{
+			auto renderingInfo = vkr::VkRenderingInfo{
+				.sType = vkr::VkStructureType::VK_STRUCTURE_TYPE_RENDERING_INFO,
+				.renderArea = renderArea,
+				.layerCount = 1,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &colorAttachment,
+				.pDepthAttachment = &depthAttachment
+			};
+			vkr::vkCmdBeginRendering(self.commandBuffer.get(), &renderingInfo);
+			return decltype(self)(self);
+		}
+
 		auto EndRendering(this const CommandBuffer& self) -> decltype(self)
 		{
 			vkr::vkCmdEndRendering(self.commandBuffer.get());

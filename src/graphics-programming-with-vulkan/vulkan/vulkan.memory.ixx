@@ -76,7 +76,7 @@ export namespace Vulkan
 		constexpr DeviceMemory(MemoryUniquePtr memoryIn)
 			: memory(std::move(memoryIn))
 		{
-			if (memory)
+			if (not memory)
 				throw Error::RuntimeError{ "Memory handle must not be null." };
 		}
 

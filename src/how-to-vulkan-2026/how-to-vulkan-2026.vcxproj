@@ -148,7 +148,7 @@
     <ClCompile Include="tinyobj\tinyobj.ixx" />
     <ClCompile Include="util\util.ixx" />
     <ClCompile Include="vulkan26.ixx" />
-    <ClCompile Include="vulkan\vulkan.buffer.ixx" />
+    <ClCompile Include="vulkan\vma\vma.buffer.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
     <ClCompile Include="vulkan\vulkan.image.ixx" />
@@ -159,7 +159,7 @@
     <ClCompile Include="vulkan\vulkan.resource.ixx" />
     <ClCompile Include="vulkan\vulkan.surface.ixx" />
     <ClCompile Include="vulkan\vulkan.swapchain.ixx" />
-    <ClCompile Include="vulkan\vulkan.vma.allocator.ixx" />
+    <ClCompile Include="vulkan\vma\vma.allocator.ixx" />
     <ClCompile Include="win32\win32.ixx" />
   </ItemGroup>
   <ItemGroup>

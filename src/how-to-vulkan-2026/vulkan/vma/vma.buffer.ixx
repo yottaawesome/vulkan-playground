@@ -3,7 +3,7 @@ import std;
 import :vulkan.exports;
 import :error;
 
-export namespace vk
+export namespace vma
 {
 	class VmaBufferDeleter
 	{
@@ -45,6 +45,14 @@ export namespace vk
 		constexpr auto GetBuffer(this const VmaBuffer& self) -> VkBuffer
 		{
 			return self.buffer.get();
+		}
+		constexpr auto GetAllocation(this const VmaBuffer& self) -> vma::VmaAllocation
+		{
+			return self.buffer.get_deleter().GetAllocation();
+		}
+		constexpr auto GetAllocator(this const VmaBuffer& self) -> vma::VmaAllocator
+		{
+			return self.buffer.get_deleter().GetAllocator();
 		}
 	private:
 		VmaBufferUniquePtr buffer;

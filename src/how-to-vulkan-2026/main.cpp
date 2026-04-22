@@ -340,12 +340,13 @@ try
 				} 
 			};
 			auto depthImageView = vk::VkImageView{};
-			result = vk::vkCreateImageView(
-				device.Get(), 
-				&depthViewCi, 
-				nullptr, 
-				&depthImageView
-			);
+			result = vk::Result{ 
+				vk::vkCreateImageView(
+					device.Get(),
+					&depthViewCi,
+					nullptr,
+					&depthImageView
+				)};
 			if (not result)
 				throw vk::Error{ result };
 
@@ -381,6 +382,31 @@ try
 			}
 			return { vertices , indices};
 		}();
+
+
+
+	auto vBufSize = VkDeviceSize{ sizeof(Mesh::Vertex) * meshData.Vertices.size() };
+	auto iBufSize = VkDeviceSize{ sizeof(std::uint16_t) * meshData.Indices.size() };
+	// Note that the buffer combines vertex and index data.
+	auto bufferCI = VkBufferCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = vBufSize + iBufSize,
+		.usage = vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+	};
+	auto vBufferAllocCI = vma::VmaAllocationCreateInfo{
+		.flags = 
+			vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT 
+			| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT 
+			| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
+		.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+	};
+	auto vBufferAllocInfo = vma::VmaAllocationInfo{};
+	auto vBuffer = vk::VkBuffer{};
+	auto vBufferAllocation = vma::VmaAllocation{};
+	auto result = vk::Result{ vma::vmaCreateBuffer(allocator.Get(), &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo)};
+	if (not result)
+		throw vk::Error{ result };
+
 
 	return 0;
 }

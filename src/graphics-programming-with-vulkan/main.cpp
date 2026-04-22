@@ -50,14 +50,26 @@ try
 	gfx.Initialise();
 
 	auto vertices = std::array{
-		Graphics::Vertex{ glm::vec3{ -0.5f, -0.5f, 0.0f }, glm::vec2{ 0.0f, 1.0f} }, // top-left
-		Graphics::Vertex{ glm::vec3{ 0.5f, -0.5f, 0.0f }, glm::vec2{ 1.0f, 1.0f} }, // top-right
-		Graphics::Vertex{ glm::vec3{ -0.5f, 0.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f} }, // bottom-left
-		Graphics::Vertex{ glm::vec3{ 0.5f, 0.5f, 0.0f }, glm::vec2{ 1.0f, 0.0f} } // bottom-right
+		// Back quad at z = 0.0
+		Graphics::Vertex{ glm::vec3{ -0.5f, -0.5f, 0.0f }, glm::vec2{ 0.0f, 1.0f} }, // 0: top-left
+		Graphics::Vertex{ glm::vec3{  0.5f, -0.5f, 0.0f }, glm::vec2{ 1.0f, 1.0f} }, // 1: top-right
+		Graphics::Vertex{ glm::vec3{ -0.5f,  0.5f, 0.0f }, glm::vec2{ 0.0f, 0.0f} }, // 2: bottom-left
+		Graphics::Vertex{ glm::vec3{  0.5f,  0.5f, 0.0f }, glm::vec2{ 1.0f, 0.0f} }, // 3: bottom-right
+		// Front quad at z = 0.3 (nearer the camera at +Z), shifted so it overlaps only
+		// part of the back quad — the unoccluded corner of the back quad confirms
+		// depth testing is correctly letting the far fragments through where there
+		// is no near geometry.
+		Graphics::Vertex{ glm::vec3{ -0.2f, -0.2f, 0.3f }, glm::vec2{ 0.0f, 1.0f} }, // 4
+		Graphics::Vertex{ glm::vec3{  0.8f, -0.2f, 0.3f }, glm::vec2{ 1.0f, 1.0f} }, // 5
+		Graphics::Vertex{ glm::vec3{ -0.2f,  0.8f, 0.3f }, glm::vec2{ 0.0f, 0.0f} }, // 6
+		Graphics::Vertex{ glm::vec3{  0.8f,  0.8f, 0.3f }, glm::vec2{ 1.0f, 0.0f} }, // 7
 	};
 	auto vertexBuffer = Vulkan::BufferHandle{gfx.CreateVertexBuffer(vertices)};
 
-	auto indices = std::array{ 0u, 3u, 2u, 0u, 1u, 3u };
+	auto indices = std::array{
+		0u, 3u, 2u, 0u, 1u, 3u, // back quad
+		4u, 7u, 6u, 4u, 5u, 7u  // front quad
+	};
 	auto indexBuffer = Vulkan::IndexBuffer{ gfx.CreateIndexBuffer(indices) };
 
 	// Recreate the swap chain if the framebuffer has been resized, usually when the user resizes the window. 
@@ -89,7 +101,7 @@ try
 		start = now;
 		angle += std::chrono::duration<float>(diff).count()*20;
 
-		//auto rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f });
+		rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3{ 0.0f, 0.0f, 1.0f });
 
 		glfw::glfwPollEvents();
 		gfx.BeginDraw().and_then(

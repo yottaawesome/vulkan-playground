@@ -8,6 +8,10 @@ My coursework for [Graphics Programming with Vulkan and C++](https://www.udemy.c
 
 I've actually not followed the course that closely, as I have introduced my own structure, classes and other modifications. The course material is rather dated due to its reliance on Vulkan 1.0 and the old renderpass/framebuffer functionality, so I've opted to use Vulkan 1.3+'s dynamic rendering instead.
 
+## Warning
+
+The course is actually quite dated; it's very much rooted in Vulkan 1.0 and the old renderpass/framebuffer functionality, so I would not recommend it. If you want to learn Vulkan, I would recommend looking for more up-to-date resources that cover Vulkan 1.3+ -- [How to Vulkan in 2026](https://www.howtovulkan.com) is a good start.
+
 ## Notes
 
 ### High-level Vulkan components

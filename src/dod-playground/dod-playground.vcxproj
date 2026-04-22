@@ -85,6 +85,7 @@
     <ClCompile Include="dod.lesson02_sort_keys.ixx" />
     <ClCompile Include="dod.lesson03_indirect.ixx" />
     <ClCompile Include="dod.lesson04_framegraph.ixx" />
+    <ClCompile Include="dod.lesson05_bda.ixx" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

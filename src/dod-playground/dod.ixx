@@ -7,3 +7,4 @@ export import :lesson01;
 export import :lesson02;
 export import :lesson03;
 export import :lesson04;
+export import :lesson05;

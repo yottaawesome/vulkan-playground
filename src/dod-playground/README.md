@@ -64,6 +64,19 @@ would insert between passes that share a resource. Then it "executes".
 **Ask yourself:** what changes if you want the shadow pass on the async
 compute queue? (Hint: add a `queue` field to `Pass`. That's it.)
 
+### 5. `dod.lesson05_bda.ixx` — Buffer device address, modelled in C++
+
+Models Vulkan 1.2's `VK_KHR_buffer_device_address` with plain pointers.
+A `SceneData` struct holds pointers to transform / material / mesh tables;
+the "vertex shader" dereferences those pointers just like GLSL would with
+`GL_EXT_buffer_reference`. Compares bind counts against a descriptor-set-style
+submission of the same draws.
+
+**Ask yourself:** what is the C++ equivalent of `vkGetBufferDeviceAddress`?
+(Answer: `std::vector::data()`. The shape of BDA is exactly "hand the shader
+a pointer to an array"; the only thing Vulkan adds is making sure the
+pointer is a GPU virtual address rather than a host one.)
+
 ## Where to go next
 
 - **Mike Acton — "Data-Oriented Design and C++"** (CppCon 2014)

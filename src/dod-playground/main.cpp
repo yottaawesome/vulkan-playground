@@ -9,7 +9,7 @@ namespace
         std::println("");
         std::println("Usage:");
         std::println("  dod-playground.exe            Run all lessons.");
-        std::println("  dod-playground.exe <n>        Run lesson N (1..4).");
+        std::println("  dod-playground.exe <n>        Run lesson N (1..5).");
         std::println("  dod-playground.exe -h|--help  Show this help.");
         std::println("");
         std::println("Lessons:");
@@ -17,6 +17,7 @@ namespace
         std::println("  2  Sort keys           — order is data; pick it to minimise binds");
         std::println("  3  Indirect rendering  — cull pass -> compact batch -> single submit");
         std::println("  4  Frame graph         — passes are data; barriers are derived");
+        std::println("  5  Buffer device addr. — pointers in push constants; no descriptors for buffers");
         std::println("");
         std::println("Tip: build Release for realistic numbers (Debug bounds-checks dominate Lesson 1).");
     }
@@ -47,18 +48,20 @@ int main(int argc, char** argv)
         case 2: dod::lesson02::Run(); return 0;
         case 3: dod::lesson03::Run(); return 0;
         case 4: dod::lesson04::Run(); return 0;
+        case 5: dod::lesson05::Run(); return 0;
         default:
-            std::println("error: no such lesson '{}'. Valid range: 1..4.", which);
+            std::println("error: no such lesson '{}'. Valid range: 1..5.", which);
             return 1;
         }
     }
 
     std::println("dod-playground — running all lessons.");
-    std::println("(Pass --help for per-lesson run, or a number 1..4.)");
+    std::println("(Pass --help for per-lesson run, or a number 1..5.)");
     dod::lesson01::Run();
     dod::lesson02::Run();
     dod::lesson03::Run();
     dod::lesson04::Run();
+    dod::lesson05::Run();
     std::println("\nDone.");
     return 0;
 }

@@ -11,6 +11,8 @@ export namespace Mesh
 		glm::vec2 Uv;
 	};
 
+	
+
 	struct MeshData
 	{
 		std::vector<Mesh::Vertex> Vertices;

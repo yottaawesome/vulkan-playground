@@ -1,5 +1,6 @@
-export module vulkan26:vulkan.buffer;
+export module vulkan26:vma.buffer;
 import std;
+import :vma.exports;
 import :vulkan.exports;
 import :error;
 
@@ -18,7 +19,7 @@ export namespace vma
 			if (not allocation)
 				throw ::Error::RuntimeError{ "allocation cannot be null" };
 		}
-		auto operator()(VkBuffer buffer) noexcept
+		auto operator()(vk::VkBuffer buffer) noexcept
 		{
 			vma::vmaDestroyBuffer(allocator, buffer, allocation);
 		}
@@ -36,7 +37,7 @@ export namespace vma
 	};
 	using VmaBufferUniquePtr = std::unique_ptr<std::remove_pointer_t<VkBuffer>, VmaBufferDeleter>;
 
-	class VmaBuffer 
+	class VmaBuffer [[nodiscard]]
 	{
 	public:
 		VmaBuffer(VmaBufferUniquePtr bufferIn)

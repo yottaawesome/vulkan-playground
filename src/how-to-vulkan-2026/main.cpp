@@ -27,44 +27,44 @@ try
 	//
 	// Instance and physical device selection.
 	// Create the Vulkan instance.
-	auto instance = 
-		[] static -> vk::Instance
+	auto instance =
+		[] static->vk::Instance
+	{
+		// Get SDL to tell us the required instance extensions for Vulkan.
+		auto instanceExtensions =
+			[] static->std::span<const char* const>
 		{
-			// Get SDL to tell us the required instance extensions for Vulkan.
-			auto instanceExtensions = 
-				[] static -> std::span<const char* const>
-				{
-					auto instanceExtensionsCount = std::uint32_t{};
-					return { sdl3::vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };
-				}();
-			// Start with the application info, to describe our application
-			// to Vulkan. This can help with driver optimisations for 
-			// popular games.
-			auto appInfo = 
-				vk::VkApplicationInfo
-				{
-					.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
-					.pApplicationName = "Vulkan-2026",
-					.applicationVersion = vk::MakeVersion(1, 0, 0),
-					.pEngineName = "DorkEngine2000",
-					.engineVersion = vk::MakeVersion(1, 0, 0),
-					.apiVersion = vk::ApiVersion::V1_4
-				};
-			auto createInfo = 
-				vk::VkInstanceCreateInfo
-				{
-					.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-					.pApplicationInfo = &appInfo,
-					.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
-					.ppEnabledExtensionNames = instanceExtensions.data()
-				};
-
-			auto instance = vk::VkInstance{};
-			auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
-			if (not status)
-				throw vk::Error{ status };	
-			return vk::Instance{ vk::InstanceUniquePtr{ instance} };
+			auto instanceExtensionsCount = std::uint32_t{};
+			return { sdl3::vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };
 		}();
+		// Start with the application info, to describe our application
+		// to Vulkan. This can help with driver optimisations for 
+		// popular games.
+		auto appInfo =
+			vk::VkApplicationInfo
+		{
+			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pApplicationName = "Vulkan-2026",
+			.applicationVersion = vk::MakeVersion(1, 0, 0),
+			.pEngineName = "DorkEngine2000",
+			.engineVersion = vk::MakeVersion(1, 0, 0),
+			.apiVersion = vk::ApiVersion::V1_4
+		};
+		auto createInfo =
+			vk::VkInstanceCreateInfo
+		{
+			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			.pApplicationInfo = &appInfo,
+			.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
+			.ppEnabledExtensionNames = instanceExtensions.data()
+		};
+
+		auto instance = vk::VkInstance{};
+		auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
+		if (not status)
+			throw vk::Error{ status };
+		return vk::Instance{ vk::InstanceUniquePtr{ instance} };
+	}();
 	volk::volkLoadInstance(instance.Get());
 
 	// Get a list of the physical devices.
@@ -83,12 +83,12 @@ try
 		}();
 
 	// Pick the first discrete device.
-	auto pickedDevice = 
+	auto pickedDevice =
 		[&physicalDevices] -> vk::PhysicalDevice
 		{
 			for (const vk::VkPhysicalDevice& device : physicalDevices)
 			{
-				auto props = vk::VkPhysicalDeviceProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+				auto props = vk::VkPhysicalDeviceProperties2{ .sType = vk::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
 				vk::vkGetPhysicalDeviceProperties2(device, &props);
 				std::println("Found device: {}", props.properties.deviceName);
 				if (props.properties.deviceType & vk::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -105,19 +105,19 @@ try
 	//
 	// Queues. On most devices, the first queue family will support graphics, 
 	// compute and transfer, but this is not guaranteed.
-	auto suitableQueueFamilyIndex = 
+	auto suitableQueueFamilyIndex =
 		[&pickedDevice] -> std::uint32_t
 		{
 			auto count = std::uint32_t{};
 			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, nullptr);
 
-			auto queueFamilies = std::vector<vk::VkQueueFamilyProperties2>{ 
-				count, 
-				vk::VkQueueFamilyProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 } 
+			auto queueFamilies = std::vector<vk::VkQueueFamilyProperties2>{
+				count,
+				vk::VkQueueFamilyProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 }
 			};
 			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, queueFamilies.data());
-		
-			for (auto [index, element] : queueFamilies | std::views::enumerate) 
+
+			for (auto [index, element] : queueFamilies | std::views::enumerate)
 			{
 				auto queueFlags = element.queueFamilyProperties.queueFlags;
 				if (not (queueFlags & vk::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
@@ -139,11 +139,11 @@ try
 	//
 	//
 	// Creation of the logical device
-	auto device = 
+	auto device =
 		[](
 			auto suitableQueueFamilyIndex,
 			const vk::PhysicalDevice& pickedDevice
-		) -> vk::Device
+			) -> vk::Device
 		{
 			constexpr auto qfpriorities = 1.0f;
 			auto queueCI = vk::VkDeviceQueueCreateInfo{
@@ -184,11 +184,11 @@ try
 				.pEnabledFeatures = &enabledVk10Features
 			};
 			auto device = vk::VkDevice{};
-			auto result = vk::Result{vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device)};
+			auto result = vk::Result{ vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device) };
 			if (not result)
 				throw vk::Error{ result };
 			volk::LoadDevice(device);
-			return vk::Device{device};
+			return vk::Device{ device };
 		}(suitableQueueFamilyIndex, pickedDevice);
 
 	// Get the queue handle from the device.
@@ -196,7 +196,7 @@ try
 
 	// Create the VMA allocator. We need to provide it with the Vulkan 
 	// function pointers, so that it can call Vulkan functions internally.
-	auto allocator = 
+	auto allocator =
 		[&pickedDevice, &device, &instance] -> vma::Allocator
 		{
 			auto vkFunctions = vma::VmaVulkanFunctions{
@@ -220,7 +220,7 @@ try
 	constexpr auto width = 1280u;
 	constexpr auto height = 720u;
 	auto window = sdl3::Window{ "Vulkan-2026", width, height, sdl3::WindowFlags::Vulkan };
-	auto surface = vk::Surface{vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get()))};
+	auto surface = vk::Surface{ vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get())) };
 	auto surfaceCaps = vk::VkSurfaceCapabilitiesKHR{};
 	vk::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pickedDevice.Get(), surface.Get(), &surfaceCaps);
 
@@ -230,7 +230,7 @@ try
 	//
 	// Swapchain creation.
 	auto windowSize = glm::vec2{ window.GetWindowSize() };
-	auto swapchainExtent = 
+	auto swapchainExtent =
 		[&surfaceCaps, &windowSize] -> vk::VkExtent2D
 		{
 			if (surfaceCaps.currentExtent.width != 0xFFFFFFFF)
@@ -243,7 +243,7 @@ try
 
 	constexpr auto imageFormat = vk::VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
 
-	auto swapchain = 
+	auto swapchain =
 		[&device, &surface, &surfaceCaps, &swapchainExtent, &imageFormat] -> vk::Swapchain
 		{
 			auto swapchainCreateInfo = vk::VkSwapchainCreateInfoKHR{
@@ -253,8 +253,8 @@ try
 				.imageFormat = imageFormat,
 				.imageColorSpace = vk::VkColorSpaceKHR::VK_COLORSPACE_SRGB_NONLINEAR_KHR,
 				.imageExtent = {
-					.width = swapchainExtent.width, 
-					.height = swapchainExtent.height 
+					.width = swapchainExtent.width,
+					.height = swapchainExtent.height
 				},
 				.imageArrayLayers = 1,
 				.imageUsage = vk::VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -268,7 +268,7 @@ try
 				throw vk::Error{ result };
 			return vk::Swapchain{ vk::SwapchainUniquePtr{ swapchain, vk::SwapchainDeleter{device.Get()} } };
 		}();
-	
+
 	auto swapchainImages = std::vector<VkImage>{ swapchain.GetSwapchainImages() };
 
 	//
@@ -276,11 +276,11 @@ try
 	//
 	//
 	// Select a depth format. We need to find a format that supports being used as a depth-stencil attachment, and that is supported by the device.
-	auto depthFormat = 
+	auto depthFormat =
 		[&pickedDevice] -> vk::VkFormat
 		{
 			constexpr auto candidates = std::array{ vk::VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT, vk::VkFormat::VK_FORMAT_D24_UNORM_S8_UINT };
-			const auto formatSupportsDepthAttachment = 
+			const auto formatSupportsDepthAttachment =
 				[&pickedDevice](vk::VkFormat candidate) -> bool
 				{
 					auto formatProps = vk::VkFormatProperties{};
@@ -288,13 +288,13 @@ try
 					return (formatProps.optimalTilingFeatures & vk::VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0;
 				};
 			auto filter = candidates | std::ranges::views::filter(formatSupportsDepthAttachment);
-			return filter.empty() 
-				? throw Error::RuntimeError{ "No suitable depth format found." } 
-				: filter.front();
+			return filter.empty()
+				? throw Error::RuntimeError{ "No suitable depth format found." }
+			: filter.front();
 		}();
 
-	auto depthImage = 
-		[depthFormat, &allocator, &windowSize, &device] -> vk::DepthImage
+	auto depthImage =
+		[depthFormat, &allocator, &windowSize, &device] -> vk::DepthImage<vma::VmaImage>
 		{
 			auto depthImageCi = vk::VkImageCreateInfo{
 				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -312,47 +312,47 @@ try
 				.flags = vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
 				.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO,
 			};
-			
+
 			auto allocation = vma::VmaAllocation{};
 			auto image = vk::VkImage{};
-			auto result = vk::Result{ 
+			auto result = vk::Result{
 				vma::vmaCreateImage(
-					allocator.Get(), 
-					&depthImageCi, 
-					&allocCi, 
-					&image, 
-					&allocation, 
+					allocator.Get(),
+					&depthImageCi,
+					&allocCi,
+					&image,
+					&allocation,
 					nullptr
-				)};
+				) };
 			if (not result)
 				throw vk::Error{ result };
-			auto imageUniquePtr = vk::VmaImageUniquePtr{ image, vk::VmaImageDeleter{allocator.Get(), allocation} };
+			auto imageUniquePtr = vma::VmaImageUniquePtr{ image, vma::VmaImageDeleter{allocator.Get(), allocation} };
 
 			auto depthViewCi = vk::VkImageViewCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 				.image = image,
-				.viewType = vk::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D, 
-				.format = depthFormat, 
+				.viewType = vk::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
+				.format = depthFormat,
 				.subresourceRange{
-					.aspectMask = vk::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT, 
-					.levelCount = 1, 
-					.layerCount = 1 
-				} 
+					.aspectMask = vk::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT,
+					.levelCount = 1,
+					.layerCount = 1
+				}
 			};
 			auto depthImageView = vk::VkImageView{};
-			result = vk::Result{ 
+			result = vk::Result{
 				vk::vkCreateImageView(
 					device.Get(),
 					&depthViewCi,
 					nullptr,
 					&depthImageView
-				)};
+				) };
 			if (not result)
 				throw vk::Error{ result };
 
-			return vk::DepthImage{ 
-				vk::VmaImage{ std::move(imageUniquePtr) }, 
-				vk::ImageView{ vk::ImageViewUniquePtr{ depthImageView, vk::ImageViewDeleter{device.Get()} } } 
+			return {
+				vma::VmaImage{ std::move(imageUniquePtr) },
+				vk::ImageView{ vk::ImageViewUniquePtr{ depthImageView, vk::ImageViewDeleter{device.Get()} } }
 			};
 		}();
 
@@ -361,8 +361,8 @@ try
 	//
 	//
 	// Loading a mesh
-	auto meshData = 
-		[] static -> Mesh::MeshData
+	auto meshData =
+		[] static->Mesh::MeshData
 		{
 			auto tinyobjData = tinyobj::FileData{ tinyobj::FileData::From("assets\\suzanne.obj") };
 			auto indexCount = std::uint64_t{ tinyobjData.Shapes[0].mesh.indices.size() };
@@ -370,7 +370,7 @@ try
 			auto indices = std::vector<std::uint16_t>{};
 			// Load vertex and index data
 			// The value of the position's and normal's y-axis, and the texture coordinate's v-axis are flipped. This is done to accommodate for Vulkan's coordinate system. Otherwise the model and the texture image would appear upside down.
-			for (auto& index : tinyobjData.Shapes[0].mesh.indices) 
+			for (auto& index : tinyobjData.Shapes[0].mesh.indices)
 			{
 				auto v = Mesh::Vertex{
 					.Pos = { tinyobjData.Attrib.vertices[index.vertex_index * 3], -tinyobjData.Attrib.vertices[index.vertex_index * 3 + 1], tinyobjData.Attrib.vertices[index.vertex_index * 3 + 2] },
@@ -380,33 +380,83 @@ try
 				vertices.push_back(v);
 				indices.push_back(static_cast<std::uint16_t>(indices.size()));
 			}
-			return { vertices , indices};
+			return { vertices, indices };
 		}();
 
+	auto vertexIndexBuffer =
+		[&meshData, &allocator, &device] -> vma::VmaBuffer
+		{
+			auto vBufSize = vk::VkDeviceSize{ sizeof(Mesh::Vertex) * meshData.Vertices.size() };
+			auto iBufSize = vk::VkDeviceSize{ sizeof(std::uint16_t) * meshData.Indices.size() };
+			// Note that the buffer combines vertex and index data.
+			auto bufferCI = vk::VkBufferCreateInfo{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+				.size = vBufSize + iBufSize,
+				.usage = vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+			};
+			auto vBufferAllocCI = vma::VmaAllocationCreateInfo{
+				.flags =
+					vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+					| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
+					| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
+				.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+			};
+			auto vBufferAllocInfo = vma::VmaAllocationInfo{};
+			auto vBuffer = vk::VkBuffer{};
+			auto vBufferAllocation = vma::VmaAllocation{};
+			auto result = vk::Result{ vma::vmaCreateBuffer(allocator.Get(), &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo) };
+			if (not result)
+				throw vk::Error{ result };
 
+			std::memcpy(vBufferAllocInfo.pMappedData, meshData.Vertices.data(), vBufSize);
+			std::memcpy(((char*)vBufferAllocInfo.pMappedData) + vBufSize, meshData.Indices.data(), iBufSize);
+			return { vma::VmaBufferUniquePtr{ vBuffer, vma::VmaBufferDeleter{allocator.Get(), vBufferAllocation} } };
+		}();
 
-	auto vBufSize = VkDeviceSize{ sizeof(Mesh::Vertex) * meshData.Vertices.size() };
-	auto iBufSize = VkDeviceSize{ sizeof(std::uint16_t) * meshData.Indices.size() };
-	// Note that the buffer combines vertex and index data.
-	auto bufferCI = VkBufferCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.size = vBufSize + iBufSize,
-		.usage = vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+	constexpr auto MaxFramesInFlight = std::uint32_t{2};
+	struct ShaderDataBuffer {
+		vma::VmaAllocation Allocation{ nullptr };
+		vma::VmaAllocationInfo AllocationInfo{};
+		vk::VkBuffer Buffer{ nullptr };
+		vk::VkDeviceAddress DeviceAddress{};
 	};
-	auto vBufferAllocCI = vma::VmaAllocationCreateInfo{
-		.flags = 
-			vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT 
-			| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT 
-			| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
-		.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
-	};
-	auto vBufferAllocInfo = vma::VmaAllocationInfo{};
-	auto vBuffer = vk::VkBuffer{};
-	auto vBufferAllocation = vma::VmaAllocation{};
-	auto result = vk::Result{ vma::vmaCreateBuffer(allocator.Get(), &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo)};
-	if (not result)
-		throw vk::Error{ result };
+	struct ShaderData
+	{
+		glm::mat4 Projection;
+		glm::mat4 View;
+		glm::mat4 Model[3];
+		glm::vec4 LightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
+		std::uint32_t Selected{ 1 };
+	} shaderData;
 
+	auto shaderDataBuffers = std::array<ShaderDataBuffer, MaxFramesInFlight>{};
+	auto commandBuffers = std::array<vk::VkCommandBuffer, MaxFramesInFlight>{};
+	for (auto i = 0; i < MaxFramesInFlight; i++) 
+	{
+		auto uBufferCI = vk::VkBufferCreateInfo{
+			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			.size = sizeof(ShaderData),
+			.usage = vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+		};
+		auto uBufferAllocCI = vma::VmaAllocationCreateInfo{
+			.flags = 
+				vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+				| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
+				| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
+			.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+		};
+		auto result = vk::Result{ 
+			vma::vmaCreateBuffer(
+				allocator.Get(),
+				&uBufferCI,
+				&uBufferAllocCI,
+				&shaderDataBuffers[i].Buffer,
+				&shaderDataBuffers[i].Allocation,
+				&shaderDataBuffers[i].AllocationInfo
+			)};
+		if (not result)
+			throw vk::Error{ result };
+	}
 
 	return 0;
 }

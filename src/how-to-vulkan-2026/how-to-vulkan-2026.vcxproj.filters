@@ -57,7 +57,7 @@
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vma\vma.allocator.ixx">
+    <ClCompile Include="vma\vma.allocator.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sdl3\sdl3.window.ixx">
@@ -99,7 +99,19 @@
     <ClCompile Include="mesh\mesh.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vma\vma.buffer.ixx">
+    <ClCompile Include="vma\vma.buffer.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\vma.exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\vma.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\vma.image.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

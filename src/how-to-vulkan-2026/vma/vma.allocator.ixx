@@ -1,6 +1,6 @@
-export module vulkan26:vulkan.vma.allocator;
+export module vulkan26:vma.allocator;
 import std;
-import :vulkan.exports;
+import :vma.exports;
 import :vulkan.error;
 
 export namespace vma

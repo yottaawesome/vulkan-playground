@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{6c8ea6c0-af2f-4c66-9021-124e27e28885}</ProjectGuid>
-    <RootNamespace>howtovulkan2026</RootNamespace>
+    <ProjectGuid>{7a34d8ac-5855-484c-b394-5868d6620448}</ProjectGuid>
+    <RootNamespace>howtovulkan2026original</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -77,12 +77,12 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -92,12 +92,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -105,13 +105,12 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -121,53 +120,19 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="error\error.ixx" />
-    <ClCompile Include="glm\glm.exports.ixx" />
-    <ClCompile Include="glm\glm.ixx" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="mesh\mesh.ixx" />
-    <ClCompile Include="raii\raii.ixx" />
-    <ClCompile Include="sdl3\sdl3.error.ixx" />
-    <ClCompile Include="sdl3\sdl3.exports.ixx" />
-    <ClCompile Include="sdl3\sdl3.ixx" />
-    <ClCompile Include="sdl3\sdl3.misc.ixx" />
-    <ClCompile Include="sdl3\sdl3.window.ixx" />
-    <ClCompile Include="tinyobj\tinyobj.exports.ixx" />
-    <ClCompile Include="tinyobj\tinyobj.functions.ixx" />
-    <ClCompile Include="tinyobj\tinyobj.ixx" />
-    <ClCompile Include="util\util.ixx" />
-    <ClCompile Include="vma\vma.image.ixx" />
-    <ClCompile Include="vulkan26.ixx" />
-    <ClCompile Include="vma\vma.allocator.ixx" />
-    <ClCompile Include="vma\vma.buffer.ixx" />
-    <ClCompile Include="vma\vma.exports.ixx" />
-    <ClCompile Include="vma\vma.ixx" />
-    <ClCompile Include="vulkan\vulkan.error.ixx" />
-    <ClCompile Include="vulkan\vulkan.exports.ixx" />
-    <ClCompile Include="vulkan\vulkan.image.ixx" />
-    <ClCompile Include="vulkan\vulkan.impl.cpp" />
-    <ClCompile Include="vulkan\vulkan.instance.ixx" />
-    <ClCompile Include="vulkan\vulkan.ixx" />
-    <ClCompile Include="vulkan\vulkan.device.ixx" />
-    <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
-    <ClCompile Include="vulkan\vulkan.resource.ixx" />
-    <ClCompile Include="vulkan\vulkan.surface.ixx" />
-    <ClCompile Include="vulkan\vulkan.swapchain.ixx" />
-    <ClCompile Include="win32\win32.ixx" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" />
     <None Include="vcpkg.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

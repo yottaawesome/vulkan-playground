@@ -1,9 +1,15 @@
 module;
 
-#define VOLK_IMPLEMENTATION
+// This partition re-exports the Vulkan C API (via volk) into the `vk::` namespace
+// and volk's loader entry points into the `volk::` namespace.
+//
+// NOTE: Implementation macros (VOLK_IMPLEMENTATION, VMA_IMPLEMENTATION) are
+// deliberately NOT defined here. Those definitions live in a single
+// non-module translation unit (vulkan.impl.cpp) so that the export surface
+// can be recompiled cheaply without rebuilding the volk/VMA implementations,
+// and so that the `vma::` exports can live in their own partition
+// (:vma.exports) without duplicating those one-definition-rule symbols.
 #include <volk.h>
-#define VMA_IMPLEMENTATION
-#include <vma/vk_mem_alloc.h>
 
 export module vulkan26:vulkan.exports;
 
@@ -73,6 +79,8 @@ export namespace vk
 		::VkImageAspectFlagBits,
 		::VkDeviceSize,
 		::VkBufferUsageFlagBits,
+		::VkBufferCreateInfo,
+		::VkDeviceAddress,
 		::vkDestroyImageView,
 		::vkDestroyImage,
 		::vkCreateImageView,
@@ -144,27 +152,4 @@ export namespace volk
 	{
 		volkLoadDevice(device);
 	}
-}
-
-export namespace vma
-{
-	using
-		::VmaAllocator,
-		::VmaAllocation,
-		::VmaAllocationCreateInfo,
-		::VmaAllocationInfo,
-		::VmaAllocatorCreateInfo,
-		::VmaVulkanFunctions,
-		::VmaAllocatorCreateFlagBits,
-		::VmaAllocationCreateFlagBits,
-		::VmaMemoryUsage,
-		::vmaCreateBuffer,
-		::vmaCreateImage,
-		::vmaCreateAllocator,
-		::vmaDestroyAllocator,
-		::vmaAllocateMemory,
-		::vmaFreeMemory,
-		::vmaDestroyImage,
-		::vmaDestroyBuffer
-		;
 }

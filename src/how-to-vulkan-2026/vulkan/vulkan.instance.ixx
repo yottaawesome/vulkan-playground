@@ -16,7 +16,7 @@ export namespace vk
 	};
 	using InstanceUniquePtr = std::unique_ptr<std::remove_pointer_t<vk::VkInstance>, InstanceDeleter>;
 
-	struct Instance : TypedResource<InstanceUniquePtr>
+	struct Instance : Raii::TypedResource<InstanceUniquePtr>
 	{
 		constexpr Instance(InstanceUniquePtr instanceIn)
 			: TypedResource(std::move(instanceIn)) { }

@@ -11,9 +11,9 @@ try
 	// 
 	// 
 	// Initialisation of SDL, and initial load of Volk (stage 1).
+	auto init = sdl3::Init{ sdl3::InitFlags::Video };
 	[] static -> void
 	{
-		auto init = sdl3::Init{ sdl3::InitFlags::Video };
 		if (not sdl3::vk::SDL_Vulkan_LoadLibrary(nullptr))
 			throw sdl3::Error::Error{};
 		auto result = vk::Result{ volk::volkInitialize() };

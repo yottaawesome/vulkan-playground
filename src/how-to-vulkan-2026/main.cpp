@@ -269,7 +269,7 @@ try
 			return vk::Swapchain{ vk::SwapchainUniquePtr{ swapchain, vk::SwapchainDeleter{device.Get()} } };
 		}();
 
-	auto swapchainImages = std::vector<VkImage>{ swapchain.GetSwapchainImages() };
+	auto swapchainImages = std::vector<vk::VkImage>{ swapchain.GetSwapchainImages() };
 
 	//
 	//

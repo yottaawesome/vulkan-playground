@@ -2,6 +2,7 @@ export module vulkan26:vma.allocator;
 import std;
 import :vma.exports;
 import :vulkan.error;
+import :vulkan.exports;
 
 export namespace vma
 {
@@ -20,7 +21,7 @@ export namespace vma
 			: allocator(allocatorIn)
 		{
 			if (not allocator)
-				throw vk::Error{ VkResult::VK_ERROR_INITIALIZATION_FAILED };
+				throw vk::Error{ vk::VkResult::VK_ERROR_INITIALIZATION_FAILED };
 		}
 		constexpr auto Get(this const auto& self) noexcept -> VmaAllocator
 		{

@@ -133,7 +133,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="modelviewerixx.ixx" />
+    <ClCompile Include="modelviewer.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

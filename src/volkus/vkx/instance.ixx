@@ -18,43 +18,31 @@ namespace Volkus::vkx
 	using InstanceUniquePtr = std::unique_ptr<std::remove_pointer_t<VkInstance>, InstanceDeleter>;
 	template<typename T>
 	concept InstanceUniquePtrLike = UniquePtrLike<T, VkInstance>;
+}
 
-	template<typename T>
-	class InstanceType : public VulkanResource<T>
+export namespace Volkus::vkx
+{
+	auto CreateVkInstance(const VkInstanceCreateInfo& createInfo, bool initializeVolkAndLoadInstance) -> InstanceUniquePtr
+	{
+		if (initializeVolkAndLoadInstance)
+			volkInitialize();
+		auto instance = VkInstance{};
+		auto result = Volkus::vkx::Result{ vkCreateInstance(&createInfo, nullptr, &instance) };
+		if (not result)
+			throw VulkanError{ result, "Failed to create Vulkan instance" };
+		if (initializeVolkAndLoadInstance)
+			volkLoadInstance(instance);
+		return InstanceUniquePtr{ instance };
+	}
+
+	class Instance : public VulkanResource<InstanceUniquePtr>
 	{
 	public:
-		constexpr InstanceType() = default;
+		constexpr Instance() = default;
 
-		constexpr InstanceType(T instanceIn) 
-			: VulkanResource<T>(std::move(instanceIn))
-		{ }
-
-		static auto CreateRaw(const VkInstanceCreateInfo& createInfo, bool initializeVolkAndLoadInstance) -> T
-		{
-			if (initializeVolkAndLoadInstance)
-				volkInitialize();
-			auto instance = VkInstance{};
-			auto result = Volkus::vkx::Result{ vkCreateInstance(&createInfo, nullptr, &instance) };
-			if (not result)
-				throw VulkanError{ result, "Failed to create Vulkan instance" };
-			if (initializeVolkAndLoadInstance)
-				volkLoadInstance(instance);
-			return T{ instance };
-		}
-
-		// Create a Vulkan instance, optionally initializing volk and loading the instance-level entry points.
-		static auto Create(const VkInstanceCreateInfo& createInfo, bool initializeVolkAndLoadInstance) -> InstanceType
-		{
-			if (initializeVolkAndLoadInstance)
-				volkInitialize();
-			auto instance = VkInstance{};
-			auto result = Volkus::vkx::Result{ vkCreateInstance(&createInfo, nullptr, &instance) };
-			if (not result)
-				throw VulkanError{ result, "Failed to create Vulkan instance" };
-			if(initializeVolkAndLoadInstance)
-				volkLoadInstance(instance);
-			return InstanceType{ InstanceUniquePtr{ instance } };
-		}
+		constexpr Instance(InstanceUniquePtr instanceIn)
+			: VulkanResource<InstanceUniquePtr>(std::move(instanceIn))
+		{}
 
 		auto EnumeratePhysicalDevices(this auto&& self) -> std::vector<VkPhysicalDevice>
 		{
@@ -68,17 +56,26 @@ namespace Volkus::vkx
 				throw VulkanError{ result, "Failed to enumerate physical devices (data)" };
 			return devices;
 		}
+
+	protected:
+		void Create(this InstanceLike auto&& self, bool initializeVolkAndLoadInstance)
+		{
+			if (initializeVolkAndLoadInstance)
+				volkInitialize();
+			auto instance = VkInstance{};
+			auto layers = self.GetLayers();
+			auto extensions = self.GetExtensions();
+			auto applicationInfo = self.GetApplicationInfo();
+			auto createInfo = VkInstanceCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+				.flags = self.GetFlags(),
+				.pApplicationInfo = &applicationInfo,
+				.enabledLayerCount = static_cast<std::uint32_t>(layers.size()),
+				.ppEnabledLayerNames = layers.data(),
+				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
+				.ppEnabledExtensionNames = extensions.data()
+			};
+			self.m_resource = CreateVkInstance(createInfo, initializeVolkAndLoadInstance);
+		}
 	};
-}
-
-export namespace Volkus::vkx
-{
-	using Instance = InstanceType<InstanceUniquePtr>;
-}
-
-namespace
-{
-	static_assert(
-		Volkus::vkx::InstanceLike<Volkus::vkx::InstanceType<Volkus::vkx::InstanceUniquePtr>>, 
-		"InstanceType<InstanceUniquePtr> does not satisfy InstanceLike");
 }

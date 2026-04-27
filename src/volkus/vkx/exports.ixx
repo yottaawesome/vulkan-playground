@@ -29,7 +29,10 @@ export constexpr VkBool32
 	VkTrue = 1;
 
 // Create
-export using ::VkStructureType;
+export using 
+	::VkStructureType,
+	::VkInstanceCreateFlags
+	;
 
 // Debug
 export using

@@ -1,38 +1,16 @@
 import volkus;
+import modelviewer;
 
 auto wWinMain(
     Volkus::Win32::HINSTANCE, Volkus::Win32::HINSTANCE, Volkus::Win32::LPWSTR, int
 ) -> int
 {
-    auto instance = 
-		[] -> Volkus::vkx::Instance
-        {
-			auto layers = std::array{ 
-                Vk::Layer::KhronosValidation
-            };
-            auto extensions = std::array{ 
-                Vk::InstanceExtension::DebugUtils,
-                Vk::InstanceExtension::PlatformSurface
-			};
+	Volkus::Win32::Crt::SetAbortBehavior(
+        Volkus::Win32::Crt::CallReportFault,
+		Volkus::Win32::Crt::CallReportFault | Volkus::Win32::Crt::WriteAbortMsg
+    );
 
-            auto applicationInfo = VkApplicationInfo{
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                .pApplicationName = "Model Viewer",
-                .applicationVersion = Vk::MakeApiVersion(0, 1, 0),
-                .pEngineName = "Volkus Engine",
-                .engineVersion = Vk::MakeApiVersion(0, 1, 0),
-                .apiVersion = Vk::MakeApiVersion(1, 4, 0)
-            };
-            auto createinfo = VkInstanceCreateInfo{
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                .pApplicationInfo = &applicationInfo,
-                .enabledLayerCount = static_cast<std::uint32_t>(layers.size()),
-                .ppEnabledLayerNames = layers.data(),
-                .enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
-                .ppEnabledExtensionNames = extensions.data()
-            };
-            return Volkus::vkx::Instance::Create(createinfo, true);
-        }();
+	auto instance = ModelViewer::VulkanInstance{};
 
     auto debugMessenger = 
         [&instance] -> Volkus::vkx::DebugMessenger
@@ -92,54 +70,58 @@ auto wWinMain(
             return *queueIndex;
 		}();
 
-    [queueIndex]
-    {
-        auto enabledVk12Features = 
-            VkPhysicalDeviceVulkan12Features{
-                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-                .descriptorIndexing = true,
-                .shaderSampledImageArrayNonUniformIndexing = true,
-                .descriptorBindingVariableDescriptorCount = true,
-                .runtimeDescriptorArray = true,
-                .bufferDeviceAddress = true
-            };
-        auto enabledVk13Features = 
-            VkPhysicalDeviceVulkan13Features{
-                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-                .pNext = &enabledVk12Features,
-                .synchronization2 = true,
-                .dynamicRendering = true,
-            };
-        auto enabledVk14Features = 
-            VkPhysicalDeviceVulkan14Features{
-                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
-                .pNext = &enabledVk13Features,
-            };
-        auto enabledVk10Features = 
-            VkPhysicalDeviceFeatures{
-                .samplerAnisotropy = true
-            };
+    auto device = 
+        [queueIndex, &physicalDevice]
+        {
+            auto enabledVk12Features = 
+                VkPhysicalDeviceVulkan12Features{
+                    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+                    .descriptorIndexing = true,
+                    .shaderSampledImageArrayNonUniformIndexing = true,
+                    .descriptorBindingVariableDescriptorCount = true,
+                    .runtimeDescriptorArray = true,
+                    .bufferDeviceAddress = true
+                };
+            auto enabledVk13Features = 
+                VkPhysicalDeviceVulkan13Features{
+                    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+                    .pNext = &enabledVk12Features,
+                    .synchronization2 = true,
+                    .dynamicRendering = true,
+                };
+            auto enabledVk14Features = 
+                VkPhysicalDeviceVulkan14Features{
+                    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
+                    .pNext = &enabledVk13Features,
+                };
+            auto enabledVk10Features = 
+                VkPhysicalDeviceFeatures{
+                    .samplerAnisotropy = true
+                };
 
-        auto queuePriority = 1.0f;
-        auto queueCreateInfo = 
-            VkDeviceQueueCreateInfo{
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .flags = 0,
-                .queueFamilyIndex = queueIndex,
-                .queueCount = 1,
-                .pQueuePriorities = &queuePriority
-            };
-        auto deviceCI = 
-            VkDeviceCreateInfo{
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                .pNext = &enabledVk14Features,
-                .queueCreateInfoCount = 1,
-                .pQueueCreateInfos = &queueCreateInfo,
-                //.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
-                //.ppEnabledExtensionNames = deviceExtensions.data(),
-                .pEnabledFeatures = &enabledVk10Features
-            };
-    }();
+            auto queuePriority = 1.0f;
+            auto queueCreateInfo = 
+                VkDeviceQueueCreateInfo{
+                    .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                    .flags = 0,
+                    .queueFamilyIndex = queueIndex,
+                    .queueCount = 1,
+                    .pQueuePriorities = &queuePriority
+                };
+
+            auto deviceExtensions = std::array{Vk::DeviceExtension::Swapchain};
+            auto deviceCreateInfo = 
+                VkDeviceCreateInfo{
+                    .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                    .pNext = &enabledVk14Features,
+                    .queueCreateInfoCount = 1,
+                    .pQueueCreateInfos = &queueCreateInfo,
+                    .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+                    .ppEnabledExtensionNames = deviceExtensions.data(),
+                    .pEnabledFeatures = &enabledVk10Features
+                };
+		    return Volkus::vkx::Device::Create(physicalDevice.Get(), deviceCreateInfo, true);
+        }();
 
     return 0;
 }

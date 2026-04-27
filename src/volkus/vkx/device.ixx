@@ -18,8 +18,8 @@ export namespace Volkus::vkx
 	class Device : public VulkanResource<DeviceUniquePtr>
 	{
 	public:
-		constexpr Device(VkDevice deviceIn)
-			: VulkanResource(DeviceUniquePtr{ deviceIn })
+		constexpr Device(DeviceUniquePtr deviceIn)
+			: VulkanResource(std::move(deviceIn))
 		{ }
 
 		auto GetQueue(
@@ -33,17 +33,21 @@ export namespace Volkus::vkx
 			return queue;
 		}
 
-		/*static auto Create(
-			const PhysicalDevice& physicalDevice
-			const VkDeviceCreateInfo& createInfo,
+		static auto Create(
+			VkPhysicalDevice physicalDevice,
+			const VkDeviceCreateInfo& createInfo, 
+			bool loadVolkDevice
 		) -> Device
 		{
+			if (not physicalDevice)
+				throw std::runtime_error{ "Invalid physical device handle" };
 			auto device = VkDevice{};
-			auto result = Volkus::vkx::Result{ vkCreateDevice(physicalDevice.Get(), &createInfo, nullptr, &device) };
+			auto result = Volkus::vkx::Result{ vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) };
 			if (not result)
 				throw VulkanError{ result, "Failed to create Vulkan device" };
-			volkLoadDevice(device);
+			if (loadVolkDevice)
+				volkLoadDevice(device);
 			return Device{ DeviceUniquePtr{ device } };
-		}*/
+		}
 	};
 }

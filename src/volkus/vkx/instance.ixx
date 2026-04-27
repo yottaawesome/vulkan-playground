@@ -23,9 +23,24 @@ namespace Volkus::vkx
 	class InstanceType : public VulkanResource<T>
 	{
 	public:
+		constexpr InstanceType() = default;
+
 		constexpr InstanceType(T instanceIn) 
 			: VulkanResource<T>(std::move(instanceIn))
 		{ }
+
+		static auto CreateRaw(const VkInstanceCreateInfo& createInfo, bool initializeVolkAndLoadInstance) -> T
+		{
+			if (initializeVolkAndLoadInstance)
+				volkInitialize();
+			auto instance = VkInstance{};
+			auto result = Volkus::vkx::Result{ vkCreateInstance(&createInfo, nullptr, &instance) };
+			if (not result)
+				throw VulkanError{ result, "Failed to create Vulkan instance" };
+			if (initializeVolkAndLoadInstance)
+				volkLoadInstance(instance);
+			return T{ instance };
+		}
 
 		// Create a Vulkan instance, optionally initializing volk and loading the instance-level entry points.
 		static auto Create(const VkInstanceCreateInfo& createInfo, bool initializeVolkAndLoadInstance) -> InstanceType
@@ -36,7 +51,8 @@ namespace Volkus::vkx
 			auto result = Volkus::vkx::Result{ vkCreateInstance(&createInfo, nullptr, &instance) };
 			if (not result)
 				throw VulkanError{ result, "Failed to create Vulkan instance" };
-			volkLoadInstance(instance);
+			if(initializeVolkAndLoadInstance)
+				volkLoadInstance(instance);
 			return InstanceType{ InstanceUniquePtr{ instance } };
 		}
 

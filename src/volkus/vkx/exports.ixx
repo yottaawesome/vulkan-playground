@@ -17,11 +17,31 @@ import std;
 // hand-written shims further down.
 // ---------------------------------------------------------------------------
 
-// Result
-export using ::VkResult;
+// General
+export using 
+	::VkResult,
+	::VkBool32,
+	::VkAllocationCallbacks
+	;
+
+export constexpr VkBool32 
+	VkFalse = 0,
+	VkTrue = 1;
 
 // Create
 export using ::VkStructureType;
+
+// Debug
+export using
+	::VkDebugUtilsMessengerEXT,
+	::VkDebugUtilsMessengerCreateInfoEXT,
+	::VkDebugUtilsMessengerCallbackDataEXT,
+	::VkDebugUtilsMessageSeverityFlagBitsEXT,
+	::VkDebugUtilsMessageTypeFlagsEXT,
+	::PFN_vkDebugUtilsMessengerCallbackEXT,
+	::PFN_vkCreateDebugUtilsMessengerEXT,
+	::PFN_vkDestroyDebugUtilsMessengerEXT
+	;
 
 // Instance
 export using
@@ -302,20 +322,38 @@ export namespace Vk
 		constexpr auto V1_4 = VK_API_VERSION_1_4;
 	}
 
+	namespace InstanceExtension
+	{
+		constexpr auto
+			Surface    = VK_KHR_SURFACE_EXTENSION_NAME,
+			DebugUtils = VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+			;
+
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+		constexpr auto PlatformSurface = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+		constexpr auto PlatformSurface = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+		constexpr auto PlatformSurface = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+		constexpr auto PlatformSurface = VK_EXT_METAL_SURFACE_EXTENSION_NAME;
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+		constexpr auto PlatformSurface = VK_KHR_ANDROID_SURFACE_EXTENSION_NAME;
+#endif
+	}
+
 	namespace DeviceExtension
 	{
 		constexpr auto
-			EXTDebugUtils = VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-			SwapChain = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			Surface = VK_KHR_SURFACE_EXTENSION_NAME,
-			DynamicRendering = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-			Win32Surface = VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+			Swapchain        = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			DynamicRendering = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
 			;
 	}
 
-	namespace Layers
+	// Layers do not apply to devices (deprecated), so no DeviceLayer namespace.
+	namespace Layer
 	{
-		constexpr auto KhronosValidationLayerName = "VK_LAYER_KHRONOS_validation";
+		constexpr auto KhronosValidation = "VK_LAYER_KHRONOS_validation";
 	}
 
 	// NOTE: the *_2_* flag bits below (VkBufferUsageFlags2, VkPipelineStageFlags2,

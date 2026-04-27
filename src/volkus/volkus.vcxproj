@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="util\util.ixx" />
     <ClCompile Include="vkx\concepts.ixx" />
+    <ClCompile Include="vkx\debug.ixx" />
     <ClCompile Include="vkx\device.ixx" />
     <ClCompile Include="vkx\error.ixx" />
     <ClCompile Include="vkx\exports.ixx" />

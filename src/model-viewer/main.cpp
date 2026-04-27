@@ -7,7 +7,13 @@ auto wWinMain(
     auto instance = 
 		[] -> Volkus::vkx::Instance
         {
-			auto layers = std::vector<const char*>{ Vk::Layers::KhronosValidationLayerName };
+			auto layers = std::array{ 
+                Vk::Layer::KhronosValidation
+            };
+            auto extensions = std::array{ 
+                Vk::InstanceExtension::DebugUtils,
+                Vk::InstanceExtension::PlatformSurface
+			};
 
             auto applicationInfo = VkApplicationInfo{
                 .sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -22,10 +28,43 @@ auto wWinMain(
                 .pApplicationInfo = &applicationInfo,
                 .enabledLayerCount = static_cast<std::uint32_t>(layers.size()),
                 .ppEnabledLayerNames = layers.data(),
-                .enabledExtensionCount = 0,
-                .ppEnabledExtensionNames = nullptr
+                .enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
+                .ppEnabledExtensionNames = extensions.data()
             };
             return Volkus::vkx::Instance::Create(createinfo, true);
+        }();
+
+    auto debugMessenger = 
+        [&instance] -> Volkus::vkx::DebugMessenger
+        {
+            auto debugInfo =
+                VkDebugUtilsMessengerCreateInfoEXT{
+                    .sType = VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .messageSeverity =
+                        VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                        | VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                        | VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+                    .messageType =
+                        VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                        | VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                        | VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+                    .pfnUserCallback =
+                        [](
+                            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                            VkDebugUtilsMessageTypeFlagsEXT messageType,
+                            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                            void* pUserData
+                        ) -> VkBool32
+                        {
+                            if(messageSeverity >= VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+								std::println("Validation layer: {}", pCallbackData->pMessage);
+                            return VkFalse;
+                        },
+                    .pUserData = nullptr
+                };
+            return Volkus::vkx::DebugMessenger::CreateDebugMessenger(instance.Get(), &debugInfo, nullptr);
         }();
 
 	auto physicalDevice = 
@@ -102,7 +141,5 @@ auto wWinMain(
             };
     }();
 
-	
-        
     return 0;
 }

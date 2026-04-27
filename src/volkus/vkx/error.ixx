@@ -4,6 +4,24 @@ import :vkx.exports;
 
 export namespace Volkus::vkx
 {
+	[[noreturn]] 
+	inline void Fatal(std::string_view msg, std::source_location loc = std::source_location::current()) noexcept
+	{
+		auto stacktrace = std::stacktrace::current(1);
+		std::println(
+			std::cerr,
+			"Fatal error: {}\n"
+			"Location: {}:{} in {}\n"
+			"Stack trace:\n{}",
+			msg,
+			loc.file_name(),
+			loc.line(),
+			loc.function_name(),
+			stacktrace
+		);
+		std::abort();
+	}
+
 	auto ToString(VkResult result) -> std::string
 	{
 		switch (result)

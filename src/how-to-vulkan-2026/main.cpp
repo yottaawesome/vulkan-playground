@@ -140,10 +140,7 @@ try
 	//
 	// Creation of the logical device
 	auto device =
-		[](
-			auto suitableQueueFamilyIndex,
-			const vk::PhysicalDevice& pickedDevice
-			) -> vk::Device
+		[](auto suitableQueueFamilyIndex, const vk::PhysicalDevice& pickedDevice) -> vk::Device
 		{
 			constexpr auto qfpriorities = 1.0f;
 			auto queueCI = vk::VkDeviceQueueCreateInfo{

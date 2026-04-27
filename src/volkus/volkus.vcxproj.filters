@@ -18,10 +18,37 @@
     <ClCompile Include="volkus.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk.ixx">
+    <ClCompile Include="vkx\vkx.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk.exports.ixx">
+    <ClCompile Include="vkx\exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\instance.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\concepts.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\error.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\physicaldevice.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\vulkanresource.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\util.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\win32.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vkx\device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

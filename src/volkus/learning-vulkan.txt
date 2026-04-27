@@ -1,0 +1,191 @@
+How to Learn Vulkan
+===================
+
+Honest answer: there's no shortcut, but there's a much faster path than the
+one most people take. Here's what actually works, based on how the people
+who get productive in Vulkan tend to do it.
+
+
+The trap to avoid
+-----------------
+
+The default approach -- read the spec, follow vulkan-tutorial.com end-to-end,
+then "build something" -- fails for most people. You spend two weeks typing
+1,200 lines of triangle code, understand maybe 30% of it, and then can't
+modify anything without breaking it. The API is too big and too
+interconnected for linear reading to stick.
+
+The reason: Vulkan's concepts are a graph, not a list. Instances depend on
+physical devices depend on queue families depend on command pools depend on
+command buffers depend on synchronization depend on swapchains. Reading them
+one at a time means by the time you reach synchronization, you've forgotten
+what a queue family was for.
+
+
+What actually works
+-------------------
+
+1. Build the mental model before the code
+
+Before writing a line, spend a few hours getting the SHAPE of the API in your
+head:
+
+- "Vulkan in 30 minutes" (Alain Galvan's blog post) or the "A Simple Vulkan
+  Compute Example" tutorials. These don't teach you the API; they teach you
+  what the pieces are and how they fit. Compute is a great starting point
+  because it strips away swapchains, render passes, and presentation -- half
+  the API surface.
+- Read the first 100 pages of the spec's "Fundamentals" chapter, not for
+  memorization but for vocabulary. You want to recognize terms when they
+  show up later.
+- Look at a diagram of the object dependency graph. There's a famous one
+  from the Khronos overview deck. Understanding "to make a graphics pipeline
+  I need: a render pass, a pipeline layout, shader modules, vertex input
+  state, ..." up front saves you from drowning in struct fields.
+
+This stage is "I could draw the boxes and arrows on a whiteboard, but I
+couldn't write the code." That's the right state to be in before stage 2.
+
+
+2. Type out a triangle. Once. By hand. Don't copy-paste.
+
+Now do vulkan-tutorial.com or Sascha Willems' triangle sample, but with
+rules:
+
+- Type every line. No copy-paste. The muscle memory of writing
+  VkStructureType sType = VK_STRUCTURE_TYPE_* matters.
+- Before each vkCreate* call, write a comment in your own words explaining
+  what this object is for and what its inputs depend on. If you can't, you
+  don't understand it yet -- go back to the docs for that one object.
+- Don't try to understand everything. Some things (subpass dependencies,
+  image layout transitions, the specific synchronization in the present
+  loop) won't make sense until you've broken them. That's fine. Note them
+  as "magic for now."
+
+Expect this to take a week. At the end you'll have a triangle and a vague
+understanding. Don't be discouraged -- that's the floor, not the ceiling.
+
+
+3. Break it deliberately
+
+This is the step most people skip and it's where 80% of the actual learning
+happens. With a working triangle:
+
+- Remove the fence wait at the end of the frame. Watch it crash. Read the
+  validation layer error. Now you understand fences.
+- Change the image layout in the render pass to the wrong one. Watch it
+  crash. Now you understand layouts.
+- Resize the window. Watch the swapchain go stale. Implement recreation.
+  Now you understand swapchains.
+- Comment out vkDeviceWaitIdle at shutdown. Watch the validation errors.
+  Now you understand object lifetimes.
+- Try to draw two triangles with different colors. Discover you need either
+  two pipelines, push constants, or descriptor sets. Pick one. Implement
+  it. Now you understand a chunk of the resource binding model.
+
+Each of these is a tiny project. Each one cements one concept. The
+validation layers are your tutor -- they tell you exactly what you got
+wrong, in plain English, with spec references. Always run with validation
+on. Always.
+
+
+4. Pick a vertical slice that's bigger than you're comfortable with
+
+Once you can mutate the triangle confidently, pick something concrete:
+
+- A textured spinning cube
+- A compute shader that does an image blur
+- A scene with 100 instanced meshes
+- A simple deferred renderer
+
+Not "a renderer." Something specific you can finish in 2-4 weeks. The
+constraint forces you to learn the parts you need and skip the parts you
+don't, which beats trying to learn everything in the abstract.
+
+The right size is "I can see how I'd do most of it, but three things scare
+me." Those three things are what you're actually here to learn.
+
+
+5. Read other people's code, deliberately
+
+Two repos worth studying carefully:
+
+- Sascha Willems' Vulkan samples. Each sample is small and focused on one
+  concept. Read them in order of complexity, not feature.
+- vk-bootstrap and VMA as libraries you use. Reading their source teaches
+  you the idiomatic patterns for instance creation and memory allocation
+  respectively -- patterns that the spec doesn't suggest because the spec is
+  reference material, not guidance.
+
+Avoid trying to read big engines (Granite, Wicked Engine) until you have
+your own working renderer. They're too dense and the abstractions hide the
+API rather than illuminate it.
+
+
+6. Reference material, not tutorials, for the long haul
+
+Once past the beginner phase, your daily-driver resources change:
+
+- The spec itself. It's intimidating but it's the only complete and correct
+  source. After a month of Vulkan, you'll be able to read individual
+  chapters and they'll make sense. Bookmark the synchronization, memory,
+  and resource binding chapters -- you'll return to them constantly.
+- The Vulkan Guide (vkguide.dev -- Vulkan 1.3 / dynamic rendering edition).
+  This is what vulkan-tutorial.com should have been. Modern, opinionated,
+  uses the current best practices (dynamic rendering, sync2, VMA, bindless).
+  If you're starting today, prefer this over vulkan-tutorial.com.
+- Khronos Synchronization Examples wiki page. Synchronization is the hardest
+  part of Vulkan. This page is gold.
+- The Vulkan Discord. Surprisingly active and helpful. People answer
+  questions in minutes.
+
+
+7. Wrap as you go, but don't wrap too early
+
+Your volkus project is the right instinct -- building thin C++ wrappers
+around the C API is how you learn what's actually there and how the pieces
+compose. Two cautions:
+
+- Don't wrap before you understand the thing. Write the raw Vulkan code
+  first. Get it working. Then extract a wrapper. The wrapper designs that
+  come from "I wrote this five times and it was always the same" are good.
+  The wrapper designs that come from "I bet I'll need this" are usually
+  wrong.
+- Don't try to abstract over Vulkan's flexibility. Vulkan exposes a lot of
+  choices precisely because different applications make different ones. A
+  wrapper that hides those choices to "make it easier" usually makes it
+  harder, because you can't escape it when you need to. Wrap for ergonomics
+  (RAII, error handling, default-initialized structs), not for concept
+  hiding.
+
+
+A rough timeline
+----------------
+
+Calibrated against people I've seen go through this:
+
+- Week 1-2:   Vocabulary, mental model, first triangle. You feel like you
+              understand nothing.
+- Week 3-4:   Mutating the triangle, breaking things, fixing them. You feel
+              like you understand maybe 20%, but you can debug.
+- Month 2:    First real project (textured cube, compute thing, whatever).
+              You start having opinions about the API.
+- Month 3-6:  Second project, bigger. You stop looking up basic struct
+              fields. Synchronization starts to feel less like voodoo.
+- Month 6+:   You can read the spec for a feature you've never used and
+              implement it from scratch. This is the goal.
+
+These are full-time-equivalent estimates. Adjust for hobby pace.
+
+
+The single most important habit
+-------------------------------
+
+Run validation layers always. Read every message. Understand every message.
+Vulkan with validation off is unlearnable. Vulkan with validation on is a
+hard but fair teacher. The validation layers know more about Vulkan than you
+ever will, and they will tell you, in detail, exactly what you did wrong,
+every single time.
+
+If you only take one thing from this answer: validation layers, always, from
+day one.

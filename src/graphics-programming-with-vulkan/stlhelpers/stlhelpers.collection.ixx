@@ -344,5 +344,5 @@ export namespace StlHelpers
 
 			return true;
 		}()
-			);
+	);
 }

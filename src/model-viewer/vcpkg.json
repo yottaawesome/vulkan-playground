@@ -1,0 +1,11 @@
+{
+  "name": "model-viewer",
+  "version": "1.0.0",
+  "dependencies": [
+    "vulkan",
+    "glm",
+    "glslang",
+    "vulkan-memory-allocator",
+    "volk"
+  ]
+}

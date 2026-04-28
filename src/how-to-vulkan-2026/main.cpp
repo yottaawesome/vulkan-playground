@@ -1,13 +1,33 @@
 import std;
 import vulkan26;
 
+struct ShaderDataBuffer
+{
+	vma::VmaAllocation Allocation{ nullptr };
+	vma::VmaAllocationInfo AllocationInfo{};
+	vk::VkBuffer Buffer{ nullptr };
+	vk::VkDeviceAddress DeviceAddress{};
+
+	auto Destroy(const vma::Allocator& allocator, const vk::Device& device) noexcept -> void
+	{
+		if (Buffer)
+			vma::vmaDestroyBuffer(allocator.Get(), Buffer, Allocation);
+	}
+};
+struct ShaderData
+{
+	glm::mat4 Projection;
+	glm::mat4 View;
+	glm::mat4 Model[3];
+	glm::vec4 LightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
+	std::uint32_t Selected{ 1 };
+} shaderData;
+
 // https://howtovulkan.com/
 // https://github.com/SaschaWillems/HowToVulkan/blob/main/source/main.cpp
 auto wWinMain(Win32::HINSTANCE, Win32::HINSTANCE, Win32::LPWSTR, int) -> int
 try
 {
-	//
-	//
 	// 
 	// 
 	// Initialisation of SDL, and initial load of Volk (stage 1).
@@ -23,49 +43,47 @@ try
 
 	//
 	//
-	//
-	//
 	// Instance and physical device selection.
 	// Create the Vulkan instance.
 	auto instance =
 		[] static->vk::Instance
-	{
-		// Get SDL to tell us the required instance extensions for Vulkan.
-		auto instanceExtensions =
-			[] static->std::span<const char* const>
 		{
-			auto instanceExtensionsCount = std::uint32_t{};
-			return { sdl3::vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };
-		}();
-		// Start with the application info, to describe our application
-		// to Vulkan. This can help with driver optimisations for 
-		// popular games.
-		auto appInfo =
-			vk::VkApplicationInfo
-		{
-			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			.pApplicationName = "Vulkan-2026",
-			.applicationVersion = vk::MakeVersion(1, 0, 0),
-			.pEngineName = "DorkEngine2000",
-			.engineVersion = vk::MakeVersion(1, 0, 0),
-			.apiVersion = vk::ApiVersion::V1_4
-		};
-		auto createInfo =
-			vk::VkInstanceCreateInfo
-		{
-			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-			.pApplicationInfo = &appInfo,
-			.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
-			.ppEnabledExtensionNames = instanceExtensions.data()
-		};
+			// Get SDL to tell us the required instance extensions for Vulkan.
+			auto instanceExtensions =
+				[] static->std::span<const char* const>
+			{
+				auto instanceExtensionsCount = std::uint32_t{};
+				return { sdl3::vk::SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount), instanceExtensionsCount };
+			}();
+			// Start with the application info, to describe our application
+			// to Vulkan. This can help with driver optimisations for 
+			// popular games.
+			auto appInfo =
+				vk::VkApplicationInfo
+			{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+				.pApplicationName = "Vulkan-2026",
+				.applicationVersion = vk::MakeVersion(1, 0, 0),
+				.pEngineName = "DorkEngine2000",
+				.engineVersion = vk::MakeVersion(1, 0, 0),
+				.apiVersion = vk::ApiVersion::V1_4
+			};
+			auto createInfo =
+				vk::VkInstanceCreateInfo
+			{
+				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+				.pApplicationInfo = &appInfo,
+				.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
+				.ppEnabledExtensionNames = instanceExtensions.data()
+			};
 
-		auto instance = vk::VkInstance{};
-		auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
-		if (not status)
-			throw vk::Error{ status };
-		return vk::Instance{ vk::InstanceUniquePtr{ instance} };
-	}();
-	volk::volkLoadInstance(instance.Get());
+			auto instance = vk::VkInstance{};
+			auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
+			if (not status)
+				throw vk::Error{ status };
+			volk::volkLoadInstance(instance);
+			return vk::Instance{ vk::InstanceUniquePtr{ instance} };
+		}();
 
 	// Get a list of the physical devices.
 	auto physicalDevices =
@@ -411,21 +429,6 @@ try
 		}();
 
 	constexpr auto MaxFramesInFlight = std::uint32_t{2};
-	struct ShaderDataBuffer {
-		vma::VmaAllocation Allocation{ nullptr };
-		vma::VmaAllocationInfo AllocationInfo{};
-		vk::VkBuffer Buffer{ nullptr };
-		vk::VkDeviceAddress DeviceAddress{};
-	};
-	struct ShaderData
-	{
-		glm::mat4 Projection;
-		glm::mat4 View;
-		glm::mat4 Model[3];
-		glm::vec4 LightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
-		std::uint32_t Selected{ 1 };
-	} shaderData;
-
 	auto shaderDataBuffers = std::array<ShaderDataBuffer, MaxFramesInFlight>{};
 	auto commandBuffers = std::array<vk::VkCommandBuffer, MaxFramesInFlight>{};
 	for (auto i = 0; i < MaxFramesInFlight; i++) 
@@ -453,6 +456,12 @@ try
 			)};
 		if (not result)
 			throw vk::Error{ result };
+	}
+
+	// Cleanup buffers
+	for(ShaderDataBuffer& buffer : shaderDataBuffers)
+	{
+		buffer.Destroy(allocator, device);
 	}
 
 	return 0;

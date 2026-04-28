@@ -4,3 +4,4 @@ export module volkus;
 export import :vkx;
 export import :util;
 export import :win32;
+export import :vkx.physicaldeviceproperties;

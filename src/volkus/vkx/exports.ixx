@@ -43,7 +43,8 @@ export using
 	::VkDebugUtilsMessageTypeFlagsEXT,
 	::PFN_vkDebugUtilsMessengerCallbackEXT,
 	::PFN_vkCreateDebugUtilsMessengerEXT,
-	::PFN_vkDestroyDebugUtilsMessengerEXT
+	::PFN_vkDestroyDebugUtilsMessengerEXT,
+	::VkDebugUtilsMessageSeverityFlagsEXT
 	;
 
 // Instance
@@ -78,7 +79,9 @@ export using
 	::vkGetPhysicalDeviceSurfaceCapabilitiesKHR,
 	::vkGetPhysicalDeviceQueueFamilyProperties,
 	::vkGetPhysicalDeviceQueueFamilyProperties2,
-	::vkEnumeratePhysicalDevices
+	::vkEnumeratePhysicalDevices,
+	::vkGetPhysicalDeviceFeatures,
+	::vkGetPhysicalDeviceFeatures2
 	;
 
 // Debug utils

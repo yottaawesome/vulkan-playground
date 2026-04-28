@@ -6,3 +6,4 @@ export import :vkx.error;
 export import :vkx.physicaldevice;
 export import :vkx.debug;
 export import :vkx.device;
+export import :vkx.physicaldevicefeatures;

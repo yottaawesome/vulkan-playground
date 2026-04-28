@@ -56,12 +56,22 @@ export namespace Volkus::vkx
 				throw VulkanError{ result, "Failed to enumerate physical devices (data)" };
 			return devices;
 		}
+	};
 
-	protected:
-		void Create(this InstanceLike auto&& self, bool initializeVolkAndLoadInstance)
+	template<typename T>
+	concept InstanceFactoryLike = requires(T t)
+	{
+		{ t.GetLayers() } -> std::ranges::range;
+		{ t.GetExtensions() } -> std::ranges::range;
+		{ t.GetApplicationInfo() } -> std::convertible_to<VkApplicationInfo>;
+		{ t.GetFlags() } -> std::convertible_to<VkInstanceCreateFlags>;
+	};
+
+	struct InstanceFactory
+	{
+		[[nodiscard]]
+		auto operator()(this InstanceFactoryLike auto&& self, bool initializeVolkAndLoadInstance) -> Instance
 		{
-			if (initializeVolkAndLoadInstance)
-				volkInitialize();
 			auto instance = VkInstance{};
 			auto layers = self.GetLayers();
 			auto extensions = self.GetExtensions();
@@ -75,7 +85,7 @@ export namespace Volkus::vkx
 				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
 				.ppEnabledExtensionNames = extensions.data()
 			};
-			self.m_resource = CreateVkInstance(createInfo, initializeVolkAndLoadInstance);
+			return { CreateVkInstance(createInfo, initializeVolkAndLoadInstance) };
 		}
 	};
 }

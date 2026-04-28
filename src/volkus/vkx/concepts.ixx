@@ -18,7 +18,7 @@ export namespace Volkus::vkx
 		ResourceLike<T, VkInstance>
 		and requires(T t)
 		{
-			//{t.GetLayers()} -> std::ranges::range;
+			{t.GetLayers()} -> std::ranges::range;
 			{t.GetExtensions()} -> std::ranges::range;
 			{t.GetApplicationInfo()} -> std::convertible_to<VkApplicationInfo>;
 			{t.GetFlags()} -> std::convertible_to<VkInstanceCreateFlags>;

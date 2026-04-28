@@ -10,5 +10,6 @@
   <Project Path="volkus/volkus.vcxproj" Id="8d0056cf-74b8-461b-ac05-0480c727e340" />
   <Project Path="vulkan-experiments/vulkan-experiments.vcxproj" Id="ef0f47d6-34da-4f0b-9d59-b2ab9d398436" />
   <Project Path="vulkan-memory/vulkan-memory.vcxproj" Id="b0c7913c-ea26-4d47-a358-fbcd5e3688e1" />
+  <Project Path="vma-defrag/vma-defrag.vcxproj" Id="72a07873-d5b6-459a-aeb1-3a8dca28081e" />
   <Project Path="vulkan-tutorial/vulkan-tutorial.vcxproj" Id="9883e565-2b0f-4608-904a-66003832c11e" />
 </Solution>

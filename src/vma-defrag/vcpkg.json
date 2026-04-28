@@ -1,0 +1,8 @@
+{
+  "name": "vma-defrag",
+  "version": "1.0.0",
+  "dependencies": [
+    "vulkan",
+    "vulkan-memory-allocator"
+  ]
+}

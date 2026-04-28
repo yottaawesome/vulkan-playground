@@ -4,7 +4,7 @@ import :vkx.exports;
 import :vkx.error;
 import :vkx.vulkanresource;
 
-export namespace Volkus::vkx
+namespace Volkus::vkx
 {
 	struct DeviceDeleter
 	{
@@ -13,7 +13,28 @@ export namespace Volkus::vkx
 			vkDestroyDevice(device, nullptr);
 		}
 	};
+}
+
+export namespace Volkus::vkx
+{
 	using DeviceUniquePtr = std::unique_ptr<std::remove_pointer_t<VkDevice>, DeviceDeleter>;
+
+	auto CreateDeviceUniquePtr(
+		VkPhysicalDevice physicalDevice,
+		const VkDeviceCreateInfo& createInfo,
+		bool loadVolkDevice
+	) -> DeviceUniquePtr
+	{
+		if (not physicalDevice)
+			throw std::runtime_error{ "Invalid physical device handle" };
+		auto device = VkDevice{};
+		auto result = Volkus::vkx::Result{ vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) };
+		if (not result)
+			throw VulkanError{ result, "Failed to create Vulkan device" };
+		if (loadVolkDevice)
+			volkLoadDevice(device);
+		return DeviceUniquePtr{ device };
+	}
 
 	class Device : public VulkanResource<DeviceUniquePtr>
 	{
@@ -31,23 +52,6 @@ export namespace Volkus::vkx
 			auto queue = VkQueue{};
 			vkGetDeviceQueue(self.Get(), queueFamilyIndex, queueIndex, &queue);
 			return queue;
-		}
-
-		static auto Create(
-			VkPhysicalDevice physicalDevice,
-			const VkDeviceCreateInfo& createInfo, 
-			bool loadVolkDevice
-		) -> Device
-		{
-			if (not physicalDevice)
-				throw std::runtime_error{ "Invalid physical device handle" };
-			auto device = VkDevice{};
-			auto result = Volkus::vkx::Result{ vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) };
-			if (not result)
-				throw VulkanError{ result, "Failed to create Vulkan device" };
-			if (loadVolkDevice)
-				volkLoadDevice(device);
-			return Device{ DeviceUniquePtr{ device } };
 		}
 	};
 }

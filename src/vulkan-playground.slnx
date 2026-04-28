@@ -5,11 +5,12 @@
   </Configurations>
   <Project Path="graphics-programming-with-vulkan/graphics-programming-with-vulkan.vcxproj" Id="be96710d-0534-4fbe-8bfb-0082e3112cad" />
   <Project Path="hello-world/hello-world.vcxproj" Id="583a70aa-e6f9-4c0d-b2cf-c870805930fc" />
+  <Project Path="how-to-vulkan-2026-original/how-to-vulkan-2026-original.vcxproj" Id="7a34d8ac-5855-484c-b394-5868d6620448" />
   <Project Path="how-to-vulkan-2026/how-to-vulkan-2026.vcxproj" Id="6c8ea6c0-af2f-4c66-9021-124e27e28885" />
   <Project Path="model-viewer/model-viewer.vcxproj" Id="24ef822b-c792-4868-a71c-6bd096dee83c" />
+  <Project Path="vma-defrag/vma-defrag.vcxproj" Id="72a07873-d5b6-459a-aeb1-3a8dca28081e" />
   <Project Path="volkus/volkus.vcxproj" Id="8d0056cf-74b8-461b-ac05-0480c727e340" />
   <Project Path="vulkan-experiments/vulkan-experiments.vcxproj" Id="ef0f47d6-34da-4f0b-9d59-b2ab9d398436" />
   <Project Path="vulkan-memory/vulkan-memory.vcxproj" Id="b0c7913c-ea26-4d47-a358-fbcd5e3688e1" />
-  <Project Path="vma-defrag/vma-defrag.vcxproj" Id="72a07873-d5b6-459a-aeb1-3a8dca28081e" />
   <Project Path="vulkan-tutorial/vulkan-tutorial.vcxproj" Id="9883e565-2b0f-4608-904a-66003832c11e" />
 </Solution>

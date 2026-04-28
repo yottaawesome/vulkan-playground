@@ -34,15 +34,22 @@ export namespace vk
 	{
 		const VkResult Code = VkResult::VK_ERROR_UNKNOWN;
 		Error(VkResult result, const std::source_location& loc = std::source_location::current()) noexcept
-			: Code(result), std::runtime_error(Format(result, loc, std::stacktrace::current(1)))
+			: Code(result), std::runtime_error(Format(result, "An exception occurred", loc, std::stacktrace::current(1)))
 		{ }
 		Error(Result result, const std::source_location& loc = std::source_location::current()) noexcept 
-			: Code(result.Value), std::runtime_error(Format(result.Value, loc, std::stacktrace::current(1)))
+			: Code(result.Value), std::runtime_error(Format(result.Value, "An exception occurred", loc, std::stacktrace::current(1)))
 		{ }
 
-		static auto Format(VkResult result, const std::source_location& loc, const std::stacktrace& stack) -> std::string
+		Error(VkResult result, std::string_view msg, const std::source_location& loc = std::source_location::current()) noexcept
+			: Code(result), std::runtime_error(Format(result, msg, loc, std::stacktrace::current(1)))
+		{}
+		Error(Result result, std::string_view msg, const std::source_location& loc = std::source_location::current()) noexcept
+			: Code(result.Value), std::runtime_error(Format(result.Value, msg, loc, std::stacktrace::current(1)))
+		{}
+
+		static auto Format(VkResult result, std::string_view msg, const std::source_location& loc, const std::stacktrace& stack) -> std::string
 		{
-			return std::format("Vulkan error: {} at {}:{} at {}", static_cast<std::uint32_t>(result), loc.file_name(), loc.line(), stack);
+			return std::format("Vulkan error: {} - {} at {}:{} at {}", msg, static_cast<std::uint32_t>(result), loc.file_name(), loc.line(), stack);
 		}
 	};
 }

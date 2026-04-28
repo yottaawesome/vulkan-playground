@@ -430,7 +430,6 @@ try
 
 	constexpr auto MaxFramesInFlight = std::uint32_t{2};
 	auto shaderDataBuffers = std::array<ShaderDataBuffer, MaxFramesInFlight>{};
-	auto commandBuffers = std::array<vk::VkCommandBuffer, MaxFramesInFlight>{};
 	for (auto i = 0; i < MaxFramesInFlight; i++) 
 	{
 		auto uBufferCI = vk::VkBufferCreateInfo{
@@ -457,6 +456,12 @@ try
 		if (not result)
 			throw vk::Error{ result };
 	}
+
+	// Sync objects
+	// Command pool
+	// Texture images
+	
+
 
 	// Cleanup buffers
 	for(ShaderDataBuffer& buffer : shaderDataBuffers)

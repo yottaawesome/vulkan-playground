@@ -108,7 +108,7 @@ export namespace ModelViewer
 				.pNext = &enabledVk14Features,
 				.synchronization2 = true,
 				.dynamicRendering = true,
-		};
+			};
 		auto enabledVk12Features =
 			VkPhysicalDeviceVulkan12Features{
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
@@ -118,19 +118,19 @@ export namespace ModelViewer
 				.descriptorBindingVariableDescriptorCount = true,
 				.runtimeDescriptorArray = true,
 				.bufferDeviceAddress = true
-		};
+			};
 		auto enabledVk11Features =
 			VkPhysicalDeviceVulkan11Features{
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
 				.pNext = &enabledVk12Features,
-		};
+			};
 		auto enabledVk10Features =
 			VkPhysicalDeviceFeatures2{
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 				.pNext = &enabledVk11Features,
 				.features = {
 					.samplerAnisotropy = true
-				}
+			}
 		};
 
 		auto queuePriority = 1.0f;
@@ -141,8 +141,7 @@ export namespace ModelViewer
 				.queueFamilyIndex = queueIndex,
 				.queueCount = 1,
 				.pQueuePriorities = &queuePriority
-		};
-
+			};
 		auto deviceExtensions = std::array{ Vk::DeviceExtension::Swapchain };
 		auto deviceCreateInfo =
 			VkDeviceCreateInfo{

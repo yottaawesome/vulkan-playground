@@ -157,6 +157,7 @@
     <ClCompile Include="vma\vma.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
+    <ClCompile Include="vulkan\vulkan.fence.ixx" />
     <ClCompile Include="vulkan\vulkan.image.ixx" />
     <ClCompile Include="vulkan\vulkan.impl.cpp" />
     <ClCompile Include="vulkan\vulkan.instance.ixx" />
@@ -164,6 +165,7 @@
     <ClCompile Include="vulkan\vulkan.device.ixx" />
     <ClCompile Include="vulkan\vulkan.physicaldevice.ixx" />
     <ClCompile Include="vulkan\vulkan.resource.ixx" />
+    <ClCompile Include="vulkan\vulkan.semaphore.ixx" />
     <ClCompile Include="vulkan\vulkan.surface.ixx" />
     <ClCompile Include="vulkan\vulkan.swapchain.ixx" />
     <ClCompile Include="win32\win32.ixx" />

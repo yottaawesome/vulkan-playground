@@ -8,3 +8,5 @@ export import :vulkan.surface;
 export import :vulkan.swapchain;
 export import :vulkan.image;
 export import :vulkan.resource;
+export import :vulkan.fence;
+export import :vulkan.semaphore;

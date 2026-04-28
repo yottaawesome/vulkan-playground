@@ -117,8 +117,6 @@ try
 
 	//
 	//
-	//
-	//
 	// Logical device and queues.
 	//
 	// Queues. On most devices, the first queue family will support graphics, 
@@ -241,8 +239,6 @@ try
 
 	//
 	//
-	//
-	//
 	// Swapchain creation.
 	auto windowSize = glm::vec2{ window.GetWindowSize() };
 	auto swapchainExtent =
@@ -288,8 +284,6 @@ try
 
 	//
 	//
-	//
-	//
 	// Select a depth format. We need to find a format that supports being used as a depth-stencil attachment, and that is supported by the device.
 	auto depthFormat =
 		[&pickedDevice] -> vk::VkFormat
@@ -315,7 +309,11 @@ try
 				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 				.imageType = vk::VkImageType::VK_IMAGE_TYPE_2D,
 				.format = depthFormat,
-				.extent{.width = static_cast<std::uint32_t>(windowSize.x), .height = static_cast<std::uint32_t>(windowSize.y), .depth = 1 },
+				.extent{ 
+					.width = static_cast<std::uint32_t>(windowSize.x), 
+					.height = static_cast<std::uint32_t>(windowSize.y), 
+					.depth = 1 
+				},
 				.mipLevels = 1,
 				.arrayLayers = 1,
 				.samples = vk::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
@@ -371,8 +369,6 @@ try
 			};
 		}();
 
-	//
-	//
 	//
 	//
 	// Loading a mesh
@@ -458,6 +454,20 @@ try
 	}
 
 	// Sync objects
+	auto fences = std::array<Vulkan26::Fence, MaxFramesInFlight>{
+		Vulkan26::Fence{ Vulkan26::CreateFenceUniquePtr(device.Get(), vk::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT) },
+		Vulkan26::Fence{ Vulkan26::CreateFenceUniquePtr(device.Get(), vk::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT) }
+	};
+	auto semaphores = std::array<Vulkan26::Semaphore, MaxFramesInFlight>{
+		Vulkan26::Semaphore{ Vulkan26::CreateSemaphoreUniquePtr(device.Get(), 0)},
+		Vulkan26::Semaphore{ Vulkan26::CreateSemaphoreUniquePtr(device.Get(), 0)}
+	};
+	auto renderSemaphores = std::vector<Vulkan26::Semaphore>{};
+	for (auto index = 0; index < swapchainImages.size(); index++)
+		renderSemaphores.push_back(Vulkan26::Semaphore{ Vulkan26::CreateSemaphoreUniquePtr(device.Get(), 0) });
+
+
+
 	// Command pool
 	// Texture images
 	

@@ -85,6 +85,7 @@ export namespace vk
 		::VkSemaphoreCreateInfo,
 		::VkFenceCreateFlags,
 		::VkFenceCreateFlagBits,
+		::VkSemaphoreCreateFlags,
 		::vkCreateSemaphore,
 		::vkCreateFence,
 		::vkDestroySemaphore,

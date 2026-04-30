@@ -1121,7 +1121,8 @@ int main(int argc, char* argv[])
 			{
 				auto viewCI = VkImageViewCreateInfo{ 
 					.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
-					.image = swapchainImages[i], .viewType = VK_IMAGE_VIEW_TYPE_2D, 
+					.image = swapchainImages[i], 
+					.viewType = VK_IMAGE_VIEW_TYPE_2D, 
 					.format = imageFormat, 
 					.subresourceRange = VkImageSubresourceRange{
 						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 

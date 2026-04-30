@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
 	{
 		if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) 
 		{
-			queueFamily = i;
+			queueFamily = static_cast<uint32_t>(i);
 			break;
 		}
 	}
@@ -189,7 +189,8 @@ int main(int argc, char* argv[])
 	auto const qfpriorities = float{ 1.0f };
 	auto queueCI = VkDeviceQueueCreateInfo{ 
 		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 
-		.queueFamilyIndex = queueFamily, .queueCount = 1, 
+		.queueFamilyIndex = queueFamily, 
+		.queueCount = 1, 
 		.pQueuePriorities = &qfpriorities 
 	};
 	auto enabledVk12Features = VkPhysicalDeviceVulkan12Features{ 
@@ -207,7 +208,7 @@ int main(int argc, char* argv[])
 		.dynamicRendering = true 
 	};
 	auto enabledVk10Features = VkPhysicalDeviceFeatures{ 
-		.samplerAnisotropy = VK_TRUE 
+		.samplerAnisotropy = true
 	};
 	auto const deviceExtensions = std::vector<const char*>{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	auto deviceCI = VkDeviceCreateInfo{
@@ -264,7 +265,10 @@ int main(int argc, char* argv[])
 		.minImageCount = surfaceCaps.minImageCount,
 		.imageFormat = imageFormat,
 		.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
-		.imageExtent{.width = swapchainExtent.width, .height = swapchainExtent.height },
+		.imageExtent = VkExtent2D{
+			.width = swapchainExtent.width, 
+			.height = swapchainExtent.height 
+		},
 		.imageArrayLayers = 1,
 		.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
@@ -277,14 +281,14 @@ int main(int argc, char* argv[])
 	swapchainImages.resize(imageCount);
 	chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data()));
 	swapchainImageViews.resize(imageCount);
-	for (auto i = 0; i < imageCount; i++) 
+	for (auto i = std::uint32_t{}; i < imageCount; i++)
 	{
 		auto viewCI = VkImageViewCreateInfo{ 
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
 			.image = swapchainImages[i], 
 			.viewType = VK_IMAGE_VIEW_TYPE_2D, 
 			.format = imageFormat, 
-			.subresourceRange{
+			.subresourceRange = VkImageSubresourceRange{
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
 				.levelCount = 1, 
 				.layerCount = 1 
@@ -336,7 +340,7 @@ int main(int argc, char* argv[])
 		.image = depthImage, 
 		.viewType = VK_IMAGE_VIEW_TYPE_2D, 
 		.format = depthFormat, 
-		.subresourceRange{
+		.subresourceRange = VkImageSubresourceRange{
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, 
 			.levelCount = 1, 
 			.layerCount = 1 
@@ -375,7 +379,7 @@ int main(int argc, char* argv[])
 			}
 		};
 		vertices.push_back(v);
-		indices.push_back(indices.size());
+		indices.push_back(static_cast<uint16_t>(indices.size()));
 	}
 	auto vBufSize = VkDeviceSize{ sizeof(Vertex) * vertices.size() };
 	auto iBufSize = VkDeviceSize{ sizeof(uint16_t) * indices.size() };
@@ -482,7 +486,11 @@ int main(int argc, char* argv[])
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.imageType = VK_IMAGE_TYPE_2D,
 			.format = ktxTexture_GetVkFormat(ktxTexture),
-			.extent = {.width = ktxTexture->baseWidth, .height = ktxTexture->baseHeight, .depth = 1 },
+			.extent = {
+				.width = ktxTexture->baseWidth, 
+				.height = ktxTexture->baseHeight, 
+				.depth = 1 
+			},
 			.mipLevels = ktxTexture->numLevels,
 			.arrayLayers = 1,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -490,7 +498,9 @@ int main(int argc, char* argv[])
 			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 		};
-		auto texImageAllocCI = VmaAllocationCreateInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
+		auto texImageAllocCI = VmaAllocationCreateInfo{ 
+			.usage = VMA_MEMORY_USAGE_AUTO 
+		};
 		chk(vmaCreateImage(allocator, &texImgCI, &texImageAllocCI, &textures[i].image, &textures[i].allocation, nullptr));
 
 		// Image view exposing all mip levels for shader sampling.
@@ -499,7 +509,7 @@ int main(int argc, char* argv[])
 			.image = textures[i].image, 
 			.viewType = VK_IMAGE_VIEW_TYPE_2D, 
 			.format = texImgCI.format, 
-			.subresourceRange = {
+			.subresourceRange = VkImageSubresourceRange{
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
 				.levelCount = ktxTexture->numLevels, 
 				.layerCount = 1 
@@ -529,7 +539,9 @@ int main(int argc, char* argv[])
 		memcpy(imgSrcAllocInfo.pMappedData, ktxTexture->pData, ktxTexture->dataSize);
 
 		// Allocate a fence + one-time command buffer to drive the upload synchronously.
-		auto fenceOneTimeCI = VkFenceCreateInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+		auto fenceOneTimeCI = VkFenceCreateInfo{ 
+			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO 
+		};
 		auto fenceOneTime = VkFence{};
 		chk(vkCreateFence(device, &fenceOneTimeCI, nullptr, &fenceOneTime));
 		auto cbOneTime = VkCommandBuffer{};
@@ -556,7 +568,11 @@ int main(int argc, char* argv[])
 			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.image = textures[i].image,
-			.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = ktxTexture->numLevels, .layerCount = 1 }
+			.subresourceRange = VkImageSubresourceRange{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
+				.levelCount = ktxTexture->numLevels, 
+				.layerCount = 1 
+			}
 		};
 		auto barrierTexInfo = VkDependencyInfo{ 
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, 
@@ -568,14 +584,22 @@ int main(int argc, char* argv[])
 		// Build one VkBufferImageCopy per mip level. KTX tells us the byte offset of
 		// each mip within the blob; the destination extent halves at each level.
 		auto copyRegions = std::vector<VkBufferImageCopy>{};
-		for (auto j = 0; j < ktxTexture->numLevels; j++) 
+		for (auto j = std::uint32_t{}; j < ktxTexture->numLevels; j++)
 		{
 			auto mipOffset = ktx_size_t{ 0 };
 			auto ret = ktxTexture_GetImageOffset(ktxTexture, j, 0, 0, &mipOffset);
 			copyRegions.push_back({
 				.bufferOffset = mipOffset,
-				.imageSubresource{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .mipLevel = (uint32_t)j, .layerCount = 1},
-				.imageExtent{.width = ktxTexture->baseWidth >> j, .height = ktxTexture->baseHeight >> j, .depth = 1 },
+				.imageSubresource = VkImageSubresourceLayers{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
+					.mipLevel = (uint32_t)j, 
+					.layerCount = 1
+				},
+				.imageExtent = VkExtent3D{
+					.width = ktxTexture->baseWidth >> j, 
+					.height = ktxTexture->baseHeight >> j, 
+					.depth = 1 
+				},
 			});
 		}
 		// Issue the actual buffer→image copy for every mip level in one call.
@@ -599,7 +623,7 @@ int main(int argc, char* argv[])
 			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
 			.image = textures[i].image,
-			.subresourceRange = {
+			.subresourceRange = VkImageSubresourceRange{
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
 				.levelCount = ktxTexture->numLevels, 
 				.layerCount = 1 
@@ -617,7 +641,7 @@ int main(int argc, char* argv[])
 			.pCommandBuffers = &cbOneTime 
 		};
 		chk(vkQueueSubmit(queue, 1, &oneTimeSI, fenceOneTime));
-		chk(vkWaitForFences(device, 1, &fenceOneTime, VK_TRUE, UINT64_MAX));
+		chk(vkWaitForFences(device, 1, &fenceOneTime, true, UINT64_MAX));
 		vkDestroyFence(device, fenceOneTime, nullptr);
 		vmaDestroyBuffer(allocator, imgSrcBuffer, imgSrcAllocation);
 
@@ -628,7 +652,7 @@ int main(int argc, char* argv[])
 			.magFilter = VK_FILTER_LINEAR,
 			.minFilter = VK_FILTER_LINEAR,
 			.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-			.anisotropyEnable = VK_TRUE,
+			.anisotropyEnable = true,
 			.maxAnisotropy = 8.0f,
 			.maxLod = (float)ktxTexture->numLevels,
 		};
@@ -746,7 +770,8 @@ int main(int argc, char* argv[])
 	};
 	auto pipelineLayoutCI = VkPipelineLayoutCreateInfo{ 
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, 
-		.setLayoutCount = 1, .pSetLayouts = &descriptorSetLayoutTex, 
+		.setLayoutCount = 1, 
+		.pSetLayouts = &descriptorSetLayoutTex, 
 		.pushConstantRangeCount = 1, 
 		.pPushConstantRanges = &pushConstantRange 
 	};
@@ -821,8 +846,8 @@ int main(int argc, char* argv[])
 	};
 	auto depthStencilState = VkPipelineDepthStencilStateCreateInfo{ 
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, 
-		.depthTestEnable = VK_TRUE, 
-		.depthWriteEnable = VK_TRUE, 
+		.depthTestEnable = true,
+		.depthWriteEnable = true,
 		.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL 
 	};
 	auto blendAttachment = VkPipelineColorBlendAttachmentState{ 
@@ -897,7 +922,7 @@ int main(int argc, char* argv[])
 				.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 				.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 				.image = swapchainImages[imageIndex],
-				.subresourceRange{
+				.subresourceRange = VkImageSubresourceRange{
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
 					.levelCount = 1, 
 					.layerCount = 1 
@@ -912,7 +937,7 @@ int main(int argc, char* argv[])
 				.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 				.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 				.image = depthImage,
-				.subresourceRange{
+				.subresourceRange = VkImageSubresourceRange{
 					.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 
 					.levelCount = 1, 
 					.layerCount = 1 
@@ -986,7 +1011,7 @@ int main(int argc, char* argv[])
 			sizeof(VkDeviceAddress), 
 			&shaderDataBuffers[frameIndex].deviceAddress
 		);
-		vkCmdDrawIndexed(cb, indexCount, 3, 0, 0, 0);
+		vkCmdDrawIndexed(cb, static_cast<uint32_t>(indexCount), 3, 0, 0, 0);
 		vkCmdEndRendering(cb);
 		auto barrierPresent = VkImageMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -997,7 +1022,7 @@ int main(int argc, char* argv[])
 			.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 			.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			.image = swapchainImages[imageIndex],
-			.subresourceRange{
+			.subresourceRange = VkImageSubresourceRange{
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
 				.levelCount = 1, 
 				.layerCount = 1 
@@ -1079,18 +1104,31 @@ int main(int argc, char* argv[])
 			chk(vkDeviceWaitIdle(device));
 			chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
 			swapchainCI.oldSwapchain = swapchain;
-			swapchainCI.imageExtent = { .width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y) };
+			swapchainCI.imageExtent = VkExtent2D{ 
+				.width = static_cast<uint32_t>(windowSize.x), 
+				.height = static_cast<uint32_t>(windowSize.y) 
+			};
 			chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
-			for (auto i = 0; i < imageCount; i++) {
+			for (auto i = std::uint32_t{}; i < imageCount; i++) 
+			{
 				vkDestroyImageView(device, swapchainImageViews[i], nullptr);
 			}
 			chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
 			swapchainImages.resize(imageCount);
 			chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data()));
 			swapchainImageViews.resize(imageCount);
-			for (auto i = 0; i < imageCount; i++) 
+			for (auto i = std::uint32_t{}; i < imageCount; i++) 
 			{
-				auto viewCI = VkImageViewCreateInfo{ .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .image = swapchainImages[i], .viewType = VK_IMAGE_VIEW_TYPE_2D, .format = imageFormat, .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1} };
+				auto viewCI = VkImageViewCreateInfo{ 
+					.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
+					.image = swapchainImages[i], .viewType = VK_IMAGE_VIEW_TYPE_2D, 
+					.format = imageFormat, 
+					.subresourceRange = VkImageSubresourceRange{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, 
+						.levelCount = 1, 
+						.layerCount = 1
+					} 
+				};
 				chk(vkCreateImageView(device, &viewCI, nullptr, &swapchainImageViews[i]));
 			}
 			for (auto& semaphore : renderSemaphores) 
@@ -1105,10 +1143,34 @@ int main(int argc, char* argv[])
 			vkDestroySwapchainKHR(device, swapchainCI.oldSwapchain, nullptr);
 			vmaDestroyImage(allocator, depthImage, depthImageAllocation);
 			vkDestroyImageView(device, depthImageView, nullptr);
-			depthImageCI.extent = { .width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y), .depth = 1 };
-			auto allocCI = VmaAllocationCreateInfo{ .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, .usage = VMA_MEMORY_USAGE_AUTO };
-			chk(vmaCreateImage(allocator, &depthImageCI, &allocCI, &depthImage, &depthImageAllocation, nullptr));
-			auto viewCI = VkImageViewCreateInfo{ .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .image = depthImage, .viewType = VK_IMAGE_VIEW_TYPE_2D, .format = depthFormat, .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, .levelCount = 1, .layerCount = 1 } };
+			depthImageCI.extent = VkExtent3D{ 
+				.width = static_cast<uint32_t>(windowSize.x), 
+				.height = static_cast<uint32_t>(windowSize.y), 
+				.depth = 1 
+			};
+			auto allocCI = VmaAllocationCreateInfo{ 
+				.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, 
+				.usage = VMA_MEMORY_USAGE_AUTO 
+			};
+			chk(vmaCreateImage(
+				allocator, 
+				&depthImageCI, 
+				&allocCI, 
+				&depthImage, 
+				&depthImageAllocation, 
+				nullptr
+			));
+			auto viewCI = VkImageViewCreateInfo{ 
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
+				.image = depthImage, 
+				.viewType = VK_IMAGE_VIEW_TYPE_2D, 
+				.format = depthFormat, 
+				.subresourceRange = VkImageSubresourceRange{
+					.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, 
+					.levelCount = 1, 
+					.layerCount = 1 
+				} 
+			};
 			chk(vkCreateImageView(device, &viewCI, nullptr, &depthImageView));
 		}
 	}

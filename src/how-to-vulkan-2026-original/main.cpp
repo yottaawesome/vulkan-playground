@@ -33,7 +33,7 @@ struct ShaderData
 	glm::mat4 view;
 	glm::mat4 model[3];
 	glm::vec4 lightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
-	uint32_t selected{ 1 };
+	std::uint32_t selected{ 1 };
 };
 struct ShaderDataBuffer 
 {
@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 		.pApplicationName = "How to Vulkan", 
 		.apiVersion = VK_API_VERSION_1_4 
 	};
-	auto instanceExtensionsCount = uint32_t{ 0 };
+	auto instanceExtensionsCount = std::uint32_t{ 0 };
 	auto instanceExtensions = SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount);
 	auto instanceCI = VkInstanceCreateInfo{
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -121,11 +121,11 @@ int main(int argc, char* argv[])
 	
 	
 	// Device
-	auto deviceCount = uint32_t{ 0 };
+	auto deviceCount = std::uint32_t{ 0 };
 	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
 	auto physicalDevices = std::vector<VkPhysicalDevice>(deviceCount);
 	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data()));
-	auto deviceIndex = uint32_t{ 0 };
+	auto deviceIndex = std::uint32_t{ 0 };
 	if (argc > 1) 
 	{
 		deviceIndex = std::stoi(argv[1]);
@@ -143,16 +143,16 @@ int main(int argc, char* argv[])
 	
 	// Find a queue family for graphics
 	auto queue = VkQueue{ };
-	auto queueFamilyCount = uint32_t{ 0 };
+	auto queueFamilyCount = std::uint32_t{ 0 };
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-	auto queueFamily = uint32_t{ 0 };
-	for (auto i = size_t{ 0 }; i < queueFamilies.size(); i++) 
+	auto queueFamily = std::uint32_t{ 0 };
+	for (auto i = std::size_t{ 0 }; i < queueFamilies.size(); i++) 
 	{
 		if (queueFamilies[i].queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) 
 		{
-			queueFamily = static_cast<uint32_t>(i);
+			queueFamily = static_cast<std::uint32_t>(i);
 			break;
 		}
 	}
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 		.pNext = &enabledVk13Features,
 		.queueCreateInfoCount = 1,
 		.pQueueCreateInfos = &queueCI,
-		.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+		.enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size()),
 		.ppEnabledExtensionNames = deviceExtensions.data(),
 		.pEnabledFeatures = &enabledVk10Features
 	};
@@ -228,8 +228,8 @@ int main(int argc, char* argv[])
 	if (surfaceCaps.currentExtent.width == 0xFFFFFFFF) 
 	{
 		swapchainExtent = { 
-			.width = static_cast<uint32_t>(windowSize.x), 
-			.height = static_cast<uint32_t>(windowSize.y) 
+			.width = static_cast<std::uint32_t>(windowSize.x), 
+			.height = static_cast<std::uint32_t>(windowSize.y) 
 		};
 	}
 	
@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
 	};
 	auto swapchain = VkSwapchainKHR{ };
 	chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
-	auto imageCount = uint32_t{ 0 };
+	auto imageCount = std::uint32_t{ 0 };
 	chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
 	auto swapchainImages = std::vector<VkImage>{};
 	swapchainImages.resize(imageCount);
@@ -299,8 +299,8 @@ int main(int argc, char* argv[])
 		.imageType = VkImageType::VK_IMAGE_TYPE_2D,
 		.format = depthFormat,
 		.extent{
-			.width = static_cast<uint32_t>(windowSize.x), 
-			.height = static_cast<uint32_t>(windowSize.y), 
+			.width = static_cast<std::uint32_t>(windowSize.x), 
+			.height = static_cast<std::uint32_t>(windowSize.y), 
 			.depth = 1
 		},
 		.mipLevels = 1,
@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
 	chk(tinyobj::LoadObj(&attrib, &shapes, &materials, nullptr, nullptr, "assets/suzanne.obj"));
 	auto const indexCount = VkDeviceSize{ shapes[0].mesh.indices.size() };
 	auto vertices = std::vector<Vertex>{};
-	auto indices = std::vector<uint16_t>{};
+	auto indices = std::vector<std::uint16_t>{};
 	
 	
 	// Load vertex and index data
@@ -362,10 +362,10 @@ int main(int argc, char* argv[])
 			}
 		};
 		vertices.push_back(v);
-		indices.push_back(static_cast<uint16_t>(indices.size()));
+		indices.push_back(static_cast<std::uint16_t>(indices.size()));
 	}
 	auto vBufSize = VkDeviceSize{ sizeof(Vertex) * vertices.size() };
-	auto iBufSize = VkDeviceSize{ sizeof(uint16_t) * indices.size() };
+	auto iBufSize = VkDeviceSize{ sizeof(std::uint16_t) * indices.size() };
 	auto bufferCI = VkBufferCreateInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, 
 		.size = vBufSize + iBufSize, 
@@ -387,7 +387,7 @@ int main(int argc, char* argv[])
 	
 	
 	// Shader data buffers
-	constexpr auto maxFramesInFlight = uint32_t{ 2 };
+	constexpr auto maxFramesInFlight = std::uint32_t{ 2 };
 	auto shaderDataBuffers = std::array<ShaderDataBuffer, maxFramesInFlight>{};
 	for (auto i = 0; i < maxFramesInFlight; i++) 
 	{
@@ -519,7 +519,7 @@ int main(int argc, char* argv[])
 		auto imgSrcAllocation = VmaAllocation{};
 		auto imgSrcBufferCI = VkBufferCreateInfo{ 
 			.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, 
-			.size = (uint32_t)ktxTexture->dataSize, 
+			.size = (std::uint32_t)ktxTexture->dataSize, 
 			.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT 
 		};
 		auto imgSrcAllocCI = VmaAllocationCreateInfo{ 
@@ -585,7 +585,7 @@ int main(int argc, char* argv[])
 				.bufferOffset = mipOffset,
 				.imageSubresource = VkImageSubresourceLayers{
 					.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT, 
-					.mipLevel = (uint32_t)j, 
+					.mipLevel = (std::uint32_t)j, 
 					.layerCount = 1
 				},
 				.imageExtent = VkExtent3D{
@@ -601,7 +601,7 @@ int main(int argc, char* argv[])
 			imgSrcBuffer, 
 			textures[i].image, 
 			VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-			static_cast<uint32_t>(copyRegions.size()), 
+			static_cast<std::uint32_t>(copyRegions.size()), 
 			copyRegions.data()
 		);
 
@@ -672,7 +672,7 @@ int main(int argc, char* argv[])
 	};
 	auto descLayoutBindingTex = VkDescriptorSetLayoutBinding{ 
 		.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-		.descriptorCount = static_cast<uint32_t>(textures.size()), 
+		.descriptorCount = static_cast<std::uint32_t>(textures.size()), 
 		.stageFlags = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT 
 	};
 	auto descLayoutTexCI = VkDescriptorSetLayoutCreateInfo{ 
@@ -685,7 +685,7 @@ int main(int argc, char* argv[])
 	chk(vkCreateDescriptorSetLayout(device, &descLayoutTexCI, nullptr, &descriptorSetLayoutTex));
 	auto poolSize = VkDescriptorPoolSize{ 
 		.type = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-		.descriptorCount = static_cast<uint32_t>(textures.size()) 
+		.descriptorCount = static_cast<std::uint32_t>(textures.size()) 
 	};
 	auto descPoolCI = VkDescriptorPoolCreateInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, 
@@ -695,7 +695,7 @@ int main(int argc, char* argv[])
 	};
 	auto descriptorPool = VkDescriptorPool{ };
 	chk(vkCreateDescriptorPool(device, &descPoolCI, nullptr, &descriptorPool));
-	auto variableDescCount = uint32_t{ static_cast<uint32_t>(textures.size()) };
+	auto variableDescCount = std::uint32_t{ static_cast<std::uint32_t>(textures.size()) };
 	auto variableDescCountAI = VkDescriptorSetVariableDescriptorCountAllocateInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT, 
 		.descriptorSetCount = 1, 
@@ -714,7 +714,7 @@ int main(int argc, char* argv[])
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, 
 		.dstSet = descriptorSetTex, 
 		.dstBinding = 0, 
-		.descriptorCount = static_cast<uint32_t>(textureDescriptors.size()), 
+		.descriptorCount = static_cast<std::uint32_t>(textureDescriptors.size()), 
 		.descriptorType = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
 		.pImageInfo = textureDescriptors.data() 
 	};
@@ -741,7 +741,7 @@ int main(int argc, char* argv[])
 		.targetCount{SlangInt(slangTargets.size())}, 
 		.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR, 
 		.compilerOptionEntries{slangOptions.data()}, 
-		.compilerOptionEntryCount{uint32_t(slangOptions.size())} 
+		.compilerOptionEntryCount{std::uint32_t(slangOptions.size())} 
 	};
 
 
@@ -756,7 +756,7 @@ int main(int argc, char* argv[])
 	auto shaderModuleCI = VkShaderModuleCreateInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, 
 		.codeSize = spirv->getBufferSize(), 
-		.pCode = (uint32_t*)spirv->getBufferPointer()
+		.pCode = (std::uint32_t*)spirv->getBufferPointer()
 	};
 	auto shaderModule = VkShaderModule{};
 	chk(vkCreateShaderModule(device, &shaderModuleCI, nullptr, &shaderModule));
@@ -818,7 +818,7 @@ int main(int argc, char* argv[])
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.vertexBindingDescriptionCount = 1,
 		.pVertexBindingDescriptions = &vertexBinding,
-		.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributes.size()),
+		.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertexAttributes.size()),
 		.pVertexAttributeDescriptions = vertexAttributes.data(),
 	};
 	auto inputAssemblyState = VkPipelineInputAssemblyStateCreateInfo{ 
@@ -884,10 +884,10 @@ int main(int argc, char* argv[])
 
 
 	// Render loop
-	auto lastTime = uint64_t{ SDL_GetTicks() };
+	auto lastTime = std::uint64_t{ SDL_GetTicks() };
 	auto quit = false;
-	auto frameIndex = uint32_t{ 0 };
-	auto imageIndex = uint32_t{ 0 };
+	auto frameIndex = std::uint32_t{ 0 };
+	auto imageIndex = std::uint32_t{ 0 };
 	auto camPos = glm::vec3{ 0.0f, 0.0f, -6.0f };
 	auto shaderData = ShaderData{};
 	auto objectRotations = std::array<glm::vec3, 3>{};
@@ -1017,8 +1017,8 @@ int main(int argc, char* argv[])
 			.sType = VkStructureType::VK_STRUCTURE_TYPE_RENDERING_INFO,
 			.renderArea{
 				.extent{
-					.width = static_cast<uint32_t>(windowSize.x), 
-					.height = static_cast<uint32_t>(windowSize.y) 
+					.width = static_cast<std::uint32_t>(windowSize.x), 
+					.height = static_cast<std::uint32_t>(windowSize.y) 
 				}
 			},
 			.layerCount = 1,
@@ -1040,8 +1040,8 @@ int main(int argc, char* argv[])
 		vkCmdSetViewport(cb, 0, 1, &vp);
 		auto scissor = VkRect2D{ 
 			.extent{
-				.width = static_cast<uint32_t>(windowSize.x), 
-				.height = static_cast<uint32_t>(windowSize.y) 
+				.width = static_cast<std::uint32_t>(windowSize.x), 
+				.height = static_cast<std::uint32_t>(windowSize.y) 
 			} 
 		};
 		// Bind the graphics pipeline and the texture array descriptor set.
@@ -1064,7 +1064,7 @@ int main(int argc, char* argv[])
 			&shaderDataBuffers[frameIndex].deviceAddress
 		);
 		// Draw the mesh 3 times (instanceCount = 3) — one Suzanne per slot.
-		vkCmdDrawIndexed(cb, static_cast<uint32_t>(indexCount), 3, 0, 0, 0);
+		vkCmdDrawIndexed(cb, static_cast<std::uint32_t>(indexCount), 3, 0, 0, 0);
 		vkCmdEndRendering(cb);
 
 		// Pre-present barrier: transition the swapchain image from
@@ -1187,8 +1187,8 @@ int main(int argc, char* argv[])
 			// oldSwapchain so the driver can recycle resources.
 			swapchainCI.oldSwapchain = swapchain;
 			swapchainCI.imageExtent = VkExtent2D{ 
-				.width = static_cast<uint32_t>(windowSize.x), 
-				.height = static_cast<uint32_t>(windowSize.y) 
+				.width = static_cast<std::uint32_t>(windowSize.x), 
+				.height = static_cast<std::uint32_t>(windowSize.y) 
 			};
 			chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
 			// Destroy the old per-image views before re-querying the new images.
@@ -1234,8 +1234,8 @@ int main(int argc, char* argv[])
 			vmaDestroyImage(allocator, depthImage, depthImageAllocation);
 			vkDestroyImageView(device, depthImageView, nullptr);
 			depthImageCI.extent = VkExtent3D{ 
-				.width = static_cast<uint32_t>(windowSize.x), 
-				.height = static_cast<uint32_t>(windowSize.y), 
+				.width = static_cast<std::uint32_t>(windowSize.x), 
+				.height = static_cast<std::uint32_t>(windowSize.y), 
 				.depth = 1 
 			};
 			auto allocCI = VmaAllocationCreateInfo{ 

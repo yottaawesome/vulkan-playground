@@ -10,3 +10,4 @@ export import :vulkan.image;
 export import :vulkan.resource;
 export import :vulkan.fence;
 export import :vulkan.semaphore;
+export import :vulkan.command;

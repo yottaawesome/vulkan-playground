@@ -208,6 +208,7 @@ export namespace vkr
 		::VkDescriptorPoolCreateFlagBits,
 		::VkFormatProperties,
 		::VkFormatFeatureFlagBits,
+		::vkDestroyCommandPool,
 		::vkGetPhysicalDeviceFormatProperties,
 		::vkCmdPipelineBarrier,
 		::vkCmdCopyBufferToImage,

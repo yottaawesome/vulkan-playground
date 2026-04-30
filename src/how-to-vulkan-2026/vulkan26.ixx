@@ -9,3 +9,4 @@ export import :error;
 export import :util;
 export import :tinyobj;
 export import :mesh;
+export import :ktx;

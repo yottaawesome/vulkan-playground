@@ -14,6 +14,15 @@ struct ShaderDataBuffer
 			vma::vmaDestroyBuffer(allocator.Get(), Buffer, Allocation);
 	}
 };
+
+struct Texture 
+{
+	vma::VmaAllocation allocation{ nullptr };
+	vk::VkImage image{ nullptr };
+	vk::VkImageView view{ nullptr };
+	vk::VkSampler sampler{ nullptr };
+};
+
 struct ShaderData
 {
 	glm::mat4 Projection;
@@ -85,6 +94,7 @@ try
 			return vk::Instance{ vk::InstanceUniquePtr{ instance} };
 		}();
 
+	//
 	// Get a list of the physical devices.
 	auto physicalDevices =
 		[&instance] -> std::vector<vk::VkPhysicalDevice>
@@ -100,6 +110,7 @@ try
 			return physicalDevices;
 		}();
 
+	//
 	// Pick the first discrete device.
 	auto pickedDevice =
 		[&physicalDevices] -> vk::PhysicalDevice
@@ -118,7 +129,6 @@ try
 	//
 	//
 	// Logical device and queues.
-	//
 	// Queues. On most devices, the first queue family will support graphics, 
 	// compute and transfer, but this is not guaranteed.
 	auto suitableQueueFamilyIndex =
@@ -469,8 +479,22 @@ try
 
 
 	// Command pool
-	// Texture images
+	auto commandPool = vk::CommandPool{
+		device.Get(), 
+		vk::VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, 
+		0
+	};
+	auto commandBuffers = 
+		commandPool.CreateArray<MaxFramesInFlight>(vk::VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
 	
+	// Texture images
+	auto textures = std::array<Texture, 3>{};
+	for (auto i = 0; i < textures.size(); i++)
+	{
+		auto ktxTexture = static_cast<ktx::ktxTexture*>(nullptr);
+		auto filename = std::format("assets/suzanne{}.ktx", i);
+	}
 
 
 	// Cleanup buffers

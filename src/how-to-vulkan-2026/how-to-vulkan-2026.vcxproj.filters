@@ -120,6 +120,15 @@
     <ClCompile Include="vulkan\vulkan.fence.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ktx\ktx.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ktx\ktx.exports.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\vulkan.command.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

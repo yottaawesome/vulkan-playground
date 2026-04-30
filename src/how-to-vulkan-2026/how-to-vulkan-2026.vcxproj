@@ -137,6 +137,8 @@
     <ClCompile Include="error\error.ixx" />
     <ClCompile Include="glm\glm.exports.ixx" />
     <ClCompile Include="glm\glm.ixx" />
+    <ClCompile Include="ktx\ktx.exports.ixx" />
+    <ClCompile Include="ktx\ktx.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mesh\mesh.ixx" />
     <ClCompile Include="raii\raii.ixx" />
@@ -155,6 +157,7 @@
     <ClCompile Include="vma\vma.buffer.ixx" />
     <ClCompile Include="vma\vma.exports.ixx" />
     <ClCompile Include="vma\vma.ixx" />
+    <ClCompile Include="vulkan\vulkan.command.ixx" />
     <ClCompile Include="vulkan\vulkan.error.ixx" />
     <ClCompile Include="vulkan\vulkan.exports.ixx" />
     <ClCompile Include="vulkan\vulkan.fence.ixx" />

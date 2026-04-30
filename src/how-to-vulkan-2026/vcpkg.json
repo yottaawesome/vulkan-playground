@@ -11,7 +11,10 @@
     "tinyobjloader",
     "stb",
     "tinygltf",
-    "ktx",
+    {
+      "name": "ktx",
+      "features": [ "vulkan" ]
+    },
     "glslang",
     "vulkan-memory-allocator",
     "volk"

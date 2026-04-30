@@ -11,7 +11,7 @@ auto wWinMain(
 	);
 
 	auto instance = ModelViewer::InstanceFactory{}(true);
-	auto debugMessenger = ModelViewer::DebugMessengerFactory{}(instance.Get());
+	auto debugMessenger = ModelViewer::DebugMessengerFactory{}(instance.Get());z
 	auto physicalDevice = ModelViewer::SelectPhysicalDevice(instance);
 	auto queueIndex = ModelViewer::FindQueueIndex(physicalDevice);
 	auto device = ModelViewer::CreateDevice(queueIndex, physicalDevice);

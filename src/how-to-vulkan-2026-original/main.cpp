@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 	auto appInfo = VkApplicationInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO, 
 		.pApplicationName = "How to Vulkan", 
-		.apiVersion = VK_API_VERSION_1_3 
+		.apiVersion = VK_API_VERSION_1_4 
 	};
 	auto instanceExtensionsCount = uint32_t{ 0 };
 	auto instanceExtensions = SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount);

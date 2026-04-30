@@ -14,261 +14,745 @@ import std;
 // re-exported. Works for typedefs, enums, real functions, and the extern
 // function-pointer variables that volk declares for runtime-loaded entry
 // points. Macros (anything `#define`-d) cannot be re-exported and need
-// hand-written shims further down.
+// hand-written shims further down. `static const` constants (e.g. the
+// VK_*_2_BIT flag values introduced after the headers needed wider types
+// than enums could provide) also have to be re-exposed via constexpr shims
+// because their internal linkage is unreachable across module boundaries
+// (MSVC C5304).
 // ---------------------------------------------------------------------------
 
-// General
-export using 
+// =====================================================================
+// Core
+// =====================================================================
+export using
 	::VkResult,
 	::VkBool32,
-	::VkAllocationCallbacks
-	;
-
-export constexpr VkBool32 
-	VkFalse = 0,
-	VkTrue = 1;
-
-// Create
-export using 
+	::VkFlags,
+	::VkFlags64,
 	::VkStructureType,
-	::VkInstanceCreateFlags
+	::VkAllocationCallbacks,
+	::VkObjectType,
+	::VkSystemAllocationScope,
+	::VkInternalAllocationType,
+	::VkSharingMode,
+	::VkDependencyFlags,
+	::VkDependencyInfo,
+	::VkMemoryBarrier,
+	::VkMemoryBarrier2,
+	::VkBufferMemoryBarrier,
+	::VkBufferMemoryBarrier2,
+	::VkImageMemoryBarrier,
+	::VkImageMemoryBarrier2
 	;
 
-// Debug
+export constexpr VkBool32
+	VkFalse = 0,
+	VkTrue  = 1;
+
+// =====================================================================
+// Geometry / common value types
+// =====================================================================
 export using
-	::VkDebugUtilsMessengerEXT,
-	::VkDebugUtilsMessengerCreateInfoEXT,
-	::VkDebugUtilsMessengerCallbackDataEXT,
-	::VkDebugUtilsMessageSeverityFlagBitsEXT,
-	::VkDebugUtilsMessageTypeFlagsEXT,
-	::PFN_vkDebugUtilsMessengerCallbackEXT,
-	::PFN_vkCreateDebugUtilsMessengerEXT,
-	::PFN_vkDestroyDebugUtilsMessengerEXT,
-	::VkDebugUtilsMessageSeverityFlagsEXT
+	::VkExtent2D,
+	::VkExtent3D,
+	::VkOffset2D,
+	::VkOffset3D,
+	::VkRect2D,
+	::VkViewport,
+	::VkComponentMapping,
+	::VkComponentSwizzle,
+	::VkClearValue,
+	::VkClearColorValue,
+	::VkClearDepthStencilValue,
+	::VkClearAttachment,
+	::VkClearRect
 	;
 
+// =====================================================================
+// Format
+// =====================================================================
+export using
+	::VkFormat,
+	::VkFormatProperties,
+	::VkFormatProperties2,
+	::VkFormatFeatureFlags,
+	::VkFormatFeatureFlagBits,
+	::VkFormatFeatureFlags2
+	;
+
+// =====================================================================
 // Instance
+// =====================================================================
 export using
 	::VkInstance,
 	::VkInstanceCreateInfo,
+	::VkInstanceCreateFlags,
+	::VkInstanceCreateFlagBits,
 	::VkApplicationInfo,
+	::VkExtensionProperties,
+	::VkLayerProperties,
 	::vkCreateInstance,
 	::vkDestroyInstance,
-	::vkGetInstanceProcAddr
+	::vkGetInstanceProcAddr,
+	::vkEnumerateInstanceVersion,
+	::vkEnumerateInstanceExtensionProperties,
+	::vkEnumerateInstanceLayerProperties
 	;
 
+// =====================================================================
+// Debug utils (VK_EXT_debug_utils)
+// =====================================================================
+export using
+	::VkDebugUtilsMessengerEXT,
+	::VkDebugUtilsMessengerCreateInfoEXT,
+	::VkDebugUtilsMessengerCreateFlagsEXT,
+	::VkDebugUtilsMessengerCallbackDataEXT,
+	::VkDebugUtilsMessengerCallbackDataFlagsEXT,
+	::VkDebugUtilsObjectNameInfoEXT,
+	::VkDebugUtilsLabelEXT,
+	::VkDebugUtilsMessageSeverityFlagsEXT,
+	::VkDebugUtilsMessageSeverityFlagBitsEXT,
+	::VkDebugUtilsMessageTypeFlagsEXT,
+	::VkDebugUtilsMessageTypeFlagBitsEXT,
+	::PFN_vkDebugUtilsMessengerCallbackEXT,
+	::PFN_vkCreateDebugUtilsMessengerEXT,
+	::PFN_vkDestroyDebugUtilsMessengerEXT,
+	::vkCreateDebugUtilsMessengerEXT,
+	::vkDestroyDebugUtilsMessengerEXT,
+	::vkSetDebugUtilsObjectNameEXT,
+	::vkCmdBeginDebugUtilsLabelEXT,
+	::vkCmdEndDebugUtilsLabelEXT,
+	::vkCmdInsertDebugUtilsLabelEXT,
+	::vkQueueBeginDebugUtilsLabelEXT,
+	::vkQueueEndDebugUtilsLabelEXT
+	;
+
+// =====================================================================
 // Physical device
+// =====================================================================
 export using
 	::VkPhysicalDevice,
+	::VkPhysicalDeviceType,
 	::VkPhysicalDeviceProperties,
 	::VkPhysicalDeviceProperties2,
-	::VkPhysicalDeviceType,
 	::VkPhysicalDeviceFeatures,
 	::VkPhysicalDeviceFeatures2,
 	::VkPhysicalDeviceVulkan11Features,
 	::VkPhysicalDeviceVulkan12Features,
 	::VkPhysicalDeviceVulkan13Features,
 	::VkPhysicalDeviceVulkan14Features,
-	::VkPhysicalDeviceType,
-	::VkQueueFamilyProperties,
-	::VkQueueFamilyProperties2,
-	::VkQueueFlagBits,
+	::VkPhysicalDeviceLimits,
+	::VkPhysicalDeviceMemoryProperties,
+	::VkPhysicalDeviceMemoryProperties2,
+	::VkPhysicalDeviceDynamicRenderingFeatures,
+	::VkPhysicalDeviceSynchronization2Features,
+	::VkMemoryType,
+	::VkMemoryHeap,
+	::VkMemoryHeapFlags,
+	::VkMemoryHeapFlagBits,
+	::vkEnumeratePhysicalDevices,
 	::vkGetPhysicalDeviceProperties,
 	::vkGetPhysicalDeviceProperties2,
+	::vkGetPhysicalDeviceFeatures,
+	::vkGetPhysicalDeviceFeatures2,
 	::vkGetPhysicalDeviceFormatProperties,
-	::vkGetPhysicalDeviceSurfaceCapabilitiesKHR,
+	::vkGetPhysicalDeviceFormatProperties2,
+	::vkGetPhysicalDeviceImageFormatProperties,
+	::vkGetPhysicalDeviceMemoryProperties,
+	::vkGetPhysicalDeviceMemoryProperties2,
 	::vkGetPhysicalDeviceQueueFamilyProperties,
 	::vkGetPhysicalDeviceQueueFamilyProperties2,
-	::vkEnumeratePhysicalDevices,
-	::vkGetPhysicalDeviceFeatures,
-	::vkGetPhysicalDeviceFeatures2
+	::vkEnumerateDeviceExtensionProperties
 	;
 
-// Debug utils
-export using
-	::vkCreateDebugUtilsMessengerEXT,
-	::vkDestroyDebugUtilsMessengerEXT,
-	::VkDebugUtilsMessageTypeFlagBitsEXT,
-	::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
-	::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-	::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
-	;
-
+// =====================================================================
 // Device
+// =====================================================================
 export using
 	::VkDevice,
 	::VkDeviceCreateInfo,
+	::VkDeviceCreateFlags,
 	::vkCreateDevice,
-	::vkDestroyDevice
-	;
-
-// Queue
-export using
-	::VkDeviceQueueCreateInfo,
-	::VkQueueFamilyProperties2,
-	::VkQueueFlags,
-	::VkQueue,
-	::vkGetDeviceQueue,
+	::vkDestroyDevice,
+	::vkDeviceWaitIdle,
 	::vkGetDeviceProcAddr
 	;
 
-// Command pool
+// =====================================================================
+// Queue
+// =====================================================================
 export using
-	::VkCommandPoolCreateFlagBits,
-	::VkCommandPoolCreateFlags,
-	::VkCommandPoolCreateInfo,
+	::VkQueue,
+	::VkDeviceQueueCreateInfo,
+	::VkDeviceQueueCreateFlags,
+	::VkQueueFamilyProperties,
+	::VkQueueFamilyProperties2,
+	::VkQueueFlags,
+	::VkQueueFlagBits,
+	::VkSubmitInfo,
+	::VkSubmitInfo2,
+	::VkCommandBufferSubmitInfo,
+	::VkSemaphoreSubmitInfo,
+	::VkPresentInfoKHR,
+	::vkGetDeviceQueue,
+	::vkGetDeviceQueue2,
+	::vkQueueSubmit,
+	::vkQueueSubmit2,
+	::vkQueueWaitIdle,
+	::vkQueuePresentKHR
+	;
+
+// =====================================================================
+// Command pool / command buffer
+// =====================================================================
+export using
 	::VkCommandPool,
-	::vkCreateCommandPool,
-	::vkDestroyCommandPool
-	;
-
-// Command buffer
-export using
+	::VkCommandPoolCreateInfo,
+	::VkCommandPoolCreateFlags,
+	::VkCommandPoolCreateFlagBits,
+	::VkCommandPoolResetFlags,
+	::VkCommandPoolResetFlagBits,
 	::VkCommandBuffer,
+	::VkCommandBufferLevel,
+	::VkCommandBufferAllocateInfo,
+	::VkCommandBufferBeginInfo,
+	::VkCommandBufferUsageFlags,
+	::VkCommandBufferUsageFlagBits,
+	::VkCommandBufferResetFlags,
+	::VkCommandBufferResetFlagBits,
+	::VkCommandBufferInheritanceInfo,
+	::vkCreateCommandPool,
+	::vkDestroyCommandPool,
+	::vkResetCommandPool,
 	::vkAllocateCommandBuffers,
-	::vkFreeCommandBuffers
+	::vkFreeCommandBuffers,
+	::vkBeginCommandBuffer,
+	::vkEndCommandBuffer,
+	::vkResetCommandBuffer
 	;
 
+// =====================================================================
 // Synchronisation primitives
+// =====================================================================
 export using
 	::VkSemaphore,
-	::VkFence,
 	::VkSemaphoreCreateInfo,
+	::VkSemaphoreCreateFlags,
+	::VkSemaphoreType,
+	::VkSemaphoreTypeCreateInfo,
+	::VkSemaphoreWaitInfo,
+	::VkSemaphoreSignalInfo,
+	::VkFence,
 	::VkFenceCreateInfo,
+	::VkFenceCreateFlags,
+	::VkFenceCreateFlagBits,
+	::VkEvent,
+	::VkEventCreateInfo,
+	::VkEventCreateFlags,
 	::vkCreateSemaphore,
 	::vkDestroySemaphore,
+	::vkWaitSemaphores,
+	::vkSignalSemaphore,
+	::vkGetSemaphoreCounterValue,
 	::vkCreateFence,
-	::vkDestroyFence
+	::vkDestroyFence,
+	::vkWaitForFences,
+	::vkResetFences,
+	::vkGetFenceStatus,
+	::vkCreateEvent,
+	::vkDestroyEvent,
+	::vkSetEvent,
+	::vkResetEvent,
+	::vkGetEventStatus
 	;
 
-// Swapchain
+// =====================================================================
+// Surface / Swapchain (KHR)
+// =====================================================================
 export using
-	::VkSwapchainCreateInfoKHR,
+	::VkSurfaceKHR,
+	::VkSurfaceCapabilitiesKHR,
+	::VkSurfaceCapabilities2KHR,
+	::VkSurfaceFormatKHR,
+	::VkSurfaceFormat2KHR,
+	::VkSurfaceTransformFlagsKHR,
+	::VkSurfaceTransformFlagBitsKHR,
+	::VkCompositeAlphaFlagsKHR,
+	::VkCompositeAlphaFlagBitsKHR,
+	::VkColorSpaceKHR,
+	::VkPresentModeKHR,
 	::VkSwapchainKHR,
+	::VkSwapchainCreateInfoKHR,
+	::VkSwapchainCreateFlagsKHR,
+	::VkSwapchainCreateFlagBitsKHR,
+	::vkDestroySurfaceKHR,
+	::vkGetPhysicalDeviceSurfaceSupportKHR,
+	::vkGetPhysicalDeviceSurfaceCapabilitiesKHR,
+	::vkGetPhysicalDeviceSurfaceFormatsKHR,
+	::vkGetPhysicalDeviceSurfacePresentModesKHR,
 	::vkCreateSwapchainKHR,
 	::vkDestroySwapchainKHR,
 	::vkGetSwapchainImagesKHR,
 	::vkAcquireNextImageKHR,
-	::vkQueuePresentKHR
+	::vkAcquireNextImage2KHR
 	;
 
+// =====================================================================
 // Buffer
+// =====================================================================
 export using
 	::VkBuffer,
+	::VkBufferView,
+	::VkBufferViewCreateInfo,
 	::VkBufferCreateInfo,
+	::VkBufferCreateFlags,
+	::VkBufferCreateFlagBits,
 	::VkBufferUsageFlags,
+	::VkBufferUsageFlagBits,
 	::VkBufferUsageFlags2,
+	::VkBufferCopy,
+	::VkBufferCopy2,
+	::VkBufferImageCopy,
+	::VkBufferImageCopy2,
+	::VkCopyBufferInfo2,
+	::VkCopyBufferToImageInfo2,
+	::VkCopyImageToBufferInfo2,
 	::vkCreateBuffer,
+	::vkDestroyBuffer,
+	::vkCreateBufferView,
+	::vkDestroyBufferView,
+	::vkBindBufferMemory,
+	::vkBindBufferMemory2,
+	::vkGetBufferMemoryRequirements,
+	::vkGetBufferMemoryRequirements2,
 	::vkGetDeviceBufferMemoryRequirements,
-	::vkDestroyBuffer
+	::vkGetBufferDeviceAddress
 	;
 
+// =====================================================================
 // Device memory
+// =====================================================================
 export using
 	::VkDeviceMemory,
 	::VkMemoryAllocateInfo,
+	::VkMemoryAllocateFlags,
+	::VkMemoryAllocateFlagBits,
+	::VkMemoryAllocateFlagsInfo,
+	::VkMemoryRequirements,
+	::VkMemoryRequirements2,
 	::VkMemoryMapFlags,
 	::VkMemoryPropertyFlags,
+	::VkMemoryPropertyFlagBits,
+	::VkMappedMemoryRange,
 	::vkAllocateMemory,
 	::vkFreeMemory,
 	::vkMapMemory,
-	::vkUnmapMemory
+	::vkUnmapMemory,
+	::vkFlushMappedMemoryRanges,
+	::vkInvalidateMappedMemoryRanges
 	;
 
+// =====================================================================
 // Image
+// =====================================================================
 export using
 	::VkImage,
 	::VkImageCreateInfo,
-	::VkImageAspectFlags,
-	::VkImageAspectFlagBits,
+	::VkImageCreateFlags,
+	::VkImageCreateFlagBits,
+	::VkImageType,
+	::VkImageTiling,
+	::VkImageLayout,
 	::VkImageUsageFlags,
 	::VkImageUsageFlagBits,
-	::VkImageLayout,
-	::VkImageType,
+	::VkImageAspectFlags,
+	::VkImageAspectFlagBits,
+	::VkImageSubresource,
+	::VkImageSubresourceLayers,
+	::VkImageSubresourceRange,
+	::VkSubresourceLayout,
+	::VkImageCopy,
+	::VkImageCopy2,
+	::VkImageBlit,
+	::VkImageBlit2,
+	::VkBlitImageInfo2,
+	::VkCopyImageInfo2,
+	::VkImageResolve,
+	::VkImageResolve2,
+	::VkResolveImageInfo2,
 	::vkCreateImage,
-	::vkDestroyImage
+	::vkDestroyImage,
+	::vkBindImageMemory,
+	::vkBindImageMemory2,
+	::vkGetImageMemoryRequirements,
+	::vkGetImageMemoryRequirements2,
+	::vkGetDeviceImageMemoryRequirements,
+	::vkGetImageSubresourceLayout
 	;
 
+// =====================================================================
 // Image view
+// =====================================================================
 export using
-	::VkImageViewCreateInfo,
 	::VkImageView,
+	::VkImageViewCreateInfo,
+	::VkImageViewCreateFlags,
 	::VkImageViewType,
 	::vkCreateImageView,
 	::vkDestroyImageView
 	;
 
+// =====================================================================
 // Sampler
+// =====================================================================
 export using
 	::VkSampler,
 	::VkSamplerCreateInfo,
+	::VkSamplerCreateFlags,
+	::VkSamplerAddressMode,
+	::VkSamplerMipmapMode,
+	::VkSamplerReductionMode,
+	::VkFilter,
+	::VkBorderColor,
 	::vkCreateSampler,
 	::vkDestroySampler
 	;
 
+// =====================================================================
 // Shader
+// =====================================================================
 export using
 	::VkShaderModule,
 	::VkShaderModuleCreateInfo,
-	::vkCreateShaderModule
+	::VkShaderModuleCreateFlags,
+	::VkShaderStageFlags,
+	::VkShaderStageFlagBits,
+	::vkCreateShaderModule,
+	::vkDestroyShaderModule
 	;
 
+// =====================================================================
 // Pipeline
+// =====================================================================
 export using
+	::VkPipeline,
+	::VkPipelineCache,
+	::VkPipelineCacheCreateInfo,
+	::VkPipelineCacheCreateFlags,
 	::VkPipelineLayout,
 	::VkPipelineLayoutCreateInfo,
-	::VkPipeline,
+	::VkPipelineLayoutCreateFlags,
+	::VkPipelineBindPoint,
+	::VkPipelineCreateFlags,
+	::VkPipelineCreateFlagBits,
+	::VkPushConstantRange,
+	::VkSpecializationInfo,
+	::VkSpecializationMapEntry,
+	::VkPipelineShaderStageCreateInfo,
+	::VkPipelineShaderStageCreateFlags,
+	::VkPipelineVertexInputStateCreateInfo,
+	::VkPipelineInputAssemblyStateCreateInfo,
+	::VkPipelineTessellationStateCreateInfo,
+	::VkPipelineViewportStateCreateInfo,
+	::VkPipelineRasterizationStateCreateInfo,
+	::VkPipelineMultisampleStateCreateInfo,
+	::VkPipelineDepthStencilStateCreateInfo,
+	::VkPipelineColorBlendStateCreateInfo,
+	::VkPipelineColorBlendAttachmentState,
+	::VkPipelineDynamicStateCreateInfo,
+	::VkPipelineRenderingCreateInfo,
+	::VkGraphicsPipelineCreateInfo,
+	::VkComputePipelineCreateInfo,
+	::VkVertexInputBindingDescription,
+	::VkVertexInputAttributeDescription,
+	::VkVertexInputRate,
+	::VkPrimitiveTopology,
+	::VkPolygonMode,
+	::VkCullModeFlags,
+	::VkCullModeFlagBits,
+	::VkFrontFace,
+	::VkSampleCountFlags,
+	::VkSampleCountFlagBits,
+	::VkBlendFactor,
+	::VkBlendOp,
+	::VkLogicOp,
+	::VkColorComponentFlags,
+	::VkColorComponentFlagBits,
+	::VkCompareOp,
+	::VkStencilOp,
+	::VkStencilOpState,
+	::VkDynamicState,
+	::VkPipelineStageFlags,
+	::VkPipelineStageFlagBits,
 	::VkPipelineStageFlags2,
 	::vkCreatePipelineLayout,
+	::vkDestroyPipelineLayout,
 	::vkCreateGraphicsPipelines,
 	::vkCreateComputePipelines,
-	::vkDestroyPipelineLayout,
 	::vkDestroyPipeline,
-	::vkGetPipelineCacheData,
 	::vkCreatePipelineCache,
-	::vkDestroyPipelineCache
+	::vkDestroyPipelineCache,
+	::vkGetPipelineCacheData,
+	::vkMergePipelineCaches
 	;
 
-// Access
-export using ::VkAccessFlags2;
-
-// Descriptor set
+// =====================================================================
+// Access flags
+// =====================================================================
 export using
+	::VkAccessFlags,
+	::VkAccessFlagBits,
+	::VkAccessFlags2
+	;
+
+// =====================================================================
+// Descriptor set
+// =====================================================================
+export using
+	::VkDescriptorSet,
 	::VkDescriptorSetLayout,
 	::VkDescriptorSetLayoutCreateInfo,
+	::VkDescriptorSetLayoutCreateFlags,
+	::VkDescriptorSetLayoutBinding,
+	::VkDescriptorSetLayoutBindingFlagsCreateInfo,
+	::VkDescriptorBindingFlags,
+	::VkDescriptorBindingFlagBits,
 	::VkDescriptorPool,
 	::VkDescriptorPoolCreateInfo,
+	::VkDescriptorPoolCreateFlags,
+	::VkDescriptorPoolCreateFlagBits,
+	::VkDescriptorPoolSize,
+	::VkDescriptorSetAllocateInfo,
+	::VkDescriptorType,
+	::VkWriteDescriptorSet,
+	::VkCopyDescriptorSet,
+	::VkDescriptorBufferInfo,
+	::VkDescriptorImageInfo,
 	::vkCreateDescriptorSetLayout,
 	::vkDestroyDescriptorSetLayout,
 	::vkCreateDescriptorPool,
-	::vkDestroyDescriptorPool
+	::vkDestroyDescriptorPool,
+	::vkResetDescriptorPool,
+	::vkAllocateDescriptorSets,
+	::vkFreeDescriptorSets,
+	::vkUpdateDescriptorSets
 	;
 
+// =====================================================================
+// Render pass / dynamic rendering
+// =====================================================================
+export using
+	::VkRenderPass,
+	::VkRenderPassCreateInfo,
+	::VkRenderPassCreateInfo2,
+	::VkRenderPassBeginInfo,
+	::VkAttachmentDescription,
+	::VkAttachmentDescription2,
+	::VkAttachmentReference,
+	::VkAttachmentReference2,
+	::VkAttachmentLoadOp,
+	::VkAttachmentStoreOp,
+	::VkSubpassDescription,
+	::VkSubpassDescription2,
+	::VkSubpassDependency,
+	::VkSubpassDependency2,
+	::VkSubpassContents,
+	::VkFramebuffer,
+	::VkFramebufferCreateInfo,
+	::VkFramebufferCreateFlags,
+	::VkRenderingInfo,
+	::VkRenderingFlags,
+	::VkRenderingFlagBits,
+	::VkRenderingAttachmentInfo,
+	::vkCreateRenderPass,
+	::vkCreateRenderPass2,
+	::vkDestroyRenderPass,
+	::vkCreateFramebuffer,
+	::vkDestroyFramebuffer
+	;
+
+// =====================================================================
+// Query pool
+// =====================================================================
+export using
+	::VkQueryPool,
+	::VkQueryPoolCreateInfo,
+	::VkQueryType,
+	::VkQueryControlFlags,
+	::VkQueryControlFlagBits,
+	::VkQueryResultFlags,
+	::VkQueryResultFlagBits,
+	::vkCreateQueryPool,
+	::vkDestroyQueryPool,
+	::vkGetQueryPoolResults,
+	::vkResetQueryPool
+	;
+
+// =====================================================================
+// Command-buffer recording (vkCmd*)
+// =====================================================================
+export using
+	::vkCmdBindPipeline,
+	::vkCmdBindDescriptorSets,
+	::vkCmdBindVertexBuffers,
+	::vkCmdBindVertexBuffers2,
+	::vkCmdBindIndexBuffer,
+	::vkCmdDraw,
+	::vkCmdDrawIndexed,
+	::vkCmdDrawIndirect,
+	::vkCmdDrawIndexedIndirect,
+	::vkCmdDispatch,
+	::vkCmdDispatchIndirect,
+	::vkCmdCopyBuffer,
+	::vkCmdCopyBuffer2,
+	::vkCmdCopyImage,
+	::vkCmdCopyImage2,
+	::vkCmdCopyBufferToImage,
+	::vkCmdCopyBufferToImage2,
+	::vkCmdCopyImageToBuffer,
+	::vkCmdCopyImageToBuffer2,
+	::vkCmdBlitImage,
+	::vkCmdBlitImage2,
+	::vkCmdResolveImage,
+	::vkCmdResolveImage2,
+	::vkCmdClearColorImage,
+	::vkCmdClearDepthStencilImage,
+	::vkCmdClearAttachments,
+	::vkCmdFillBuffer,
+	::vkCmdUpdateBuffer,
+	::vkCmdPipelineBarrier,
+	::vkCmdPipelineBarrier2,
+	::vkCmdSetEvent,
+	::vkCmdSetEvent2,
+	::vkCmdResetEvent,
+	::vkCmdResetEvent2,
+	::vkCmdWaitEvents,
+	::vkCmdWaitEvents2,
+	::vkCmdSetViewport,
+	::vkCmdSetScissor,
+	::vkCmdSetLineWidth,
+	::vkCmdSetDepthBias,
+	::vkCmdSetBlendConstants,
+	::vkCmdSetDepthBounds,
+	::vkCmdSetStencilCompareMask,
+	::vkCmdSetStencilWriteMask,
+	::vkCmdSetStencilReference,
+	::vkCmdPushConstants,
+	::vkCmdBeginRendering,
+	::vkCmdEndRendering,
+	::vkCmdBeginRenderPass,
+	::vkCmdBeginRenderPass2,
+	::vkCmdEndRenderPass,
+	::vkCmdEndRenderPass2,
+	::vkCmdNextSubpass,
+	::vkCmdExecuteCommands,
+	::vkCmdBeginQuery,
+	::vkCmdEndQuery,
+	::vkCmdResetQueryPool,
+	::vkCmdWriteTimestamp,
+	::vkCmdWriteTimestamp2,
+	::vkCmdCopyQueryPoolResults
+	;
+
+// =====================================================================
+// Win32 surface (gated on VK_USE_PLATFORM_WIN32_KHR)
+// =====================================================================
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+export using
+	::VkWin32SurfaceCreateInfoKHR,
+	::VkWin32SurfaceCreateFlagsKHR,
+	::vkCreateWin32SurfaceKHR,
+	::vkGetPhysicalDeviceWin32PresentationSupportKHR
+	;
+#endif
+
+// =====================================================================
 // volk loader entry points (real functions, not pointers)
+// =====================================================================
 export using
 	::volkInitialize,
+	::volkInitializeCustom,
+	::volkFinalize,
+	::volkGetInstanceVersion,
 	::volkLoadInstance,
-	::volkLoadDevice
+	::volkLoadInstanceOnly,
+	::volkLoadDevice,
+	::volkLoadDeviceTable,
+	::volkLoadInstanceTable,
+	::volkGetLoadedInstance,
+	::volkGetLoadedDevice
 	;
 
-// VMA
+export using
+	::VolkInstanceTable,
+	::VolkDeviceTable
+	;
+
+// =====================================================================
+// Vulkan Memory Allocator (VMA)
+// =====================================================================
 export using
 	::VmaAllocator,
+	::VmaAllocatorCreateInfo,
+	::VmaAllocatorCreateFlags,
+	::VmaAllocatorCreateFlagBits,
 	::VmaAllocation,
 	::VmaAllocationCreateInfo,
+	::VmaAllocationCreateFlags,
+	::VmaAllocationCreateFlagBits,
 	::VmaAllocationInfo,
-	::VmaVulkanFunctions,
-	::VmaAllocatorCreateFlagBits,
-	::VmaAllocatorCreateFlags,
+	::VmaPool,
+	::VmaPoolCreateInfo,
+	::VmaPoolCreateFlags,
+	::VmaPoolCreateFlagBits,
 	::VmaMemoryUsage,
-	::vmaCreateImage,
-	::vmaDestroyImage,
+	::VmaVulkanFunctions,
+	::VmaVirtualBlock,
+	::VmaVirtualBlockCreateInfo,
+	::VmaVirtualAllocation,
+	::VmaVirtualAllocationCreateInfo,
+	::VmaVirtualAllocationInfo,
+	::VmaStatistics,
+	::VmaDetailedStatistics,
+	::VmaTotalStatistics,
+	::VmaBudget,
 	::vmaCreateAllocator,
 	::vmaDestroyAllocator,
+	::vmaGetAllocatorInfo,
+	::vmaGetPhysicalDeviceProperties,
+	::vmaGetMemoryProperties,
+	::vmaGetMemoryTypeProperties,
+	::vmaGetHeapBudgets,
+	::vmaSetCurrentFrameIndex,
+	::vmaCalculateStatistics,
+	::vmaCreatePool,
+	::vmaDestroyPool,
 	::vmaAllocateMemory,
+	::vmaAllocateMemoryPages,
+	::vmaAllocateMemoryForBuffer,
+	::vmaAllocateMemoryForImage,
 	::vmaFreeMemory,
+	::vmaFreeMemoryPages,
+	::vmaGetAllocationInfo,
+	::vmaSetAllocationName,
+	::vmaSetAllocationUserData,
+	::vmaMapMemory,
+	::vmaUnmapMemory,
+	::vmaFlushAllocation,
+	::vmaInvalidateAllocation,
+	::vmaCopyMemoryToAllocation,
+	::vmaCopyAllocationToMemory,
 	::vmaCreateBuffer,
-	::vmaDestroyBuffer
+	::vmaCreateBufferWithAlignment,
+	::vmaDestroyBuffer,
+	::vmaCreateImage,
+	::vmaDestroyImage,
+	::vmaBindBufferMemory,
+	::vmaBindBufferMemory2,
+	::vmaBindImageMemory,
+	::vmaBindImageMemory2,
+	::vmaCheckCorruption,
+	::vmaCheckPoolCorruption
 	;
 
 // ---------------------------------------------------------------------------
@@ -281,7 +765,15 @@ export using
 // ---------------------------------------------------------------------------
 export namespace Vk
 {
-	constexpr auto QueueFamilyIgnored = static_cast<std::uint32_t>(VK_QUEUE_FAMILY_IGNORED);
+	// Sentinels
+	constexpr auto QueueFamilyIgnored   = static_cast<std::uint32_t>(VK_QUEUE_FAMILY_IGNORED);
+	constexpr auto QueueFamilyExternal  = static_cast<std::uint32_t>(VK_QUEUE_FAMILY_EXTERNAL);
+	constexpr auto SubpassExternal      = static_cast<std::uint32_t>(VK_SUBPASS_EXTERNAL);
+	constexpr auto AttachmentUnused     = static_cast<std::uint32_t>(VK_ATTACHMENT_UNUSED);
+	constexpr auto RemainingMipLevels   = static_cast<std::uint32_t>(VK_REMAINING_MIP_LEVELS);
+	constexpr auto RemainingArrayLayers = static_cast<std::uint32_t>(VK_REMAINING_ARRAY_LAYERS);
+	constexpr auto WholeSize            = static_cast<std::uint64_t>(VK_WHOLE_SIZE);
+	constexpr auto LodClampNone         = VK_LOD_CLAMP_NONE;
 
 	constexpr auto MakeVersion(
 		std::uint32_t major,
@@ -331,8 +823,10 @@ export namespace Vk
 	namespace InstanceExtension
 	{
 		constexpr auto
-			Surface    = VK_KHR_SURFACE_EXTENSION_NAME,
-			DebugUtils = VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+			Surface             = VK_KHR_SURFACE_EXTENSION_NAME,
+			DebugUtils          = VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+			GetSurfaceCaps2     = VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+			GetPhysDevProps2    = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 			;
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
@@ -351,8 +845,13 @@ export namespace Vk
 	namespace DeviceExtension
 	{
 		constexpr auto
-			Swapchain        = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			DynamicRendering = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
+			Swapchain         = VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			DynamicRendering  = VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+			Synchronization2  = VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+			BufferDeviceAddr  = VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+			TimelineSemaphore = VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+			DescriptorIndex   = VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+			PushDescriptor    = VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME
 			;
 	}
 
@@ -372,29 +871,69 @@ export namespace Vk
 	namespace BufferUsageFlagBits2
 	{
 		constexpr VkBufferUsageFlags2
-			TransferSrc = VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT,
-			TransferDst = VK_BUFFER_USAGE_2_TRANSFER_DST_BIT,
-			UniformTexelBuffer = VK_BUFFER_USAGE_2_UNIFORM_TEXEL_BUFFER_BIT,
-			StorageTexelBuffer = VK_BUFFER_USAGE_2_STORAGE_TEXEL_BUFFER_BIT,
-			UniformBuffer = VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT,
-			StorageBuffer = VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT,
-			IndexBuffer = VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT,
-			VertexBuffer = VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT,
-			IndirectBuffer = VK_BUFFER_USAGE_2_INDIRECT_BUFFER_BIT;
+			TransferSrc                   = VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT,
+			TransferDst                   = VK_BUFFER_USAGE_2_TRANSFER_DST_BIT,
+			UniformTexelBuffer            = VK_BUFFER_USAGE_2_UNIFORM_TEXEL_BUFFER_BIT,
+			StorageTexelBuffer            = VK_BUFFER_USAGE_2_STORAGE_TEXEL_BUFFER_BIT,
+			UniformBuffer                 = VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT,
+			StorageBuffer                 = VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT,
+			IndexBuffer                   = VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT,
+			VertexBuffer                  = VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT,
+			IndirectBuffer                = VK_BUFFER_USAGE_2_INDIRECT_BUFFER_BIT,
+			ShaderDeviceAddress           = VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT;
 	}
 
 	namespace PipelineStage2
 	{
 		constexpr VkPipelineStageFlags2
-			None = VK_PIPELINE_STAGE_2_NONE,
-			ColorAttachmentOutput = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			BottomOfPipe = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+			None                          = VK_PIPELINE_STAGE_2_NONE,
+			TopOfPipe                     = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+			DrawIndirect                  = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+			VertexInput                   = VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
+			VertexShader                  = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+			FragmentShader                = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			EarlyFragmentTests            = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+			LateFragmentTests             = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+			ColorAttachmentOutput         = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			ComputeShader                 = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+			AllTransfer                   = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+			Transfer                      = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			BottomOfPipe                  = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+			Host                          = VK_PIPELINE_STAGE_2_HOST_BIT,
+			AllGraphics                   = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+			AllCommands                   = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+			Copy                          = VK_PIPELINE_STAGE_2_COPY_BIT,
+			Resolve                       = VK_PIPELINE_STAGE_2_RESOLVE_BIT,
+			Blit                          = VK_PIPELINE_STAGE_2_BLIT_BIT,
+			Clear                         = VK_PIPELINE_STAGE_2_CLEAR_BIT,
+			IndexInput                    = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT,
+			VertexAttributeInput          = VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT,
+			PreRasterizationShaders       = VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT;
 	}
 
 	namespace Access2
 	{
 		constexpr VkAccessFlags2
-			None = VK_ACCESS_2_NONE,
-			ColorAttachmentWrite = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			None                          = VK_ACCESS_2_NONE,
+			IndirectCommandRead           = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
+			IndexRead                     = VK_ACCESS_2_INDEX_READ_BIT,
+			VertexAttributeRead           = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT,
+			UniformRead                   = VK_ACCESS_2_UNIFORM_READ_BIT,
+			InputAttachmentRead           = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
+			ShaderRead                    = VK_ACCESS_2_SHADER_READ_BIT,
+			ShaderWrite                   = VK_ACCESS_2_SHADER_WRITE_BIT,
+			ColorAttachmentRead           = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+			ColorAttachmentWrite          = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			DepthStencilAttachmentRead    = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+			DepthStencilAttachmentWrite   = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			TransferRead                  = VK_ACCESS_2_TRANSFER_READ_BIT,
+			TransferWrite                 = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			HostRead                      = VK_ACCESS_2_HOST_READ_BIT,
+			HostWrite                     = VK_ACCESS_2_HOST_WRITE_BIT,
+			MemoryRead                    = VK_ACCESS_2_MEMORY_READ_BIT,
+			MemoryWrite                   = VK_ACCESS_2_MEMORY_WRITE_BIT,
+			ShaderSampledRead             = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+			ShaderStorageRead             = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+			ShaderStorageWrite            = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
 	}
 }

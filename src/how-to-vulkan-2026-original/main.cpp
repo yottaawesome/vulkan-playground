@@ -641,7 +641,7 @@ int main(int argc, char* argv[])
 			.pCommandBuffers = &cbOneTime 
 		};
 		chk(vkQueueSubmit(queue, 1, &oneTimeSI, fenceOneTime));
-		chk(vkWaitForFences(device, 1, &fenceOneTime, true, UINT64_MAX));
+		chk(vkWaitForFences(device, 1, &fenceOneTime, true, std::numeric_limits<std::uint64_t>::max()));
 		vkDestroyFence(device, fenceOneTime, nullptr);
 		vmaDestroyBuffer(allocator, imgSrcBuffer, imgSrcAllocation);
 
@@ -879,7 +879,7 @@ int main(int argc, char* argv[])
 		.pDynamicState = &dynamicState,
 		.layout = pipelineLayout
 	};
-	chk(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
+	chk(vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 
 
 	// Render loop
@@ -888,23 +888,50 @@ int main(int argc, char* argv[])
 	while (not quit) 
 	{
 		// Sync
-		chk(vkWaitForFences(device, 1, &fences[frameIndex], true, UINT64_MAX));
+		// Wait until the GPU has finished using the per-frame resources we're
+		// about to overwrite (command buffer, uniform buffer slot). The fence
+		// was signalled by the previous submit using these same resources.
+		chk(vkWaitForFences(device, 1, &fences[frameIndex], true, std::numeric_limits<std::uint64_t>::max()));
 		chk(vkResetFences(device, 1, &fences[frameIndex]));
-		chkSwapchain(vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, presentSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex));
+		// Acquire the next swapchain image to render into. The presentSemaphore
+		// is signalled once the image is actually free for rendering — we make
+		// the queue submit wait on it before any color-attachment writes.
+		// chkSwapchain tolerates OUT_OF_DATE by flagging a swapchain rebuild.
+		chkSwapchain(vkAcquireNextImageKHR(
+			device, 
+			swapchain, 
+			std::numeric_limits<std::uint64_t>::max(),
+			presentSemaphores[frameIndex], 
+			nullptr, 
+			&imageIndex
+		));
 
 
 		// Update shader data
-		shaderData.projection = glm::perspective(glm::radians(45.0f), (float)windowSize.x / (float)windowSize.y, 0.1f, 32.0f);
+		// Rebuild the per-frame UBO contents on the CPU and memcpy into the
+		// host-mapped buffer for this frame slot. View matrix simply translates
+		// by camPos; each of the 3 instances gets its own model matrix from a
+		// translation along X plus a rotation quaternion driven by mouse input.
+		shaderData.projection = glm::perspective(
+			glm::radians(45.0f), 
+			(float)windowSize.x / (float)windowSize.y, 
+			0.1f, 
+			32.0f
+		);
 		shaderData.view = glm::translate(glm::mat4(1.0f), camPos);
 		for (auto i = 0; i < 3; i++) 
 		{
-			auto instancePos = glm::vec3((float)(i - 1) * 3.0f, 0.0f, 0.0f);
-			shaderData.model[i] = glm::translate(glm::mat4(1.0f), instancePos) * glm::mat4_cast(glm::quat(objectRotations[i]));
+			auto instancePos = 
+				glm::vec3((float)(i - 1) * 3.0f, 0.0f, 0.0f);
+			shaderData.model[i] = 
+				glm::translate(glm::mat4(1.0f), instancePos) * glm::mat4_cast(glm::quat(objectRotations[i]));
 		}
 		memcpy(shaderDataBuffers[frameIndex].allocationInfo.pMappedData, &shaderData, sizeof(ShaderData));
 
 
 		// Build command buffer
+		// Start fresh: reset and re-record the per-frame command buffer. The
+		// ONE_TIME_SUBMIT hint tells the driver this recording will only run once.
 		auto cb = commandBuffers[frameIndex];
 		chk(vkResetCommandBuffer(cb, 0));
 		auto cbBI = VkCommandBufferBeginInfo{ 
@@ -912,6 +939,12 @@ int main(int argc, char* argv[])
 			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT 
 		};
 		chk(vkBeginCommandBuffer(cb, &cbBI));
+
+		// Pre-render barriers: transition both attachments from UNDEFINED to
+		// ATTACHMENT_OPTIMAL before the render pass writes to them.
+		//  - Swapchain image: previous contents are discarded (UNDEFINED is OK).
+		//  - Depth image: old→new stages are LATE_FRAGMENT→EARLY_FRAGMENT to
+		//    serialise depth writes against the previous frame's depth writes.
 		auto outputBarriers = std::array{
 			VkImageMemoryBarrier2{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -950,6 +983,10 @@ int main(int argc, char* argv[])
 			.pImageMemoryBarriers = outputBarriers.data() 
 		};
 		vkCmdPipelineBarrier2(cb, &barrierDependencyInfo);
+
+		// Dynamic-rendering attachments. Color is cleared to black and stored;
+		// depth is cleared to 1.0 and discarded after the pass (DONT_CARE),
+		// since we don't need it again this frame.
 		auto colorAttachmentInfo = VkRenderingAttachmentInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			.imageView = swapchainImageViews[imageIndex],
@@ -983,7 +1020,11 @@ int main(int argc, char* argv[])
 			.pColorAttachments = &colorAttachmentInfo,
 			.pDepthAttachment = &depthAttachmentInfo
 		};
+		// Begin a render pass (Vulkan 1.3 dynamic rendering — no VkRenderPass object).
 		vkCmdBeginRendering(cb, &renderingInfo);
+
+		// Viewport and scissor are dynamic state, so they must be set per frame
+		// (also so they pick up the latest window size after a resize).
 		auto vp = VkViewport{ 
 			.width = static_cast<float>(windowSize.x), 
 			.height = static_cast<float>(windowSize.y), 
@@ -997,12 +1038,17 @@ int main(int argc, char* argv[])
 				.height = static_cast<uint32_t>(windowSize.y) 
 			} 
 		};
+		// Bind the graphics pipeline and the texture array descriptor set.
 		vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdSetScissor(cb, 0, 1, &scissor);
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetTex, 0, nullptr);
+		// Vertex and index data live in the same buffer (vertices first, indices
+		// after), so the index buffer is bound at offset vBufSize.
 		auto vOffset = VkDeviceSize{ 0 };
 		vkCmdBindVertexBuffers(cb, 0, 1, &vBuffer, &vOffset);
 		vkCmdBindIndexBuffer(cb, vBuffer, vBufSize, VK_INDEX_TYPE_UINT16);
+		// Push the device address of this frame's UBO to the vertex shader so
+		// it can read projection/view/model matrices via buffer reference.
 		vkCmdPushConstants(
 			cb, 
 			pipelineLayout, 
@@ -1011,8 +1057,13 @@ int main(int argc, char* argv[])
 			sizeof(VkDeviceAddress), 
 			&shaderDataBuffers[frameIndex].deviceAddress
 		);
+		// Draw the mesh 3 times (instanceCount = 3) — one Suzanne per slot.
 		vkCmdDrawIndexed(cb, static_cast<uint32_t>(indexCount), 3, 0, 0, 0);
 		vkCmdEndRendering(cb);
+
+		// Pre-present barrier: transition the swapchain image from
+		// ATTACHMENT_OPTIMAL to PRESENT_SRC_KHR so it's legal to hand to the
+		// presentation engine. Only the prior color writes need to be visible.
 		auto barrierPresent = VkImageMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 			.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -1038,6 +1089,12 @@ int main(int argc, char* argv[])
 
 
 		// Submit to graphics queue
+		// Wait on presentSemaphore (image acquired) at the color-output stage,
+		// signal renderSemaphore when rendering finishes (consumed by present),
+		// and signal the per-frame fence so the next iteration can reuse this
+		// frame's resources once the GPU is done.
+		// Note: VkSubmitInfo (1.0) takes 32-bit VkPipelineStageFlags — the
+		// _2_ constant is 64-bit, hence the static_cast.
 		auto waitStages = static_cast<VkPipelineStageFlags>(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 		auto submitInfo = VkSubmitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -1050,7 +1107,12 @@ int main(int argc, char* argv[])
 			.pSignalSemaphores = &renderSemaphores[imageIndex],
 		};
 		chk(vkQueueSubmit(queue, 1, &submitInfo, fences[frameIndex]));
+		// Advance to the next frame slot for the next iteration's CPU work
+		// (this lets up to maxFramesInFlight frames be in flight on the GPU).
 		frameIndex = (frameIndex + 1) % maxFramesInFlight;
+		// Present the just-rendered image, gated on the render-finished
+		// semaphore. renderSemaphores are indexed by swapchain image so each
+		// image has its own semaphore regardless of frame slot.
 		auto presentInfo = VkPresentInfoKHR{
 			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 			.waitSemaphoreCount = 1,
@@ -1063,8 +1125,10 @@ int main(int argc, char* argv[])
 
 
 		// Event polling
+		// Compute frame delta-time in seconds for use as input scaling below.
 		auto elapsedTime = float{ (SDL_GetTicks() - lastTime) / 1000.0f };
 		lastTime = SDL_GetTicks();
+		// Drain SDL's event queue. Each iteration handles one event.
 		for (SDL_Event event; SDL_PollEvent(&event);) 
 		{
 			if (event.type == SDL_EVENT_QUIT) 
@@ -1072,15 +1136,20 @@ int main(int argc, char* argv[])
 				quit = true;
 				break;
 			}
+			// Left-mouse drag rotates the currently selected mesh around the
+			// X (pitch) and Y (yaw) axes. Scaled by elapsedTime for framerate
+			// independence.
 			if (event.type == SDL_EVENT_MOUSE_MOTION and event.button.button == SDL_BUTTON_LEFT)
 			{
 				objectRotations[shaderData.selected].x -= (float)event.motion.yrel * elapsedTime;
 				objectRotations[shaderData.selected].y += (float)event.motion.xrel * elapsedTime;
 			}
+			// Wheel zooms the camera along Z.
 			if (event.type == SDL_EVENT_MOUSE_WHEEL)
 			{
 				camPos.z += (float)event.wheel.y * elapsedTime * 10.0f;
 			}
+			// +/- cycle through the three mesh slots (with wrap-around).
 			if (event.type == SDL_EVENT_KEY_DOWN) 
 			{
 				if (event.key.key == SDLK_PLUS or event.key.key == SDLK_KP_PLUS)
@@ -1091,32 +1160,42 @@ int main(int argc, char* argv[])
 
 
 			// Window resize
+			// Defer the actual swapchain rebuild until after the event loop so
+			// we don't tear down resources that the in-flight frame still uses.
 			if (event.type == SDL_EVENT_WINDOW_RESIZED)
 			{
 				updateSwapchain = true;
 			}
 		}
 
+		// Swapchain recreation. Triggered either by a resize event above or by
+		// vkAcquireNextImageKHR/vkQueuePresentKHR returning OUT_OF_DATE_KHR.
 		if (updateSwapchain) 
 		{
 			chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
 			updateSwapchain = false;
+			// Wait for the device to go idle so it's safe to destroy resources.
 			chk(vkDeviceWaitIdle(device));
 			chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
+			// Recreate the swapchain at the new size, passing the old one in
+			// oldSwapchain so the driver can recycle resources.
 			swapchainCI.oldSwapchain = swapchain;
 			swapchainCI.imageExtent = VkExtent2D{ 
 				.width = static_cast<uint32_t>(windowSize.x), 
 				.height = static_cast<uint32_t>(windowSize.y) 
 			};
 			chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
+			// Destroy the old per-image views before re-querying the new images.
 			for (auto i = std::uint32_t{}; i < imageCount; i++) 
 			{
 				vkDestroyImageView(device, swapchainImageViews[i], nullptr);
 			}
+			// Re-query the new swapchain images (count may have changed).
 			chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
 			swapchainImages.resize(imageCount);
 			chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data()));
 			swapchainImageViews.resize(imageCount);
+			// Create a fresh image view for each new swapchain image.
 			for (auto i = std::uint32_t{}; i < imageCount; i++) 
 			{
 				auto viewCI = VkImageViewCreateInfo{ 
@@ -1132,6 +1211,8 @@ int main(int argc, char* argv[])
 				};
 				chk(vkCreateImageView(device, &viewCI, nullptr, &swapchainImageViews[i]));
 			}
+			// Render-finished semaphores are indexed per swapchain image, so
+			// they need to be resized and re-created if the image count changed.
 			for (auto& semaphore : renderSemaphores) 
 			{
 				vkDestroySemaphore(device, semaphore, nullptr);
@@ -1141,7 +1222,9 @@ int main(int argc, char* argv[])
 			{
 				chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 			}
+			// Now that nothing references it, dispose of the old swapchain.
 			vkDestroySwapchainKHR(device, swapchainCI.oldSwapchain, nullptr);
+			// Recreate the depth attachment to match the new window size.
 			vmaDestroyImage(allocator, depthImage, depthImageAllocation);
 			vkDestroyImageView(device, depthImageView, nullptr);
 			depthImageCI.extent = VkExtent3D{ 

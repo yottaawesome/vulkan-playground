@@ -27,30 +27,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-constexpr auto maxFramesInFlight = uint32_t{ 2 };
-auto imageIndex = uint32_t{ 0 };
-auto frameIndex = uint32_t{ 0 };
-auto instance = VkInstance{ };
-auto device = VkDevice{ };
-auto queue = VkQueue{ };
-auto surface = VkSurfaceKHR{ };
-auto updateSwapchain = false;
-auto swapchain = VkSwapchainKHR{ };
-auto commandPool = VkCommandPool{ };
-auto pipeline = VkPipeline{ };
-auto pipelineLayout = VkPipelineLayout{ };
-auto depthImage = VkImage{ };
-auto allocator = VmaAllocator{ };
-auto depthImageAllocation = VmaAllocation{ };
-auto depthImageView = VkImageView{ };
-auto swapchainImages = std::vector<VkImage>{};
-auto swapchainImageViews = std::vector<VkImageView>{};
-auto commandBuffers = std::array<VkCommandBuffer, maxFramesInFlight>{};
-auto fences = std::array<VkFence, maxFramesInFlight>{};
-auto presentSemaphores = std::array<VkSemaphore, maxFramesInFlight>{};
-auto renderSemaphores = std::vector<VkSemaphore>{};
-auto vBufferAllocation = VmaAllocation{ };
-auto vBuffer = VkBuffer{ };
 struct ShaderData 
 {
 	glm::mat4 projection;
@@ -58,7 +34,7 @@ struct ShaderData
 	glm::mat4 model[3];
 	glm::vec4 lightPos{ 0.0f, -10.0f, 10.0f, 0.0f };
 	uint32_t selected{ 1 };
-} shaderData{};
+};
 struct ShaderDataBuffer 
 {
 	VmaAllocation allocation{ };
@@ -66,7 +42,6 @@ struct ShaderDataBuffer
 	VkBuffer buffer{ };
 	VkDeviceAddress deviceAddress{};
 };
-auto shaderDataBuffers = std::array<ShaderDataBuffer, maxFramesInFlight>{};
 struct Texture 
 {
 	VmaAllocation allocation{ };
@@ -74,20 +49,14 @@ struct Texture
 	VkImageView view{ };
 	VkSampler sampler{ };
 };
-auto textures = std::array<Texture, 3>{};
-auto descriptorPool = VkDescriptorPool{ };
-auto descriptorSetLayoutTex = VkDescriptorSetLayout{ };
-auto descriptorSetTex = VkDescriptorSet{ };
-auto slangGlobalSession = Slang::ComPtr<slang::IGlobalSession>{};
-auto camPos = glm::vec3{ 0.0f, 0.0f, -6.0f };
-auto objectRotations = std::array<glm::vec3, 3>{};
-auto windowSize = glm::ivec2{};
 struct Vertex 
 {
 	glm::vec3 pos;
 	glm::vec3 normal;
 	glm::vec2 uv;
 };
+
+auto UpdateSwapchain = false;
 
 static inline void chk(VkResult result) 
 {
@@ -97,24 +66,24 @@ static inline void chk(VkResult result)
 		exit(result);
 	}
 }
+static inline void chk(bool result)
+{
+	if (not result)
+	{
+		std::cerr << "Call returned an error\n";
+		exit(result);
+	}
+}
 static inline void chkSwapchain(VkResult result) 
 {
 	if (result < VkResult::VK_SUCCESS) 
 	{
 		if (result == VkResult::VK_ERROR_OUT_OF_DATE_KHR) 
 		{
-			updateSwapchain = true;
+			UpdateSwapchain = true;
 			return;
 		}
 		std::cerr << "Vulkan call returned an error (" << result << ")\n";
-		exit(result);
-	}
-}
-static inline void chk(bool result) 
-{
-	if (not result) 
-	{
-		std::cerr << "Call returned an error\n";
 		exit(result);
 	}
 }
@@ -146,6 +115,7 @@ int main(int argc, char* argv[])
 		.enabledExtensionCount = instanceExtensionsCount,
 		.ppEnabledExtensionNames = instanceExtensions,
 	};
+	auto instance = VkInstance{ };
 	chk(vkCreateInstance(&instanceCI, nullptr, &instance));
 	volkLoadInstance(instance);
 	
@@ -153,8 +123,8 @@ int main(int argc, char* argv[])
 	// Device
 	auto deviceCount = uint32_t{ 0 };
 	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
-	auto devices = std::vector<VkPhysicalDevice>(deviceCount);
-	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
+	auto physicalDevices = std::vector<VkPhysicalDevice>(deviceCount);
+	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data()));
 	auto deviceIndex = uint32_t{ 0 };
 	if (argc > 1) 
 	{
@@ -164,15 +134,19 @@ int main(int argc, char* argv[])
 	auto deviceProperties = VkPhysicalDeviceProperties2{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 
 	};
-	vkGetPhysicalDeviceProperties2(devices[deviceIndex], &deviceProperties);
+
+	auto physicalDevice = physicalDevices[deviceIndex];
+	vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProperties);
+	auto device = VkDevice{ };
 	std::cout << "Selected device: " << deviceProperties.properties.deviceName << "\n";
 	
 	
 	// Find a queue family for graphics
+	auto queue = VkQueue{ };
 	auto queueFamilyCount = uint32_t{ 0 };
-	vkGetPhysicalDeviceQueueFamilyProperties(devices[deviceIndex], &queueFamilyCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(devices[deviceIndex], &queueFamilyCount, queueFamilies.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
 	auto queueFamily = uint32_t{ 0 };
 	for (auto i = size_t{ 0 }; i < queueFamilies.size(); i++) 
 	{
@@ -182,7 +156,7 @@ int main(int argc, char* argv[])
 			break;
 		}
 	}
-	chk(SDL_Vulkan_GetPresentationSupport(instance, devices[deviceIndex], queueFamily));
+	chk(SDL_Vulkan_GetPresentationSupport(instance, physicalDevice, queueFamily));
 	
 	
 	// Logical device
@@ -220,7 +194,7 @@ int main(int argc, char* argv[])
 		.ppEnabledExtensionNames = deviceExtensions.data(),
 		.pEnabledFeatures = &enabledVk10Features
 	};
-	chk(vkCreateDevice(devices[deviceIndex], &deviceCI, nullptr, &device));
+	chk(vkCreateDevice(physicalDevice, &deviceCI, nullptr, &device));
 	vkGetDeviceQueue(device, queueFamily, 0, &queue);
 	
 	
@@ -232,21 +206,24 @@ int main(int argc, char* argv[])
 	};
 	auto allocatorCI = VmaAllocatorCreateInfo{ 
 		.flags = VmaAllocatorCreateFlagBits::VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 
-		.physicalDevice = devices[deviceIndex], 
+		.physicalDevice = physicalDevice,
 		.device = device, 
 		.pVulkanFunctions = &vkFunctions, 
 		.instance = instance 
 	};
+	auto allocator = VmaAllocator{ };
 	chk(vmaCreateAllocator(&allocatorCI, &allocator));
 	
 	
 	// Window and surface
+	auto surface = VkSurfaceKHR{ };
 	auto window = SDL_CreateWindow("How to Vulkan", 1280u, 720u, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 	assert(window);
 	chk(SDL_Vulkan_CreateSurface(window, instance, nullptr, &surface));
+	auto windowSize = glm::ivec2{};
 	chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
 	auto surfaceCaps = VkSurfaceCapabilitiesKHR{};
-	chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
+	chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps));
 	auto swapchainExtent = VkExtent2D{ surfaceCaps.currentExtent };
 	if (surfaceCaps.currentExtent.width == 0xFFFFFFFF) 
 	{
@@ -275,11 +252,14 @@ int main(int argc, char* argv[])
 		.compositeAlpha = VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 		.presentMode = VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR
 	};
+	auto swapchain = VkSwapchainKHR{ };
 	chk(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapchain));
 	auto imageCount = uint32_t{ 0 };
 	chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr));
+	auto swapchainImages = std::vector<VkImage>{};
 	swapchainImages.resize(imageCount);
 	chk(vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data()));
+	auto swapchainImageViews = std::vector<VkImageView>{};
 	swapchainImageViews.resize(imageCount);
 	for (auto i = std::uint32_t{}; i < imageCount; i++)
 	{
@@ -306,7 +286,7 @@ int main(int argc, char* argv[])
 		auto formatProperties = VkFormatProperties2{ 
 			.sType = VkStructureType::VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2 
 		};
-		vkGetPhysicalDeviceFormatProperties2(devices[deviceIndex], format, &formatProperties);
+		vkGetPhysicalDeviceFormatProperties2(physicalDevice, format, &formatProperties);
 		if (formatProperties.formatProperties.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) 
 		{
 			depthFormat = format;
@@ -334,6 +314,8 @@ int main(int argc, char* argv[])
 		.flags = VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, 
 		.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO 
 	};
+	auto depthImage = VkImage{ };
+	auto depthImageAllocation = VmaAllocation{ };
 	chk(vmaCreateImage(allocator, &depthImageCI, &allocCI, &depthImage, &depthImageAllocation, nullptr));
 	auto depthViewCI = VkImageViewCreateInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -346,6 +328,7 @@ int main(int argc, char* argv[])
 			.layerCount = 1 
 		} 
 	};
+	auto depthImageView = VkImageView{ };
 	chk(vkCreateImageView(device, &depthViewCI, nullptr, &depthImageView));
 	
 	
@@ -396,12 +379,16 @@ int main(int argc, char* argv[])
 		.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO 
 	};
 	auto vBufferAllocInfo = VmaAllocationInfo{};
+	auto vBuffer = VkBuffer{ };
+	auto vBufferAllocation = VmaAllocation{ };
 	chk(vmaCreateBuffer(allocator, &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo));
 	memcpy(vBufferAllocInfo.pMappedData, vertices.data(), vBufSize);
 	memcpy(((char*)vBufferAllocInfo.pMappedData) + vBufSize, indices.data(), iBufSize);
 	
 	
 	// Shader data buffers
+	constexpr auto maxFramesInFlight = uint32_t{ 2 };
+	auto shaderDataBuffers = std::array<ShaderDataBuffer, maxFramesInFlight>{};
 	for (auto i = 0; i < maxFramesInFlight; i++) 
 	{
 		auto uBufferCI = VkBufferCreateInfo{ 
@@ -440,11 +427,14 @@ int main(int argc, char* argv[])
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, 
 		.flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT 
 	};
+	auto fences = std::array<VkFence, maxFramesInFlight>{};
+	auto presentSemaphores = std::array<VkSemaphore, maxFramesInFlight>{};
 	for (auto i = 0; i < maxFramesInFlight; i++) 
 	{
 		chk(vkCreateFence(device, &fenceCI, nullptr, &fences[i]));
 		chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentSemaphores[i]));
 	}
+	auto renderSemaphores = std::vector<VkSemaphore>{};
 	renderSemaphores.resize(swapchainImages.size());
 	for (auto& semaphore : renderSemaphores) 
 	{
@@ -458,12 +448,14 @@ int main(int argc, char* argv[])
 		.flags = VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, 
 		.queueFamilyIndex = queueFamily 
 	};
+	auto commandPool = VkCommandPool{ };
 	chk(vkCreateCommandPool(device, &commandPoolCI, nullptr, &commandPool));
 	auto cbAllocCI = VkCommandBufferAllocateInfo{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, 
 		.commandPool = commandPool, 
 		.commandBufferCount = maxFramesInFlight 
 	};
+	auto commandBuffers = std::array<VkCommandBuffer, maxFramesInFlight>{};
 	chk(vkAllocateCommandBuffers(device, &cbAllocCI, commandBuffers.data()));
 	
 	
@@ -473,6 +465,7 @@ int main(int argc, char* argv[])
 	// transition the image to a shader-readable layout, then create a sampler
 	// and append a descriptor entry to be bound later.
 	auto textureDescriptors = std::vector<VkDescriptorImageInfo>{};
+	auto textures = std::array<Texture, 3>{};
 	for (auto i = 0; i < textures.size(); i++) 
 	{
 		// Load the KTX container from disk (includes all mip levels and pixel data).
@@ -688,6 +681,7 @@ int main(int argc, char* argv[])
 		.bindingCount = 1, 
 		.pBindings = &descLayoutBindingTex 
 	};
+	auto descriptorSetLayoutTex = VkDescriptorSetLayout{ };
 	chk(vkCreateDescriptorSetLayout(device, &descLayoutTexCI, nullptr, &descriptorSetLayoutTex));
 	auto poolSize = VkDescriptorPoolSize{ 
 		.type = VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
@@ -699,6 +693,7 @@ int main(int argc, char* argv[])
 		.poolSizeCount = 1, 
 		.pPoolSizes = &poolSize 
 	};
+	auto descriptorPool = VkDescriptorPool{ };
 	chk(vkCreateDescriptorPool(device, &descPoolCI, nullptr, &descriptorPool));
 	auto variableDescCount = uint32_t{ static_cast<uint32_t>(textures.size()) };
 	auto variableDescCountAI = VkDescriptorSetVariableDescriptorCountAllocateInfo{ 
@@ -713,6 +708,7 @@ int main(int argc, char* argv[])
 		.descriptorSetCount = 1, 
 		.pSetLayouts = &descriptorSetLayoutTex 
 	};
+	auto descriptorSetTex = VkDescriptorSet{ };
 	chk(vkAllocateDescriptorSets(device, &texDescSetAlloc, &descriptorSetTex));
 	auto writeDescSet = VkWriteDescriptorSet{ 
 		.sType = VkStructureType::VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, 
@@ -726,6 +722,7 @@ int main(int argc, char* argv[])
 
 
 	// Initialize Slang shader compiler
+	auto slangGlobalSession = Slang::ComPtr<slang::IGlobalSession>{};
 	slang::createGlobalSession(slangGlobalSession.writeRef());
 	auto slangTargets = std::array{ 
 		slang::TargetDesc{ 
@@ -777,6 +774,7 @@ int main(int argc, char* argv[])
 		.pushConstantRangeCount = 1, 
 		.pPushConstantRanges = &pushConstantRange 
 	};
+	auto pipelineLayout = VkPipelineLayout{ };
 	chk(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 	auto shaderStages = std::vector<VkPipelineShaderStageCreateInfo>{
 		{
@@ -881,12 +879,18 @@ int main(int argc, char* argv[])
 		.pDynamicState = &dynamicState,
 		.layout = pipelineLayout
 	};
+	auto pipeline = VkPipeline{ };
 	chk(vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 
 
 	// Render loop
 	auto lastTime = uint64_t{ SDL_GetTicks() };
 	auto quit = false;
+	auto frameIndex = uint32_t{ 0 };
+	auto imageIndex = uint32_t{ 0 };
+	auto camPos = glm::vec3{ 0.0f, 0.0f, -6.0f };
+	auto shaderData = ShaderData{};
+	auto objectRotations = std::array<glm::vec3, 3>{};
 	while (not quit) 
 	{
 		// Sync
@@ -1166,19 +1170,19 @@ int main(int argc, char* argv[])
 			// we don't tear down resources that the in-flight frame still uses.
 			if (event.type == SDL_EVENT_WINDOW_RESIZED)
 			{
-				updateSwapchain = true;
+				UpdateSwapchain = true;
 			}
 		}
 
 		// Swapchain recreation. Triggered either by a resize event above or by
 		// vkAcquireNextImageKHR/vkQueuePresentKHR returning OUT_OF_DATE_KHR.
-		if (updateSwapchain) 
+		if (UpdateSwapchain) 
 		{
 			chk(SDL_GetWindowSize(window, &windowSize.x, &windowSize.y));
-			updateSwapchain = false;
+			UpdateSwapchain = false;
 			// Wait for the device to go idle so it's safe to destroy resources.
 			chk(vkDeviceWaitIdle(device));
-			chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
+			chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps));
 			// Recreate the swapchain at the new size, passing the old one in
 			// oldSwapchain so the driver can recycle resources.
 			swapchainCI.oldSwapchain = swapchain;

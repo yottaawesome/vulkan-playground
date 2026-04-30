@@ -729,14 +729,14 @@ int main(int argc, char* argv[])
 	slang::createGlobalSession(slangGlobalSession.writeRef());
 	auto slangTargets = std::array{ 
 		slang::TargetDesc{ 
-			.format{SLANG_SPIRV}, 
+			.format{SlangCompileTarget::SLANG_SPIRV}, 
 			.profile{slangGlobalSession->findProfile("spirv_1_4")} 
 		}
 	};
 	auto slangOptions = std::array{ 
 		slang::CompilerOptionEntry{ 
-			slang::CompilerOptionName::EmitSpirvDirectly, 
-			{ slang::CompilerOptionValueKind::Int, 1 } 
+			.name = slang::CompilerOptionName::EmitSpirvDirectly, 
+			.value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, 1 }
 		} 
 	};
 	auto slangSessionDesc = slang::SessionDesc{ 
@@ -749,10 +749,12 @@ int main(int argc, char* argv[])
 
 
 	// Load shader
-	Slang::ComPtr<slang::ISession> slangSession;
+	auto slangSession = Slang::ComPtr<slang::ISession>{};
 	slangGlobalSession->createSession(slangSessionDesc, slangSession.writeRef());
-	auto slangModule = Slang::ComPtr<slang::IModule>{ slangSession->loadModuleFromSource("triangle", "assets/shader.slang", nullptr, nullptr) };
-	Slang::ComPtr<ISlangBlob> spirv;
+	auto slangModule = Slang::ComPtr<slang::IModule>{ 
+		slangSession->loadModuleFromSource("triangle", "assets/shader.slang", nullptr, nullptr) 
+	};
+	auto spirv = Slang::ComPtr<ISlangBlob>{};
 	slangModule->getTargetCode(0, spirv.writeRef());
 	auto shaderModuleCI = VkShaderModuleCreateInfo{ 
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, 

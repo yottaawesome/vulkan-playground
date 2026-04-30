@@ -133,7 +133,11 @@ int main(int argc, char* argv[])
 	
 	
 	// Instance
-	auto appInfo = VkApplicationInfo{ .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .pApplicationName = "How to Vulkan", .apiVersion = VK_API_VERSION_1_3 };
+	auto appInfo = VkApplicationInfo{ 
+		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, 
+		.pApplicationName = "How to Vulkan", 
+		.apiVersion = VK_API_VERSION_1_3 
+	};
 	auto instanceExtensionsCount = uint32_t{ 0 };
 	auto instanceExtensions = SDL_Vulkan_GetInstanceExtensions(&instanceExtensionsCount);
 	auto instanceCI = VkInstanceCreateInfo{
@@ -149,14 +153,17 @@ int main(int argc, char* argv[])
 	// Device
 	auto deviceCount = uint32_t{ 0 };
 	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
-	std::vector<VkPhysicalDevice> devices(deviceCount);
+	auto devices = std::vector<VkPhysicalDevice>(deviceCount);
 	chk(vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data()));
 	auto deviceIndex = uint32_t{ 0 };
-	if (argc > 1) {
+	if (argc > 1) 
+	{
 		deviceIndex = std::stoi(argv[1]);
 		assert(deviceIndex < deviceCount);
 	}
-	auto deviceProperties = VkPhysicalDeviceProperties2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+	auto deviceProperties = VkPhysicalDeviceProperties2{ 
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 
+	};
 	vkGetPhysicalDeviceProperties2(devices[deviceIndex], &deviceProperties);
 	std::cout << "Selected device: " << deviceProperties.properties.deviceName << "\n";
 	
@@ -164,11 +171,13 @@ int main(int argc, char* argv[])
 	// Find a queue family for graphics
 	auto queueFamilyCount = uint32_t{ 0 };
 	vkGetPhysicalDeviceQueueFamilyProperties(devices[deviceIndex], &queueFamilyCount, nullptr);
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	auto queueFamilies = std::vector<VkQueueFamilyProperties>(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(devices[deviceIndex], &queueFamilyCount, queueFamilies.data());
 	auto queueFamily = uint32_t{ 0 };
-	for (auto i = size_t{ 0 }; i < queueFamilies.size(); i++) {
-		if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+	for (auto i = size_t{ 0 }; i < queueFamilies.size(); i++) 
+	{
+		if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+		{
 			queueFamily = i;
 			break;
 		}
@@ -178,10 +187,28 @@ int main(int argc, char* argv[])
 	
 	// Logical device
 	auto const qfpriorities = float{ 1.0f };
-	auto queueCI = VkDeviceQueueCreateInfo{ .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = queueFamily, .queueCount = 1, .pQueuePriorities = &qfpriorities };
-	auto enabledVk12Features = VkPhysicalDeviceVulkan12Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, .descriptorIndexing = true, .shaderSampledImageArrayNonUniformIndexing = true, .descriptorBindingVariableDescriptorCount = true, .runtimeDescriptorArray = true, .bufferDeviceAddress = true };
-	auto enabledVk13Features = VkPhysicalDeviceVulkan13Features{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES, .pNext = &enabledVk12Features, .synchronization2 = true, .dynamicRendering = true };
-	auto enabledVk10Features = VkPhysicalDeviceFeatures{ .samplerAnisotropy = VK_TRUE };
+	auto queueCI = VkDeviceQueueCreateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 
+		.queueFamilyIndex = queueFamily, .queueCount = 1, 
+		.pQueuePriorities = &qfpriorities 
+	};
+	auto enabledVk12Features = VkPhysicalDeviceVulkan12Features{ 
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, 
+		.descriptorIndexing = true, 
+		.shaderSampledImageArrayNonUniformIndexing = true, 
+		.descriptorBindingVariableDescriptorCount = true, 
+		.runtimeDescriptorArray = true, 
+		.bufferDeviceAddress = true 
+	};
+	auto enabledVk13Features = VkPhysicalDeviceVulkan13Features{ 
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES, 
+		.pNext = &enabledVk12Features, 
+		.synchronization2 = true, 
+		.dynamicRendering = true 
+	};
+	auto enabledVk10Features = VkPhysicalDeviceFeatures{ 
+		.samplerAnisotropy = VK_TRUE 
+	};
 	auto const deviceExtensions = std::vector<const char*>{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	auto deviceCI = VkDeviceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -197,8 +224,18 @@ int main(int argc, char* argv[])
 	
 	
 	// VMA
-	auto vkFunctions = VmaVulkanFunctions{ .vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr, .vkCreateImage = vkCreateImage };
-	auto allocatorCI = VmaAllocatorCreateInfo{ .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, .physicalDevice = devices[deviceIndex], .device = device, .pVulkanFunctions = &vkFunctions, .instance = instance };
+	auto vkFunctions = VmaVulkanFunctions{ 
+		.vkGetInstanceProcAddr = vkGetInstanceProcAddr, 
+		.vkGetDeviceProcAddr = vkGetDeviceProcAddr, 
+		.vkCreateImage = vkCreateImage 
+	};
+	auto allocatorCI = VmaAllocatorCreateInfo{ 
+		.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 
+		.physicalDevice = devices[deviceIndex], 
+		.device = device, 
+		.pVulkanFunctions = &vkFunctions, 
+		.instance = instance 
+	};
 	chk(vmaCreateAllocator(&allocatorCI, &allocator));
 	
 	
@@ -210,8 +247,12 @@ int main(int argc, char* argv[])
 	auto surfaceCaps = VkSurfaceCapabilitiesKHR{};
 	chk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devices[deviceIndex], surface, &surfaceCaps));
 	auto swapchainExtent = VkExtent2D{ surfaceCaps.currentExtent };
-	if (surfaceCaps.currentExtent.width == 0xFFFFFFFF) {
-		swapchainExtent = { .width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y) };
+	if (surfaceCaps.currentExtent.width == 0xFFFFFFFF) 
+	{
+		swapchainExtent = { 
+			.width = static_cast<uint32_t>(windowSize.x), 
+			.height = static_cast<uint32_t>(windowSize.y) 
+		};
 	}
 	
 	
@@ -256,10 +297,14 @@ int main(int argc, char* argv[])
 	// Depth attachment
 	auto depthFormatList = std::vector<VkFormat>{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
 	auto depthFormat = VkFormat{ VK_FORMAT_UNDEFINED };
-	for (auto& format : depthFormatList) {
-		auto formatProperties = VkFormatProperties2{ .sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2 };
+	for (auto& format : depthFormatList) 
+	{
+		auto formatProperties = VkFormatProperties2{ 
+			.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2 
+		};
 		vkGetPhysicalDeviceFormatProperties2(devices[deviceIndex], format, &formatProperties);
-		if (formatProperties.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+		if (formatProperties.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) 
+		{
 			depthFormat = format;
 			break;
 		}
@@ -269,7 +314,11 @@ int main(int argc, char* argv[])
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.imageType = VK_IMAGE_TYPE_2D,
 		.format = depthFormat,
-		.extent{.width = static_cast<uint32_t>(windowSize.x), .height = static_cast<uint32_t>(windowSize.y), .depth = 1},
+		.extent{
+			.width = static_cast<uint32_t>(windowSize.x), 
+			.height = static_cast<uint32_t>(windowSize.y), 
+			.depth = 1
+		},
 		.mipLevels = 1,
 		.arrayLayers = 1,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -277,16 +326,29 @@ int main(int argc, char* argv[])
 		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 	};
-	auto allocCI = VmaAllocationCreateInfo{ .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, .usage = VMA_MEMORY_USAGE_AUTO };
+	auto allocCI = VmaAllocationCreateInfo{ 
+		.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, 
+		.usage = VMA_MEMORY_USAGE_AUTO 
+	};
 	chk(vmaCreateImage(allocator, &depthImageCI, &allocCI, &depthImage, &depthImageAllocation, nullptr));
-	auto depthViewCI = VkImageViewCreateInfo{ .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .image = depthImage, .viewType = VK_IMAGE_VIEW_TYPE_2D, .format = depthFormat, .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, .levelCount = 1, .layerCount = 1 } };
+	auto depthViewCI = VkImageViewCreateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = depthImage, 
+		.viewType = VK_IMAGE_VIEW_TYPE_2D, 
+		.format = depthFormat, 
+		.subresourceRange{
+			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, 
+			.levelCount = 1, 
+			.layerCount = 1 
+		} 
+	};
 	chk(vkCreateImageView(device, &depthViewCI, nullptr, &depthImageView));
 	
 	
 	// Mesh data
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
+	auto attrib = tinyobj::attrib_t{};
+	auto shapes = std::vector<tinyobj::shape_t>{};
+	auto materials = std::vector<tinyobj::material_t>{};
 	chk(tinyobj::LoadObj(&attrib, &shapes, &materials, nullptr, nullptr, "assets/suzanne.obj"));
 	auto const indexCount = VkDeviceSize{ shapes[0].mesh.indices.size() };
 	auto vertices = std::vector<Vertex>{};
@@ -294,19 +356,41 @@ int main(int argc, char* argv[])
 	
 	
 	// Load vertex and index data
-	for (auto& index : shapes[0].mesh.indices) {
+	for (auto& index : shapes[0].mesh.indices) 
+	{
 		auto v = Vertex{
-			.pos = { attrib.vertices[index.vertex_index * 3], -attrib.vertices[index.vertex_index * 3 + 1], attrib.vertices[index.vertex_index * 3 + 2] },
-			.normal = { attrib.normals[index.normal_index * 3], -attrib.normals[index.normal_index * 3 + 1], attrib.normals[index.normal_index * 3 + 2] },
-			.uv = { attrib.texcoords[index.texcoord_index * 2], 1.0 - attrib.texcoords[index.texcoord_index * 2 + 1] }
+			.pos = { 
+				attrib.vertices[index.vertex_index * 3], 
+				-attrib.vertices[index.vertex_index * 3 + 1], 
+				attrib.vertices[index.vertex_index * 3 + 2] 
+			},
+			.normal = { 
+				attrib.normals[index.normal_index * 3], 
+				-attrib.normals[index.normal_index * 3 + 1], 
+				attrib.normals[index.normal_index * 3 + 2] 
+			},
+			.uv = { 
+				attrib.texcoords[index.texcoord_index * 2], 
+				1.0 - attrib.texcoords[index.texcoord_index * 2 + 1] 
+			}
 		};
 		vertices.push_back(v);
 		indices.push_back(indices.size());
 	}
 	auto vBufSize = VkDeviceSize{ sizeof(Vertex) * vertices.size() };
 	auto iBufSize = VkDeviceSize{ sizeof(uint16_t) * indices.size() };
-	auto bufferCI = VkBufferCreateInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = vBufSize + iBufSize, .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT };
-	auto vBufferAllocCI = VmaAllocationCreateInfo{ .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT, .usage = VMA_MEMORY_USAGE_AUTO };
+	auto bufferCI = VkBufferCreateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, 
+		.size = vBufSize + iBufSize, 
+		.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT 
+	};
+	auto vBufferAllocCI = VmaAllocationCreateInfo{ 
+		.flags = 
+			VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT 
+			| VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT 
+			| VMA_ALLOCATION_CREATE_MAPPED_BIT, 
+		.usage = VMA_MEMORY_USAGE_AUTO 
+	};
 	auto vBufferAllocInfo = VmaAllocationInfo{};
 	chk(vmaCreateBuffer(allocator, &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo));
 	memcpy(vBufferAllocInfo.pMappedData, vertices.data(), vBufSize);
@@ -316,42 +400,84 @@ int main(int argc, char* argv[])
 	// Shader data buffers
 	for (auto i = 0; i < maxFramesInFlight; i++) 
 	{
-		auto uBufferCI = VkBufferCreateInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = sizeof(ShaderData), .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT };
-		auto uBufferAllocCI = VmaAllocationCreateInfo{ .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT, .usage = VMA_MEMORY_USAGE_AUTO };
-		chk(vmaCreateBuffer(allocator, &uBufferCI, &uBufferAllocCI, &shaderDataBuffers[i].buffer, &shaderDataBuffers[i].allocation, &shaderDataBuffers[i].allocationInfo));
-		auto uBufferBdaInfo = VkBufferDeviceAddressInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = shaderDataBuffers[i].buffer };
+		auto uBufferCI = VkBufferCreateInfo{ 
+			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, 
+			.size = sizeof(ShaderData), 
+			.usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT 
+		};
+		auto uBufferAllocCI = VmaAllocationCreateInfo{ 
+			.flags = 
+				VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT 
+				| VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT 
+				| VMA_ALLOCATION_CREATE_MAPPED_BIT, 
+			.usage = VMA_MEMORY_USAGE_AUTO 
+		};
+		chk(vmaCreateBuffer(
+			allocator, 
+			&uBufferCI, 
+			&uBufferAllocCI, 
+			&shaderDataBuffers[i].buffer, 
+			&shaderDataBuffers[i].allocation, 
+			&shaderDataBuffers[i].allocationInfo
+		));
+		auto uBufferBdaInfo = VkBufferDeviceAddressInfo{ 
+			.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, 
+			.buffer = shaderDataBuffers[i].buffer 
+		};
 		shaderDataBuffers[i].deviceAddress = vkGetBufferDeviceAddress(device, &uBufferBdaInfo);
 	}
 	
 	
 	// Sync objects
-	auto semaphoreCI = VkSemaphoreCreateInfo{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-	auto fenceCI = VkFenceCreateInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
+	auto semaphoreCI = VkSemaphoreCreateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO 
+	};
+	auto fenceCI = VkFenceCreateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, 
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT 
+	};
 	for (auto i = 0; i < maxFramesInFlight; i++) 
 	{
 		chk(vkCreateFence(device, &fenceCI, nullptr, &fences[i]));
 		chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &presentSemaphores[i]));
 	}
 	renderSemaphores.resize(swapchainImages.size());
-	for (auto& semaphore : renderSemaphores) {
+	for (auto& semaphore : renderSemaphores) 
+	{
 		chk(vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore));
 	}
 	
 	
 	// Command pool
-	auto commandPoolCI = VkCommandPoolCreateInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = queueFamily };
+	auto commandPoolCI = VkCommandPoolCreateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, 
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, 
+		.queueFamilyIndex = queueFamily 
+	};
 	chk(vkCreateCommandPool(device, &commandPoolCI, nullptr, &commandPool));
-	auto cbAllocCI = VkCommandBufferAllocateInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, .commandPool = commandPool, .commandBufferCount = maxFramesInFlight };
+	auto cbAllocCI = VkCommandBufferAllocateInfo{ 
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, 
+		.commandPool = commandPool, 
+		.commandBufferCount = maxFramesInFlight 
+	};
 	chk(vkAllocateCommandBuffers(device, &cbAllocCI, commandBuffers.data()));
 	
 	
 	// Texture images
+	// For each texture: load a KTX file from disk, create a GPU image + view,
+	// upload all mip levels via a staging buffer using a one-time command buffer,
+	// transition the image to a shader-readable layout, then create a sampler
+	// and append a descriptor entry to be bound later.
 	auto textureDescriptors = std::vector<VkDescriptorImageInfo>{};
 	for (auto i = 0; i < textures.size(); i++) 
 	{
+		// Load the KTX container from disk (includes all mip levels and pixel data).
 		auto ktxTexture = static_cast<::ktxTexture*>(nullptr);
 		auto filename = "assets/suzanne" + std::to_string(i) + ".ktx";
 		ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+
+		// Create the destination GPU image, sized and formatted to match the KTX file.
+		// Usage: TRANSFER_DST so we can copy pixels into it, SAMPLED so shaders can read it.
 		auto texImgCI = VkImageCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.imageType = VK_IMAGE_TYPE_2D,
@@ -366,6 +492,8 @@ int main(int argc, char* argv[])
 		};
 		auto texImageAllocCI = VmaAllocationCreateInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
 		chk(vmaCreateImage(allocator, &texImgCI, &texImageAllocCI, &textures[i].image, &textures[i].allocation, nullptr));
+
+		// Image view exposing all mip levels for shader sampling.
 		auto texVewCI = VkImageViewCreateInfo{ 
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, 
 			.image = textures[i].image, 
@@ -380,7 +508,10 @@ int main(int argc, char* argv[])
 		chk(vkCreateImageView(device, &texVewCI, nullptr, &textures[i].view));
 
 
-		// Upload
+		// Upload — copy KTX pixel data to a host-mapped staging buffer, then issue
+		// a one-time GPU command buffer that copies it into the device-local image.
+
+		// Staging buffer sized to the full KTX payload (all mip levels packed together).
 		auto imgSrcBuffer = VkBuffer{};
 		auto imgSrcAllocation = VmaAllocation{};
 		auto imgSrcBufferCI = VkBufferCreateInfo{ 
@@ -394,7 +525,10 @@ int main(int argc, char* argv[])
 		};
 		auto imgSrcAllocInfo = VmaAllocationInfo{};
 		chk(vmaCreateBuffer(allocator, &imgSrcBufferCI, &imgSrcAllocCI, &imgSrcBuffer, &imgSrcAllocation, &imgSrcAllocInfo));
+		// Copy the entire KTX blob (all mips) into the mapped staging buffer.
 		memcpy(imgSrcAllocInfo.pMappedData, ktxTexture->pData, ktxTexture->dataSize);
+
+		// Allocate a fence + one-time command buffer to drive the upload synchronously.
 		auto fenceOneTimeCI = VkFenceCreateInfo{ .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 		auto fenceOneTime = VkFence{};
 		chk(vkCreateFence(device, &fenceOneTimeCI, nullptr, &fenceOneTime));
@@ -410,6 +544,9 @@ int main(int argc, char* argv[])
 			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
 		};
 		chk(vkBeginCommandBuffer(cbOneTime, &cbOneTimeBI));
+
+		// Pre-copy barrier: transition the freshly-created image from UNDEFINED
+		// to TRANSFER_DST_OPTIMAL so the upcoming buffer→image copy is legal.
 		auto barrierTexImage = VkImageMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 			.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
@@ -427,6 +564,9 @@ int main(int argc, char* argv[])
 			.pImageMemoryBarriers = &barrierTexImage 
 		};
 		vkCmdPipelineBarrier2(cbOneTime, &barrierTexInfo);
+
+		// Build one VkBufferImageCopy per mip level. KTX tells us the byte offset of
+		// each mip within the blob; the destination extent halves at each level.
 		auto copyRegions = std::vector<VkBufferImageCopy>{};
 		for (auto j = 0; j < ktxTexture->numLevels; j++) 
 		{
@@ -438,6 +578,7 @@ int main(int argc, char* argv[])
 				.imageExtent{.width = ktxTexture->baseWidth >> j, .height = ktxTexture->baseHeight >> j, .depth = 1 },
 			});
 		}
+		// Issue the actual buffer→image copy for every mip level in one call.
 		vkCmdCopyBufferToImage(
 			cbOneTime, 
 			imgSrcBuffer, 
@@ -446,6 +587,9 @@ int main(int argc, char* argv[])
 			static_cast<uint32_t>(copyRegions.size()), 
 			copyRegions.data()
 		);
+
+		// Post-copy barrier: transition TRANSFER_DST_OPTIMAL → READ_ONLY_OPTIMAL
+		// and synchronise the transfer write against the fragment shader's read.
 		auto barrierTexRead = VkImageMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 			.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -464,6 +608,9 @@ int main(int argc, char* argv[])
 		barrierTexInfo.pImageMemoryBarriers = &barrierTexRead;
 		vkCmdPipelineBarrier2(cbOneTime, &barrierTexInfo);
 		chk(vkEndCommandBuffer(cbOneTime));
+
+		// Submit the upload command buffer and block until the GPU finishes,
+		// so it's safe to free the staging buffer immediately after.
 		auto oneTimeSI = VkSubmitInfo{ 
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, 
 			.commandBufferCount = 1, 
@@ -486,7 +633,11 @@ int main(int argc, char* argv[])
 			.maxLod = (float)ktxTexture->numLevels,
 		};
 		chk(vkCreateSampler(device, &samplerCI, nullptr, &textures[i].sampler));
+		// CPU-side KTX data is no longer needed once it's on the GPU.
 		ktxTexture_Destroy(ktxTexture);
+
+		// Record an image-info descriptor for this texture; the array of these
+		// is later written into the combined-image-sampler descriptor set.
 		textureDescriptors.push_back({ 
 			.sampler = textures[i].sampler,
 			.imageView = textures[i].view, 

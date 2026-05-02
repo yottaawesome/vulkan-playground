@@ -24,6 +24,113 @@ dod-playground.exe 1            # runs lesson 1 only
 dod-playground.exe --help
 ```
 
+## Crash course: SIMD, cache lines, and DOD
+
+If the lessons below are the *practice*, this section is the *theory* — the three
+ideas that make data-oriented design pay off on real hardware.
+
+### 1. SIMD (Single Instruction, Multiple Data)
+
+Modern CPUs have wide registers (128/256/512 bits) that operate on **multiple
+values in one instruction**.
+
+```
+Scalar:  a[0] + b[0] = c[0]                                 (1 add per cycle)
+SIMD:    [a0,a1,a2,a3] + [b0,b1,b2,b3] = [c0,c1,c2,c3]      (4 adds per cycle)
+```
+
+- **SSE** = 128-bit (4 floats), **AVX2** = 256-bit (8 floats), **AVX-512** = 512-bit (16 floats).
+- Compilers auto-vectorize *if* data is contiguous, aligned, and loop bodies are branch-free.
+- Intrinsics: `_mm256_add_ps`, `_mm_load_ps`, etc.
+
+**Key constraint:** SIMD wants **homogeneous arrays of values**, not arrays of
+fat structs.
+
+### 2. Cache lines
+
+RAM is slow (~100 ns); L1 cache is fast (~1 ns). The CPU never reads a single
+byte — it reads a whole **cache line** (typically **64 bytes**) at a time.
+
+```
+[ ─── 64 bytes ─── ]   ← one fetch from memory
+```
+
+Implications:
+
+- Reading 1 byte costs the same as reading 64 contiguous bytes.
+- **Sequential access** ≈ free (the hardware prefetcher predicts it).
+- **Random / pointer-chasing access** = stall city.
+- **False sharing:** two threads writing to the same cache line bounce it
+  between cores → tanks performance.
+
+Rule of thumb: a cache miss to main memory is ~300–400 cycles. You can do *a
+lot* of math in that time.
+
+### 3. AoS vs SoA — the central DOD shift
+
+**Array of Structs (OOP-typical):**
+
+```cpp
+struct Particle { vec3 pos; vec3 vel; vec3 color; float mass; bool alive; };
+std::vector<Particle> particles;  // 40+ bytes per element
+```
+
+If you only need `pos` to update positions, you still drag `vel`, `color`,
+`mass`, `alive` through cache. ~70% of bandwidth wasted.
+
+**Struct of Arrays (DOD):**
+
+```cpp
+struct Particles {
+    std::vector<float> px, py, pz;
+    std::vector<float> vx, vy, vz;
+    std::vector<bool>  alive;
+};
+```
+
+Now `px[]` is a tight contiguous stream → perfect for the prefetcher and SIMD
+(`_mm256_load_ps(&px[i])`). This is exactly what Lesson 1 demonstrates.
+
+### 4. What data-oriented design actually is
+
+DOD = **design around the data transformations the program performs**, not
+around real-world "objects."
+
+Core principles:
+
+1. **Where there's one, there's many** — solve for the bulk case (process 10,000, not 1).
+2. **Group by access pattern**, not by conceptual identity. Hot fields together, cold fields elsewhere.
+3. **Linear arrays > pointers / trees** when iteration dominates.
+4. **Sort / bucket** to make branches predictable (kills branch mispredicts).
+5. **Indices, not pointers** — smaller, relocatable, cache-friendly (see Lesson 3).
+6. **Separate hot / cold data** — `alive` flags in their own array means
+   dead-particle skipping doesn't pollute cache.
+
+### 5. How they compose
+
+| Problem                  | DOD fix                          | Wins                            |
+|--------------------------|----------------------------------|---------------------------------|
+| Wasted cache bandwidth   | SoA layout                       | More useful bytes per line      |
+| Slow scalar loops        | Contiguous arrays                | Auto-vectorization (SIMD)       |
+| Branch mispredicts       | Sort by key first                | Straight-line code              |
+| Pointer chasing          | Index handles into flat arrays   | Prefetcher-friendly             |
+| False sharing            | Pad / partition per-thread data  | Scales with cores               |
+
+### 6. Mental model
+
+> The CPU is a **streaming machine** with attached scratchpads (caches). Feed
+> it long, dense, predictable streams of homogeneous data and it runs near
+> peak. Feed it pointer soup of heterogeneous objects and it spends 90% of its
+> time waiting on memory.
+
+OOP optimises for *programmer ergonomics*; DOD optimises for *the machine that
+actually runs the code*. SIMD is the reward you get when you've already done
+the DOD work — bad data layout makes SIMD impossible no matter how clever your
+intrinsics are.
+
+The lessons below walk through this progression: AoS↔SoA, sort keys,
+indirection, frame graph, BDA.
+
 ## Lessons
 
 ### 1. `dod.lesson01_aos_vs_soa.ixx` — Data layout and the cache

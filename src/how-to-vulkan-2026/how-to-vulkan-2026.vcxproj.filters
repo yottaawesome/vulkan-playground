@@ -27,46 +27,46 @@
     <ClCompile Include="vulkan\vulkan.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sdl3\sdl3.exports.ixx">
+    <ClCompile Include="sdl3\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.exports.ixx">
+    <ClCompile Include="vulkan\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.error.ixx">
+    <ClCompile Include="vulkan\error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.instance.ixx">
+    <ClCompile Include="vulkan\instance.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sdl3\sdl3.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sdl3\sdl3.misc.ixx">
+    <ClCompile Include="sdl3\misc.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sdl3\sdl3.error.ixx">
+    <ClCompile Include="sdl3\error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="raii\raii.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.device.ixx">
+    <ClCompile Include="vulkan\device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.physicaldevice.ixx">
+    <ClCompile Include="vulkan\physicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vma\vma.allocator.ixx">
+    <ClCompile Include="vma\allocator.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sdl3\sdl3.window.ixx">
+    <ClCompile Include="sdl3\window.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.surface.ixx">
+    <ClCompile Include="vulkan\surface.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glm\glm.exports.ixx">
+    <ClCompile Include="glm\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="glm\glm.ixx">
@@ -75,58 +75,58 @@
     <ClCompile Include="error\error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.swapchain.ixx">
+    <ClCompile Include="vulkan\swapchain.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.image.ixx">
+    <ClCompile Include="vulkan\image.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.resource.ixx">
+    <ClCompile Include="vulkan\resource.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\util.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tinyobj\tinyobj.exports.ixx">
+    <ClCompile Include="tinyobj\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tinyobj\tinyobj.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tinyobj\tinyobj.functions.ixx">
+    <ClCompile Include="tinyobj\functions.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mesh\mesh.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vma\vma.buffer.ixx">
+    <ClCompile Include="vma\buffer.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vma\vma.exports.ixx">
+    <ClCompile Include="vma\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vma\vma.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.impl.cpp">
+    <ClCompile Include="vulkan\impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vma\vma.image.ixx">
+    <ClCompile Include="vma\image.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.semaphore.ixx">
+    <ClCompile Include="vulkan\semaphore.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.fence.ixx">
+    <ClCompile Include="vulkan\fence.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ktx\ktx.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ktx\ktx.exports.ixx">
+    <ClCompile Include="ktx\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\vulkan.command.ixx">
+    <ClCompile Include="vulkan\command.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

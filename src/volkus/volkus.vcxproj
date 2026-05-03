@@ -148,6 +148,10 @@
       <!-- Mirror source tree into intermediate dir so object files in
            sibling directories with matching filenames don't collide. -->
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
+      <ModuleOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)%(RelativeDir)</ModuleOutputFile>
+      <ModuleDependenciesFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)%(RelativeDir)</ModuleDependenciesFile>
+      <ModuleOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)%(RelativeDir)</ModuleOutputFile>
+      <ModuleDependenciesFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)%(RelativeDir)</ModuleDependenciesFile>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

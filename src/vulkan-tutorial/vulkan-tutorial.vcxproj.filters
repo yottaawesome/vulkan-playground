@@ -21,7 +21,7 @@
     <ClCompile Include="Libs\libs.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Error\vulkantutorial-error.ixx">
+    <ClCompile Include="Error\error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Util\util.ixx">
@@ -30,46 +30,46 @@
     <ClCompile Include="App\app.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\libs.formatters.ixx">
+    <ClCompile Include="Libs\formatters.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkanite.device.physicaldevicelist.ixx">
+    <ClCompile Include="Vulkanite\Device\physicaldevicelist.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkanite.device.ixx">
+    <ClCompile Include="Vulkanite\Device\device.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libs\libs.exports.ixx">
+    <ClCompile Include="Libs\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Concepts\concepts.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkanite.device.physicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\physicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkanite.device.scoredphysicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\scoredphysicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Vulkanite\vulkanite.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Device\vulkanite.device.logicaldevice.ixx">
+    <ClCompile Include="Vulkanite\Device\logicaldevice.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\util.fixedstring.ixx">
+    <ClCompile Include="Util\fixedstring.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\util.build.ixx">
+    <ClCompile Include="Util\build.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Vulkanite\Window\vulkanite.window.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Util\util.functions.ixx">
+    <ClCompile Include="Util\functions.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vulkanite\Shaders\vulkanite.shaders.ixx">
+    <ClCompile Include="Vulkanite\Shaders\shaders.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Vulkanite\Sync\sync.ixx">

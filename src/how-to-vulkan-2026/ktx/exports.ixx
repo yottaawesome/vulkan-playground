@@ -20,12 +20,17 @@ export namespace ktx
 		ktxTexture_Destroy(text);
 	}
 
-	using 
-		::ktxTexture,
-		::ktxTexture1,
-		::ktxTextureCreateFlagBits,
-		::ktx_error_code_e,
-		::ktxTexture_GetVkFormat,
-		::ktxTexture_CreateFromNamedFile
-		;
+	using Texture = ktxTexture;
+	using Texture1 = ktxTexture1;
+	using TextureCreateFlagBits = ktxTextureCreateFlagBits;
+	using ErrorCode = ktx_error_code_e;
 }
+
+export using
+	::ktxTexture,
+	::ktxTexture1,
+	::ktxTextureCreateFlagBits,
+	::ktx_error_code_e,
+	::ktxTexture_GetVkFormat,
+	::ktxTexture_CreateFromNamedFile
+;

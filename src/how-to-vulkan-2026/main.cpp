@@ -494,7 +494,7 @@ try
 	auto textures = std::array<Texture, 3>{};
 	for (auto i = 0; i < textures.size(); i++)
 	{
-		auto ktxTexture = static_cast<ktx::ktxTexture*>(nullptr);
+		auto texture = static_cast<ktxTexture*>(nullptr);
 		auto filename = std::format("assets/suzanne{}.ktx", i);
 	}
 

@@ -1,6 +1,6 @@
 export module vulkan26:vulkan.image;
 import std;
-import :vulkan.exports;
+import vulkanlib;
 import :vulkan.error;
 import :vulkan.resource;
 import :error;
@@ -14,20 +14,20 @@ export namespace vk
 	class ImageViewDeleter
 	{
 	public:
-		constexpr ImageViewDeleter(vk::VkDevice deviceIn)
+		constexpr ImageViewDeleter(VkDevice deviceIn)
 			: device(deviceIn)
 		{
 			if (not device)
 				throw ::Error::RuntimeError{"device cannot be nullptr"};
 		}
-		auto operator()(this const ImageViewDeleter& self, vk::VkImageView imageView)
+		auto operator()(this const ImageViewDeleter& self, VkImageView imageView)
 		{
-			vk::vkDestroyImageView(self.device, imageView, nullptr);
+			vkDestroyImageView(self.device, imageView, nullptr);
 		}
 	private:
-		vk::VkDevice device = nullptr;
+		VkDevice device = nullptr;
 	};
-	using ImageViewUniquePtr = std::unique_ptr<std::remove_pointer_t<vk::VkImageView>, ImageViewDeleter>;
+	using ImageViewUniquePtr = std::unique_ptr<std::remove_pointer_t<VkImageView>, ImageViewDeleter>;
 
 	//
 	//
@@ -47,15 +47,15 @@ export namespace vk
 	{
 	public:
 		constexpr ImageDeleter() = default;
-		constexpr ImageDeleter(vk::VkDevice deviceIn) 
+		constexpr ImageDeleter(VkDevice deviceIn) 
 			: DeviceBasedDeleter(deviceIn) 
 		{ }
-		constexpr auto operator()(this const ImageDeleter& self, vk::VkImage image) noexcept
+		constexpr auto operator()(this const ImageDeleter& self, VkImage image) noexcept
 		{
-			vk::vkDestroyImage(self.device, image, nullptr);
+			vkDestroyImage(self.device, image, nullptr);
 		}
 	};
-	using ImageUniquePtr = std::unique_ptr<std::remove_pointer_t<vk::VkImage>, ImageDeleter>;
+	using ImageUniquePtr = std::unique_ptr<std::remove_pointer_t<VkImage>, ImageDeleter>;
 
 	
 
@@ -66,7 +66,7 @@ export namespace vk
 
 	template<typename T>
 	concept ImageLike = requires(T a) {
-		{ *a } -> std::same_as<vk::VkImage>;
+		{ *a } -> std::same_as<VkImage>;
 		a.Destroy();
 	};
 
@@ -82,11 +82,11 @@ export namespace vk
 			if (not depthImageView)
 				throw ::Error::RuntimeError{ "Depth image view cannot be null" };
 		}
-		constexpr auto GetImage(this const DepthImage& self) noexcept -> vk::VkImage
+		constexpr auto GetImage(this const DepthImage& self) noexcept -> VkImage
 		{
 			return *self.depthImage;
 		}
-		constexpr auto GetView(this const DepthImage& self) noexcept -> vk::VkImageView
+		constexpr auto GetView(this const DepthImage& self) noexcept -> VkImageView
 		{
 			return *self.depthImageView;
 		}

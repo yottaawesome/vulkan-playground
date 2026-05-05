@@ -1,9 +1,8 @@
 export module vulkan26:vulkan.swapchain;
-
 import std;
+import vulkanlib;
 import :error;
 import :vulkan.error;
-import :vulkan.exports;
 
 export namespace vk
 {
@@ -61,7 +60,7 @@ export namespace vk
 		auto GetSwapchainImages(this const auto& self) -> std::vector<VkImage>
 		{
 			auto device = self.swapchain.get_deleter().GetDevice();
-			auto swapchainImagesCount = uint32_t{};
+			auto swapchainImagesCount = std::uint32_t{};
 			auto result = Result{ vkGetSwapchainImagesKHR(device, self.Get(), &swapchainImagesCount, nullptr) };
 			if (not result)
 				throw Error{ result };

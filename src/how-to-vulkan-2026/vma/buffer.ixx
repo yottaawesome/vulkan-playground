@@ -1,7 +1,6 @@
 export module vulkan26:vma.buffer;
 import std;
-import :vma.exports;
-import :vulkan.exports;
+import vulkanlib;
 import :error;
 
 export namespace vma
@@ -10,8 +9,8 @@ export namespace vma
 	{
 	public:
 		constexpr VmaBufferDeleter(
-			vma::VmaAllocator allocatorIn,
-			vma::VmaAllocation allocationIn
+			VmaAllocator allocatorIn,
+			VmaAllocation allocationIn
 		) : allocator(allocatorIn), allocation(allocationIn)
 		{
 			if (not allocator)
@@ -19,21 +18,21 @@ export namespace vma
 			if (not allocation)
 				throw ::Error::RuntimeError{ "allocation cannot be null" };
 		}
-		auto operator()(vk::VkBuffer buffer) noexcept
+		auto operator()(VkBuffer buffer) noexcept
 		{
-			vma::vmaDestroyBuffer(allocator, buffer, allocation);
+			vmaDestroyBuffer(allocator, buffer, allocation);
 		}
-		constexpr auto GetAllocator(this const VmaBufferDeleter& self) noexcept -> vma::VmaAllocator
+		constexpr auto GetAllocator(this const VmaBufferDeleter& self) noexcept -> VmaAllocator
 		{
 			return self.allocator;
 		}
-		constexpr auto GetAllocation(this const VmaBufferDeleter& self) noexcept -> vma::VmaAllocation
+		constexpr auto GetAllocation(this const VmaBufferDeleter& self) noexcept -> VmaAllocation
 		{
 			return self.allocation;
 		}
 	private:
-		vma::VmaAllocator allocator = nullptr;
-		vma::VmaAllocation allocation = nullptr;
+		VmaAllocator allocator = nullptr;
+		VmaAllocation allocation = nullptr;
 	};
 	using VmaBufferUniquePtr = std::unique_ptr<std::remove_pointer_t<VkBuffer>, VmaBufferDeleter>;
 
@@ -47,11 +46,11 @@ export namespace vma
 		{
 			return self.buffer.get();
 		}
-		constexpr auto GetAllocation(this const VmaBuffer& self) -> vma::VmaAllocation
+		constexpr auto GetAllocation(this const VmaBuffer& self) -> VmaAllocation
 		{
 			return self.buffer.get_deleter().GetAllocation();
 		}
-		constexpr auto GetAllocator(this const VmaBuffer& self) -> vma::VmaAllocator
+		constexpr auto GetAllocator(this const VmaBuffer& self) -> VmaAllocator
 		{
 			return self.buffer.get_deleter().GetAllocator();
 		}

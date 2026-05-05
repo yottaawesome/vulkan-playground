@@ -1,6 +1,6 @@
 export module volkus:vkx.physicaldevice;
 import std;
-import :vkx.exports;
+import vulkanlib;
 import :vkx.vulkanresource;
 import :vkx.physicaldeviceproperties;
 

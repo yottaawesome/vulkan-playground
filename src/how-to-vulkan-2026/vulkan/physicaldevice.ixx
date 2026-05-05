@@ -1,7 +1,7 @@
 export module vulkan26:vulkan.physicaldevice;
 import std;
+import vulkanlib;
 import :vulkan.error;
-import :vulkan.exports;
 
 export namespace vk
 {
@@ -44,11 +44,11 @@ export namespace vk
 		auto GetQueueFamilyProperties(this const auto& self) -> std::vector<VkQueueFamilyProperties2>
 		{
 			auto queueFamilyCount = std::uint32_t{};
-			auto status = vk::Result{ vk::vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, nullptr) };
+			auto status = vk::Result{ vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, nullptr) };
 			if (not status)
 				throw Error{ status.result };
 			auto queueFamilies = std::vector<VkQueueFamilyProperties2>{ queueFamilyCount };
-			status = vk::Result{ vk::vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, queueFamilies.data()) };
+			status = vk::Result{ vkGetPhysicalDeviceQueueFamilyProperties2(self.physicalDevice, &queueFamilyCount, queueFamilies.data()) };
 			if (not status)
 				throw Error{ status.result };
 			return queueFamilies;

@@ -1,6 +1,6 @@
 export module vulkan26:vulkan.error;
 import std;
-import :vulkan.exports;
+import vulkanlib;
 
 export namespace vk
 {

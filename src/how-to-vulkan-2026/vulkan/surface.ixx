@@ -1,7 +1,7 @@
 export module vulkan26:vulkan.surface;
 import std;
+import vulkanlib;
 import :error;
-import :vulkan.exports;
 import :vulkan.error;
 
 export namespace vk

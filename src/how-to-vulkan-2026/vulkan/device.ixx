@@ -1,7 +1,7 @@
 export module vulkan26:vulkan.device;
 import std;
+import vulkanlib;
 import :vulkan.error;
-import :vulkan.exports;
 
 export namespace vk
 {

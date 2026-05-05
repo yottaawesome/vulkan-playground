@@ -1,6 +1,6 @@
 export module volkus:vkx.device;
 import std;
-import :vkx.exports;
+import vulkanlib;
 import :vkx.error;
 import :vkx.vulkanresource;
 

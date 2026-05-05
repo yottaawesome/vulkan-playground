@@ -156,16 +156,15 @@
     <ClCompile Include="tinyobj\exports.ixx" />
     <ClCompile Include="tinyobj\functions.ixx" />
     <ClCompile Include="tinyobj\tinyobj.ixx" />
+    <ClCompile Include="tinyobj\tinyobjimpl.cpp" />
     <ClCompile Include="util\util.ixx" />
-    <ClCompile Include="vma\image.ixx" />
-    <ClCompile Include="vulkan26.ixx" />
     <ClCompile Include="vma\allocator.ixx" />
     <ClCompile Include="vma\buffer.ixx" />
-    <ClCompile Include="vma\exports.ixx" />
+    <ClCompile Include="vma\image.ixx" />
     <ClCompile Include="vma\vma.ixx" />
+    <ClCompile Include="vulkan26.ixx" />
     <ClCompile Include="vulkan\command.ixx" />
     <ClCompile Include="vulkan\error.ixx" />
-    <ClCompile Include="vulkan\exports.ixx" />
     <ClCompile Include="vulkan\fence.ixx" />
     <ClCompile Include="vulkan\image.ixx" />
     <ClCompile Include="vulkan\impl.cpp" />
@@ -182,6 +181,11 @@
   <ItemGroup>
     <None Include="README.md" />
     <None Include="vcpkg.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\vulkan-module\vulkan-module.vcxproj">
+      <Project>{62ebda61-24ae-40ab-a7bb-0fe640982784}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

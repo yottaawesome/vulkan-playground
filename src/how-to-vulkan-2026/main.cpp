@@ -1,26 +1,27 @@
 import std;
+import vulkanlib;
 import vulkan26;
 
 struct ShaderDataBuffer
 {
-	vma::VmaAllocation Allocation{ nullptr };
-	vma::VmaAllocationInfo AllocationInfo{};
-	vk::VkBuffer Buffer{ nullptr };
-	vk::VkDeviceAddress DeviceAddress{};
+	VmaAllocation Allocation{ nullptr };
+	VmaAllocationInfo AllocationInfo{};
+	VkBuffer Buffer{ nullptr };
+	VkDeviceAddress DeviceAddress{};
 
-	auto Destroy(const vma::Allocator& allocator, const vk::Device& device) noexcept -> void
+	auto Destroy(const vma::Allocator& allocator) noexcept -> void
 	{
 		if (Buffer)
-			vma::vmaDestroyBuffer(allocator.Get(), Buffer, Allocation);
+			vmaDestroyBuffer(allocator.Get(), Buffer, Allocation);
 	}
 };
 
 struct Texture 
 {
-	vma::VmaAllocation allocation{ nullptr };
-	vk::VkImage image{ nullptr };
-	vk::VkImageView view{ nullptr };
-	vk::VkSampler sampler{ nullptr };
+	VmaAllocation allocation{ nullptr };
+	VkImage image{ nullptr };
+	VkImageView view{ nullptr };
+	VkSampler sampler{ nullptr };
 };
 
 struct ShaderData
@@ -45,7 +46,7 @@ try
 	{
 		if (not sdl3::vk::SDL_Vulkan_LoadLibrary(nullptr))
 			throw sdl3::Error::Error{};
-		auto result = vk::Result{ volk::volkInitialize() };
+		auto result = vk::Result{ volkInitialize() };
 		if (not result)
 			throw vk::Error{ result };
 	}();
@@ -68,59 +69,60 @@ try
 			// to Vulkan. This can help with driver optimisations for 
 			// popular games.
 			auto appInfo =
-				vk::VkApplicationInfo
-			{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
-				.pApplicationName = "Vulkan-2026",
-				.applicationVersion = vk::MakeVersion(1, 0, 0),
-				.pEngineName = "DorkEngine2000",
-				.engineVersion = vk::MakeVersion(1, 0, 0),
-				.apiVersion = vk::ApiVersion::V1_4
-			};
+				VkApplicationInfo
+				{
+					.sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+					.pApplicationName = "Vulkan-2026",
+					.applicationVersion = Vk::MakeVersion(1, 0, 0),
+					.pEngineName = "DorkEngine2000",
+					.engineVersion = Vk::MakeVersion(1, 0, 0),
+					.apiVersion = Vk::ApiVersion::V1_4
+				};
 			auto createInfo =
-				vk::VkInstanceCreateInfo
-			{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				.pApplicationInfo = &appInfo,
-				.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
-				.ppEnabledExtensionNames = instanceExtensions.data()
-			};
+				VkInstanceCreateInfo
+				{
+					.sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+					.pApplicationInfo = &appInfo,
+					.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size()),
+					.ppEnabledExtensionNames = instanceExtensions.data()
+				};
 
-			auto instance = vk::VkInstance{};
-			auto status = vk::Result{ vk::vkCreateInstance(&createInfo, nullptr, &instance) };
+			auto instance = VkInstance{};
+			auto status = vk::Result{ vkCreateInstance(&createInfo, nullptr, &instance) };
 			if (not status)
 				throw vk::Error{ status };
-			volk::volkLoadInstance(instance);
+			volkLoadInstance(instance);
 			return vk::Instance{ vk::InstanceUniquePtr{ instance} };
 		}();
 
 	//
 	// Get a list of the physical devices.
 	auto physicalDevices =
-		[&instance] -> std::vector<vk::VkPhysicalDevice>
+		[&instance] -> std::vector<VkPhysicalDevice>
 		{
 			auto physicalDeviceCount = std::uint32_t{};
-			auto status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, nullptr) };
+			auto status = vk::Result{ vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, nullptr) };
 			if (not status)
 				throw vk::Error{ status };
-			auto physicalDevices = std::vector<vk::VkPhysicalDevice>{ physicalDeviceCount };
-			status = vk::Result{ vk::vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, physicalDevices.data()) };
+			auto physicalDevices = std::vector<VkPhysicalDevice>{ physicalDeviceCount };
+			status = vk::Result{ vkEnumeratePhysicalDevices(instance.Get(), &physicalDeviceCount, physicalDevices.data()) };
 			if (not status)
 				throw vk::Error{ status };
 			return physicalDevices;
 		}();
 
 	//
+	//
 	// Pick the first discrete device.
 	auto pickedDevice =
 		[&physicalDevices] -> vk::PhysicalDevice
 		{
-			for (const vk::VkPhysicalDevice& device : physicalDevices)
+			for (const VkPhysicalDevice& device : physicalDevices)
 			{
-				auto props = vk::VkPhysicalDeviceProperties2{ .sType = vk::VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-				vk::vkGetPhysicalDeviceProperties2(device, &props);
+				auto props = VkPhysicalDeviceProperties2{ .sType = VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+				vkGetPhysicalDeviceProperties2(device, &props);
 				std::println("Found device: {}", props.properties.deviceName);
-				if (props.properties.deviceType & vk::VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+				if (props.properties.deviceType & VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 					return device;
 			}
 			throw std::runtime_error("No Vulkan-compatible discrete GPUs found.");
@@ -135,20 +137,20 @@ try
 		[&pickedDevice] -> std::uint32_t
 		{
 			auto count = std::uint32_t{};
-			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, nullptr);
+			vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, nullptr);
 
-			auto queueFamilies = std::vector<vk::VkQueueFamilyProperties2>{
+			auto queueFamilies = std::vector<VkQueueFamilyProperties2>{
 				count,
-				vk::VkQueueFamilyProperties2{.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 }
+				VkQueueFamilyProperties2{.sType = VkStructureType::VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 }
 			};
-			vk::vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, queueFamilies.data());
+			vkGetPhysicalDeviceQueueFamilyProperties2(pickedDevice.Get(), &count, queueFamilies.data());
 
 			for (auto [index, element] : queueFamilies | std::views::enumerate)
 			{
 				auto queueFlags = element.queueFamilyProperties.queueFlags;
-				if (not (queueFlags & vk::VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
+				if (not (queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
 					continue;
-				if (not (queueFlags & vk::VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
+				if (not (queueFlags & VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
 					continue;
 				return static_cast<std::uint32_t>(index);
 			}
@@ -169,36 +171,36 @@ try
 		[](auto suitableQueueFamilyIndex, const vk::PhysicalDevice& pickedDevice) -> vk::Device
 		{
 			constexpr auto qfpriorities = 1.0f;
-			auto queueCI = vk::VkDeviceQueueCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			auto queueCI = VkDeviceQueueCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.queueFamilyIndex = suitableQueueFamilyIndex,
 				.queueCount = 1,
 				.pQueuePriorities = &qfpriorities
 			};
-			auto enabledVk12Features = vk::VkPhysicalDeviceVulkan12Features{
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+			auto enabledVk12Features = VkPhysicalDeviceVulkan12Features{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
 				.descriptorIndexing = true,
 				.shaderSampledImageArrayNonUniformIndexing = true,
 				.descriptorBindingVariableDescriptorCount = true,
 				.runtimeDescriptorArray = true,
 				.bufferDeviceAddress = true
 			};
-			auto enabledVk13Features = vk::VkPhysicalDeviceVulkan13Features{
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+			auto enabledVk13Features = VkPhysicalDeviceVulkan13Features{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
 				.pNext = &enabledVk12Features,
 				.synchronization2 = true,
 				.dynamicRendering = true,
 			};
-			const auto enabledVk14Features = vk::VkPhysicalDeviceVulkan14Features{
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
+			const auto enabledVk14Features = VkPhysicalDeviceVulkan14Features{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
 				.pNext = &enabledVk13Features,
 			};
-			const auto enabledVk10Features = vk::VkPhysicalDeviceFeatures{
+			const auto enabledVk10Features = VkPhysicalDeviceFeatures{
 				.samplerAnisotropy = true
 			};
-			const auto deviceExtensions = std::vector<const char*>{ vk::DeviceExtension::Swapchain };
-			auto deviceCI = vk::VkDeviceCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			const auto deviceExtensions = std::vector<const char*>{ Vk::DeviceExtension::Swapchain };
+			auto deviceCI = VkDeviceCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.pNext = &enabledVk14Features,
 				.queueCreateInfoCount = 1,
 				.pQueueCreateInfos = &queueCI,
@@ -206,11 +208,11 @@ try
 				.ppEnabledExtensionNames = deviceExtensions.data(),
 				.pEnabledFeatures = &enabledVk10Features
 			};
-			auto device = vk::VkDevice{};
-			auto result = vk::Result{ vk::vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device) };
+			auto device = VkDevice{};
+			auto result = vk::Result{ vkCreateDevice(pickedDevice.Get(), &deviceCI, nullptr, &device) };
 			if (not result)
 				throw vk::Error{ result };
-			volk::LoadDevice(device);
+			volkLoadDevice(device);
 			return vk::Device{ device };
 		}(suitableQueueFamilyIndex, pickedDevice);
 
@@ -222,19 +224,19 @@ try
 	auto allocator =
 		[&pickedDevice, &device, &instance] -> vma::Allocator
 		{
-			auto vkFunctions = vma::VmaVulkanFunctions{
-				.vkGetInstanceProcAddr = vk::vkGetInstanceProcAddr,
-				.vkGetDeviceProcAddr = vk::vkGetDeviceProcAddr
+			auto vkFunctions = VmaVulkanFunctions{
+				.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+				.vkGetDeviceProcAddr = vkGetDeviceProcAddr
 			};
-			auto allocatorCI = vma::VmaAllocatorCreateInfo{
-				.flags = vma::VmaAllocatorCreateFlagBits::VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+			auto allocatorCI = VmaAllocatorCreateInfo{
+				.flags = VmaAllocatorCreateFlagBits::VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
 				.physicalDevice = pickedDevice.Get(),
 				.device = device.Get(),
 				.pVulkanFunctions = &vkFunctions,
 				.instance = instance.Get()
 			};
-			auto allocator = vma::VmaAllocator{};
-			auto result = vk::Result{ vma::vmaCreateAllocator(&allocatorCI, &allocator) };
+			auto allocator = VmaAllocator{};
+			auto result = vk::Result{ vmaCreateAllocator(&allocatorCI, &allocator) };
 			if (not result)
 				throw vk::Error{ result };
 			return allocator;
@@ -244,15 +246,15 @@ try
 	constexpr auto height = 720u;
 	auto window = sdl3::Window{ "Vulkan-2026", width, height, sdl3::WindowFlags::Vulkan };
 	auto surface = vk::Surface{ vk::Surface::Create(instance.Get(), pickedDevice.Get(), window.CreateSurface(instance.Get())) };
-	auto surfaceCaps = vk::VkSurfaceCapabilitiesKHR{};
-	vk::vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pickedDevice.Get(), surface.Get(), &surfaceCaps);
+	auto surfaceCaps = VkSurfaceCapabilitiesKHR{};
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pickedDevice.Get(), surface.Get(), &surfaceCaps);
 
 	//
 	//
 	// Swapchain creation.
 	auto windowSize = glm::vec2{ window.GetWindowSize() };
 	auto swapchainExtent =
-		[&surfaceCaps, &windowSize] -> vk::VkExtent2D
+		[&surfaceCaps, &windowSize] -> VkExtent2D
 		{
 			if (surfaceCaps.currentExtent.width != 0xFFFFFFFF)
 				return { surfaceCaps.currentExtent };
@@ -262,49 +264,49 @@ try
 			};
 		}();
 
-	constexpr auto imageFormat = vk::VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
+	constexpr auto imageFormat = VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
 
 	auto swapchain =
 		[&device, &surface, &surfaceCaps, &swapchainExtent, &imageFormat] -> vk::Swapchain
 		{
-			auto swapchainCreateInfo = vk::VkSwapchainCreateInfoKHR{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+			auto swapchainCreateInfo = VkSwapchainCreateInfoKHR{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 				.surface = surface.Get(),
 				.minImageCount = surfaceCaps.minImageCount,
 				.imageFormat = imageFormat,
-				.imageColorSpace = vk::VkColorSpaceKHR::VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+				.imageColorSpace = VkColorSpaceKHR::VK_COLORSPACE_SRGB_NONLINEAR_KHR,
 				.imageExtent = {
 					.width = swapchainExtent.width,
 					.height = swapchainExtent.height
 				},
 				.imageArrayLayers = 1,
-				.imageUsage = vk::VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-				.preTransform = vk::VkSurfaceTransformFlagBitsKHR::VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-				.compositeAlpha = vk::VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-				.presentMode = vk::VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR
+				.imageUsage = VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+				.preTransform = VkSurfaceTransformFlagBitsKHR::VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+				.compositeAlpha = VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+				.presentMode = VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR
 			};
-			auto swapchain = vk::VkSwapchainKHR{};
-			auto result = vk::Result{ vk::vkCreateSwapchainKHR(device.Get(), &swapchainCreateInfo, nullptr, &swapchain) };
+			auto swapchain = VkSwapchainKHR{};
+			auto result = vk::Result{ vkCreateSwapchainKHR(device.Get(), &swapchainCreateInfo, nullptr, &swapchain) };
 			if (not result)
 				throw vk::Error{ result };
 			return vk::Swapchain{ vk::SwapchainUniquePtr{ swapchain, vk::SwapchainDeleter{device.Get()} } };
 		}();
 
-	auto swapchainImages = std::vector<vk::VkImage>{ swapchain.GetSwapchainImages() };
+	auto swapchainImages = std::vector<VkImage>{ swapchain.GetSwapchainImages() };
 
 	//
 	//
 	// Select a depth format. We need to find a format that supports being used as a depth-stencil attachment, and that is supported by the device.
 	auto depthFormat =
-		[&pickedDevice] -> vk::VkFormat
+		[&pickedDevice] -> VkFormat
 		{
-			constexpr auto candidates = std::array{ vk::VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT, vk::VkFormat::VK_FORMAT_D24_UNORM_S8_UINT };
+			constexpr auto candidates = std::array{ VkFormat::VK_FORMAT_D32_SFLOAT_S8_UINT, VkFormat::VK_FORMAT_D24_UNORM_S8_UINT };
 			const auto formatSupportsDepthAttachment =
-				[&pickedDevice](vk::VkFormat candidate) -> bool
+				[&pickedDevice](VkFormat candidate) -> bool
 				{
-					auto formatProps = vk::VkFormatProperties{};
-					vk::vkGetPhysicalDeviceFormatProperties(pickedDevice.Get(), candidate, &formatProps);
-					return (formatProps.optimalTilingFeatures & vk::VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0;
+					auto formatProps = VkFormatProperties{};
+					vkGetPhysicalDeviceFormatProperties(pickedDevice.Get(), candidate, &formatProps);
+					return (formatProps.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) != 0;
 				};
 			auto filter = candidates | std::ranges::views::filter(formatSupportsDepthAttachment);
 			return filter.empty()
@@ -315,9 +317,9 @@ try
 	auto depthImage =
 		[depthFormat, &allocator, &windowSize, &device] -> vk::DepthImage<vma::VmaImage>
 		{
-			auto depthImageCi = vk::VkImageCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-				.imageType = vk::VkImageType::VK_IMAGE_TYPE_2D,
+			auto depthImageCi = VkImageCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+				.imageType = VkImageType::VK_IMAGE_TYPE_2D,
 				.format = depthFormat,
 				.extent{ 
 					.width = static_cast<std::uint32_t>(windowSize.x), 
@@ -326,20 +328,20 @@ try
 				},
 				.mipLevels = 1,
 				.arrayLayers = 1,
-				.samples = vk::VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
-				.tiling = vk::VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
-				.usage = vk::VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-				.initialLayout = vk::VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+				.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
+				.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
+				.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+				.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
 			};
-			auto allocCi = vma::VmaAllocationCreateInfo{
-				.flags = vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
-				.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO,
+			auto allocCi = VmaAllocationCreateInfo{
+				.flags = VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+				.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO,
 			};
 
-			auto allocation = vma::VmaAllocation{};
-			auto image = vk::VkImage{};
+			auto allocation = VmaAllocation{};
+			auto image = VkImage{};
 			auto result = vk::Result{
-				vma::vmaCreateImage(
+				vmaCreateImage(
 					allocator.Get(),
 					&depthImageCi,
 					&allocCi,
@@ -351,20 +353,20 @@ try
 				throw vk::Error{ result };
 			auto imageUniquePtr = vma::VmaImageUniquePtr{ image, vma::VmaImageDeleter{allocator.Get(), allocation} };
 
-			auto depthViewCi = vk::VkImageViewCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			auto depthViewCi = VkImageViewCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 				.image = image,
-				.viewType = vk::VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
+				.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
 				.format = depthFormat,
 				.subresourceRange{
-					.aspectMask = vk::VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT,
+					.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT,
 					.levelCount = 1,
 					.layerCount = 1
 				}
 			};
-			auto depthImageView = vk::VkImageView{};
+			auto depthImageView = VkImageView{};
 			result = vk::Result{
-				vk::vkCreateImageView(
+				vkCreateImageView(
 					device.Get(),
 					&depthViewCi,
 					nullptr,
@@ -407,25 +409,25 @@ try
 	auto vertexIndexBuffer =
 		[&meshData, &allocator, &device] -> vma::VmaBuffer
 		{
-			auto vBufSize = vk::VkDeviceSize{ sizeof(Mesh::Vertex) * meshData.Vertices.size() };
-			auto iBufSize = vk::VkDeviceSize{ sizeof(std::uint16_t) * meshData.Indices.size() };
+			auto vBufSize = VkDeviceSize{ sizeof(Mesh::Vertex) * meshData.Vertices.size() };
+			auto iBufSize = VkDeviceSize{ sizeof(std::uint16_t) * meshData.Indices.size() };
 			// Note that the buffer combines vertex and index data.
-			auto bufferCI = vk::VkBufferCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			auto bufferCI = VkBufferCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 				.size = vBufSize + iBufSize,
-				.usage = vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+				.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT
 			};
-			auto vBufferAllocCI = vma::VmaAllocationCreateInfo{
+			auto vBufferAllocCI = VmaAllocationCreateInfo{
 				.flags =
-					vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-					| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
-					| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
-				.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+					VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+					| VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
+					| VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
+				.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
 			};
-			auto vBufferAllocInfo = vma::VmaAllocationInfo{};
-			auto vBuffer = vk::VkBuffer{};
-			auto vBufferAllocation = vma::VmaAllocation{};
-			auto result = vk::Result{ vma::vmaCreateBuffer(allocator.Get(), &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo) };
+			auto vBufferAllocInfo = VmaAllocationInfo{};
+			auto vBuffer = VkBuffer{};
+			auto vBufferAllocation = VmaAllocation{};
+			auto result = vk::Result{ vmaCreateBuffer(allocator.Get(), &bufferCI, &vBufferAllocCI, &vBuffer, &vBufferAllocation, &vBufferAllocInfo) };
 			if (not result)
 				throw vk::Error{ result };
 
@@ -438,20 +440,20 @@ try
 	auto shaderDataBuffers = std::array<ShaderDataBuffer, MaxFramesInFlight>{};
 	for (auto i = 0; i < MaxFramesInFlight; i++) 
 	{
-		auto uBufferCI = vk::VkBufferCreateInfo{
-			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		auto uBufferCI = VkBufferCreateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 			.size = sizeof(ShaderData),
-			.usage = vk::VkBufferUsageFlagBits::VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+			.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
 		};
-		auto uBufferAllocCI = vma::VmaAllocationCreateInfo{
+		auto uBufferAllocCI = VmaAllocationCreateInfo{
 			.flags = 
-				vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-				| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
-				| vma::VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
-			.usage = vma::VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+				VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+				| VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT
+				| VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
+			.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
 		};
 		auto result = vk::Result{ 
-			vma::vmaCreateBuffer(
+			vmaCreateBuffer(
 				allocator.Get(),
 				&uBufferCI,
 				&uBufferAllocCI,
@@ -465,8 +467,8 @@ try
 
 	// Sync objects
 	auto fences = std::array<Vulkan26::Fence, MaxFramesInFlight>{
-		Vulkan26::Fence{ Vulkan26::CreateFenceUniquePtr(device.Get(), vk::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT) },
-		Vulkan26::Fence{ Vulkan26::CreateFenceUniquePtr(device.Get(), vk::VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT) }
+		Vulkan26::Fence{ Vulkan26::CreateFenceUniquePtr(device.Get(), VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT) },
+		Vulkan26::Fence{ Vulkan26::CreateFenceUniquePtr(device.Get(), VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT) }
 	};
 	auto semaphores = std::array<Vulkan26::Semaphore, MaxFramesInFlight>{
 		Vulkan26::Semaphore{ Vulkan26::CreateSemaphoreUniquePtr(device.Get(), 0)},
@@ -481,11 +483,11 @@ try
 	// Command pool
 	auto commandPool = vk::CommandPool{
 		device.Get(), 
-		vk::VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, 
+		VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, 
 		0
 	};
 	auto commandBuffers = 
-		commandPool.CreateArray<MaxFramesInFlight>(vk::VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+		commandPool.CreateArray<MaxFramesInFlight>(VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 	
 	// Texture images
@@ -500,7 +502,7 @@ try
 	// Cleanup buffers
 	for(ShaderDataBuffer& buffer : shaderDataBuffers)
 	{
-		buffer.Destroy(allocator, device);
+		buffer.Destroy(allocator);
 	}
 
 	return 0;

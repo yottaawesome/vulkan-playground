@@ -15,7 +15,7 @@ export namespace ktx
 		return mipOffset;
 	}
 
-	auto Destroy(ktxTexture* text) -> void
+	void Destroy(ktxTexture* text)
 	{
 		ktxTexture_Destroy(text);
 	}

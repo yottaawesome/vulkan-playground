@@ -1,6 +1,6 @@
 export module volkus:vkx.concepts;
 import std;
-import :vkx.exports;
+import vulkanlib;
 
 export namespace Volkus::vkx
 {

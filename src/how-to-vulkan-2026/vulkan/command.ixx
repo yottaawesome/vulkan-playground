@@ -1,7 +1,7 @@
 export module vulkan26:vulkan.command;
 import std;
+import vulkanlib;
 import :error;
-import :vulkan.exports;
 import :vulkan.error;
 
 export namespace vk
@@ -13,12 +13,12 @@ export namespace vk
 		{
 			if (buffer)
 			{
-				vk::vkFreeCommandBuffers(device, commandPool, 1, &buffer);
+				vkFreeCommandBuffers(device, commandPool, 1, &buffer);
 				buffer = nullptr;
 			}
 		}
 
-		CommandBuffer(vk::VkCommandBuffer buffer, vk::VkDevice device, vk::VkCommandPool commandPool)
+		CommandBuffer(VkCommandBuffer buffer, VkDevice device, VkCommandPool commandPool)
 			: buffer(buffer), device(device), commandPool(commandPool)
 		{}
 
@@ -40,15 +40,15 @@ export namespace vk
 			return *this;
 		}
 
-		auto Begin(this auto& self, vk::VkCommandBufferUsageFlags flags = 0) -> void
+		auto Begin(this auto& self, VkCommandBufferUsageFlags flags = 0) -> void
 		{
 			if (not self.buffer)
 				throw ::Error::RuntimeError{ "Invalid command buffer" };
-			auto beginInfo = vk::VkCommandBufferBeginInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			auto beginInfo = VkCommandBufferBeginInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 				.flags = flags
 			};
-			auto result = vk::Result{ vk::vkBeginCommandBuffer(self.buffer, &beginInfo) };
+			auto result = vk::Result{ vkBeginCommandBuffer(self.buffer, &beginInfo) };
 			if (not result)
 				throw ::Error::RuntimeError{ std::format("Failed to begin command buffer: {}", result) };
 		}
@@ -57,12 +57,12 @@ export namespace vk
 		{
 			if (not self.buffer)
 				throw ::Error::RuntimeError{ "Invalid command buffer" };
-			auto result = vk::Result{ vk::vkEndCommandBuffer(self.buffer) };
+			auto result = vk::Result{ vkEndCommandBuffer(self.buffer) };
 			if (not result)
 				throw ::Error::RuntimeError{ std::format("Failed to end command buffer: {}", result) };
 		}
 
-		auto Record(this auto& self, auto&& recordFunc, vk::VkCommandBufferUsageFlags flags = 0) -> void
+		auto Record(this auto& self, auto&& recordFunc, VkCommandBufferUsageFlags flags = 0) -> void
 		{
 			self.Begin(flags);
 			std::invoke(recordFunc, self);
@@ -70,23 +70,23 @@ export namespace vk
 		}
 
 	private:
-		vk::VkDevice device{};
-		vk::VkCommandPool commandPool{};
-		vk::VkCommandBuffer buffer{};
+		VkDevice device{};
+		VkCommandPool commandPool{};
+		VkCommandBuffer buffer{};
 	};
 
 	struct CommandBufferView
 	{
-		vk::VkCommandBuffer Buffer{};
-		auto Begin(this auto& self, vk::VkCommandBufferUsageFlags flags = 0) -> void
+		VkCommandBuffer Buffer{};
+		auto Begin(this auto& self, VkCommandBufferUsageFlags flags = 0) -> void
 		{
 			if (not self.Buffer)
 				throw ::Error::RuntimeError{ "Invalid command buffer" };
-			auto beginInfo = vk::VkCommandBufferBeginInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			auto beginInfo = VkCommandBufferBeginInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 				.flags = flags
 			};
-			auto result = vk::Result{ vk::vkBeginCommandBuffer(self.buffer, &beginInfo) };
+			auto result = vk::Result{ vkBeginCommandBuffer(self.Buffer, &beginInfo) };
 			if (not result)
 				throw ::Error::RuntimeError{ std::format("Failed to begin command buffer: {}", result) };
 		}
@@ -95,7 +95,7 @@ export namespace vk
 		{
 			if (not self.Buffer)
 				throw ::Error::RuntimeError{ "Invalid command buffer" };
-			auto result = vk::Result{ vk::vkEndCommandBuffer(self.Buffer) };
+			auto result = vk::Result{ vkEndCommandBuffer(self.Buffer) };
 			if (not result)
 				throw ::Error::RuntimeError{ std::format("Failed to end command buffer: {}", result) };
 		}
@@ -108,12 +108,12 @@ export namespace vk
 		{
 			if (not buffers.empty())
 			{
-				vk::vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
+				vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
 				buffers.clear();
 			}
 		}
 
-		CommandBuffers(vk::VkDevice device, vk::VkCommandPool commandPool, std::vector<vk::VkCommandBuffer> buffers)
+		CommandBuffers(VkDevice device, VkCommandPool commandPool, std::vector<VkCommandBuffer> buffers)
 			: device(device), commandPool(commandPool), buffers(buffers)
 		{}
 
@@ -130,7 +130,7 @@ export namespace vk
 			if (this != &other)
 			{
 				if (not buffers.empty())
-					vk::vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
+					vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
 				device = std::exchange(other.device, nullptr);
 				commandPool = std::exchange(other.commandPool, nullptr);
 				buffers = std::exchange(other.buffers, {});
@@ -139,9 +139,9 @@ export namespace vk
 		}
 
 	protected:
-		vk::VkDevice device{};
-		vk::VkCommandPool commandPool{};
-		std::vector<vk::VkCommandBuffer> buffers;
+		VkDevice device{};
+		VkCommandPool commandPool{};
+		std::vector<VkCommandBuffer> buffers;
 	};
 
 	template<size_t N>
@@ -152,11 +152,11 @@ export namespace vk
 		{
 			if (not buffers.empty())
 			{
-				vk::vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
+				vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
 				buffers.fill(nullptr);
 			}
 		}
-		CommandBufferArray(vk::VkDevice device, vk::VkCommandPool commandPool, std::array<vk::VkCommandBuffer, N> buffers)
+		CommandBufferArray(VkDevice device, VkCommandPool commandPool, std::array<VkCommandBuffer, N> buffers)
 			: device(device), commandPool(commandPool), buffers(buffers)
 		{}
 
@@ -173,7 +173,7 @@ export namespace vk
 			if (this != &other)
 			{
 				if (not buffers.empty())
-					vk::vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
+					vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(buffers.size()), buffers.data());
 				device = std::exchange(other.device, nullptr);
 				commandPool = std::exchange(other.commandPool, nullptr);
 				buffers = std::exchange(other.buffers, {});
@@ -181,16 +181,16 @@ export namespace vk
 			return *this;
 		}
 
-		constexpr auto operator[](size_t index) noexcept -> vk::VkCommandBuffer
+		constexpr auto operator[](size_t index) noexcept -> VkCommandBuffer
 		{
 			if (index >= N)
 				throw std::out_of_range{ "Index out of range" };
 			return buffers[index];
 		}
 	protected:
-		vk::VkDevice device{};
-		vk::VkCommandPool commandPool{};
-		std::array<vk::VkCommandBuffer, N> buffers{};
+		VkDevice device{};
+		VkCommandPool commandPool{};
+		std::array<VkCommandBuffer, N> buffers{};
 	};
 
 	class CommandPool
@@ -200,7 +200,7 @@ export namespace vk
 		{
 			if (commandPool)
 			{
-				vk::vkDestroyCommandPool(device, commandPool, nullptr);
+				vkDestroyCommandPool(device, commandPool, nullptr);
 				commandPool = nullptr;
 			}
 		}
@@ -213,18 +213,18 @@ export namespace vk
 				throw ::Error::RuntimeError{ "Invalid command pool" };
 		}
 
-		CommandPool(vk::VkDevice device, vk::VkCommandPoolCreateFlags flags, uint32_t queueFamilyIndex)
+		CommandPool(VkDevice device, VkCommandPoolCreateFlags flags, uint32_t queueFamilyIndex)
 			: device(device)
 		{
 			if (not device)
 				throw ::Error::RuntimeError{ "Invalid device" };
-			auto createInfo = vk::VkCommandPoolCreateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			auto createInfo = VkCommandPoolCreateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 				.flags = flags,
 				.queueFamilyIndex = queueFamilyIndex
 			};
-			auto commandPool = vk::VkCommandPool{};
-			auto result = vk::Result{ vk::vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) };
+			auto commandPool = VkCommandPool{};
+			auto result = vk::Result{ vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) };
 			if (not result)
 				throw vk::Error{ result, "Failed to create command pool." };
 			this->commandPool = commandPool;
@@ -243,7 +243,7 @@ export namespace vk
 			if (this != &other)
 				return *this;
 			if (device and commandPool)
-				vk::vkDestroyCommandPool(device, commandPool, nullptr);
+				vkDestroyCommandPool(device, commandPool, nullptr);
 			device = std::exchange(other.device, nullptr);
 			commandPool = std::exchange(other.commandPool, nullptr);
 			return *this;
@@ -255,47 +255,47 @@ export namespace vk
 		}
 
 		template<size_t N>
-		auto CreateArray(vk::VkCommandBufferLevel level) -> CommandBufferArray<N>
+		auto CreateArray(VkCommandBufferLevel level) -> CommandBufferArray<N>
 		{
 			if (not device)
 				throw ::Error::RuntimeError{ "Invalid device" };
 			if (not commandPool)
 				throw ::Error::RuntimeError{ "Invalid command pool" };
 
-			auto commandBuffers = std::array<vk::VkCommandBuffer, N>{};
-			auto allocInfo = vk::VkCommandBufferAllocateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			auto commandBuffers = std::array<VkCommandBuffer, N>{};
+			auto allocInfo = VkCommandBufferAllocateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 				.commandPool = commandPool,
 				.level = level,
 				.commandBufferCount = static_cast<std::uint32_t>(N)
 			};
-			auto result = vk::Result{ vk::vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) };
+			auto result = vk::Result{ vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) };
 			if (not result)
 				throw Error{ result, "Failed to allocate command buffers" };
 
 			return CommandBufferArray<N>{ device, commandPool, commandBuffers };
 		}
 
-		auto CreateCommandBuffer(this auto& self, vk::VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) -> CommandBuffer
+		auto CreateCommandBuffer(this auto& self, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) -> CommandBuffer
 		{
 			if (not device)
 				throw ::Error::RuntimeError{ "Invalid device" };
 			if (not commandPool)
 				throw ::Error::RuntimeError{ "Invalid command pool" };
-			auto allocInfo = vk::VkCommandBufferAllocateInfo{
-				.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			auto allocInfo = VkCommandBufferAllocateInfo{
+				.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 				.commandPool = commandPool,
 				.level = level,
 				.commandBufferCount = 1
 			};
-			auto commandBuffer = vk::VkCommandBuffer{};
-			auto result = vk::Result{ vk::vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer) };
+			auto commandBuffer = VkCommandBuffer{};
+			auto result = vk::Result{ vkAllocateCommandBuffers(self.device, &allocInfo, &commandBuffer) };
 			if (not result)
 				throw ::Error::RuntimeError{ std::format("Failed to allocate command buffer: {}", result) };
 			return CommandBuffer{ commandBuffer, device, commandPool };
 		}
 	private:
-		vk::VkDevice device{};
-		vk::VkCommandPool commandPool{};
+		VkDevice device{};
+		VkCommandPool commandPool{};
 	};
 }

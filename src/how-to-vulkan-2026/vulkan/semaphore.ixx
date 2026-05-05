@@ -1,6 +1,6 @@
 export module vulkan26:vulkan.semaphore;
 import std;
-import :vulkan.exports;
+import vulkanlib;
 import :vulkan.error;
 
 export namespace Vulkan26
@@ -9,33 +9,33 @@ export namespace Vulkan26
 	{
 	public:
 		constexpr SemaphoreDeleter() = default;
-		SemaphoreDeleter(vk::VkDevice device)
+		SemaphoreDeleter(VkDevice device)
 			: device(device)
 		{
 			if (not device)
 				throw std::runtime_error{ "Device handle cannot be null for SemaphoreDeleter" };
 		}
-		void operator()(this auto&& self, vk::VkSemaphore semaphore) noexcept
+		void operator()(this auto&& self, VkSemaphore semaphore) noexcept
 		{
-			vk::vkDestroySemaphore(self.device, semaphore, nullptr);
+			vkDestroySemaphore(self.device, semaphore, nullptr);
 		}
-		constexpr auto GetDevice() const noexcept -> vk::VkDevice
+		constexpr auto GetDevice() const noexcept -> VkDevice
 		{
 			return device;
 		}
 	private:
-		vk::VkDevice device{};
+		VkDevice device{};
 	};
-	using SemaphoreUniquePtr = std::unique_ptr<std::remove_pointer_t<vk::VkSemaphore>, SemaphoreDeleter>;
+	using SemaphoreUniquePtr = std::unique_ptr<std::remove_pointer_t<VkSemaphore>, SemaphoreDeleter>;
 
-	auto CreateSemaphoreUniquePtr(vk::VkDevice device, vk::VkSemaphoreCreateFlags flags = 0) -> SemaphoreUniquePtr
+	auto CreateSemaphoreUniquePtr(VkDevice device, VkSemaphoreCreateFlags flags = 0) -> SemaphoreUniquePtr
 	{
-		auto semaphoreCI = vk::VkSemaphoreCreateInfo{
-			.sType = vk::VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		auto semaphoreCI = VkSemaphoreCreateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 			.flags = flags
 		};
-		auto semaphore = vk::VkSemaphore{};
-		auto result = vk::Result{ vk::vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore) };
+		auto semaphore = VkSemaphore{};
+		auto result = vk::Result{ vkCreateSemaphore(device, &semaphoreCI, nullptr, &semaphore) };
 		if (not result)
 			throw vk::Error{ result, "Failed creating semaphore " };
 		return SemaphoreUniquePtr{ semaphore, SemaphoreDeleter{ device } };
@@ -48,7 +48,7 @@ export namespace Vulkan26
 		Semaphore(SemaphoreUniquePtr handleIn)
 			: handle(std::move(handleIn))
 		{ }
-		auto GetHandle() const noexcept -> vk::VkSemaphore
+		auto GetHandle() const noexcept -> VkSemaphore
 		{
 			return handle.get();
 		}

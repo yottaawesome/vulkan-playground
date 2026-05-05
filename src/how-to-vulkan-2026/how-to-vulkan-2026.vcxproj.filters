@@ -30,9 +30,6 @@
     <ClCompile Include="sdl3\exports.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\exports.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vulkan\error.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -55,9 +52,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\physicaldevice.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vma\allocator.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sdl3\window.ixx">
@@ -99,19 +93,7 @@
     <ClCompile Include="mesh\mesh.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vma\buffer.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vma\exports.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vma\vma.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vulkan\impl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vma\image.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\semaphore.ixx">
@@ -127,6 +109,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\command.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyobj\tinyobjimpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\allocator.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\buffer.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\image.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vma\vma.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

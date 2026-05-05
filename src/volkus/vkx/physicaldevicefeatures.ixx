@@ -1,5 +1,5 @@
 export module volkus:vkx.physicaldevicefeatures;
-import :vkx.exports;
+import vulkanlib;
 
 export namespace Volkus::vkx
 {

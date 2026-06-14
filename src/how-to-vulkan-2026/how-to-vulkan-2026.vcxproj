@@ -145,6 +145,7 @@
     <ClCompile Include="glm\glm.ixx" />
     <ClCompile Include="ktx\exports.ixx" />
     <ClCompile Include="ktx\ktx.ixx" />
+    <ClCompile Include="ktx\texture.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mesh\mesh.ixx" />
     <ClCompile Include="raii\raii.ixx" />

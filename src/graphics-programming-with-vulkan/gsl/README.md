@@ -1,6 +1,6 @@
 # gsl
 
-Re-exports [Microsoft GSL](https://github.com/microsoft/GSL) types as a module
+Re-exports [Microsoft GSL](https://github.com/microsoft/GSL) pointer and string vocabulary types as a module
 partition of `vulkangfx`.
 
 ## Dependency rules
@@ -12,4 +12,4 @@ partitions. Other partitions may depend on `:gsl`.
 
 | Partition | Purpose                                       |
 |-----------|-----------------------------------------------|
-| `:gsl`    | Re-exports `gsl::not_null`, `gsl::span`, `gsl::czstring` |
+| `:gsl`    | Re-exports `gsl::not_null`, `gsl::czstring` |

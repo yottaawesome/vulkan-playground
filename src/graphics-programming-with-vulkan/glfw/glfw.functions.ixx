@@ -5,7 +5,7 @@ import :gsl;
 
 export namespace glfw 
 {
-	auto GetRequiredVulkanExtensions() noexcept -> gsl::span<gsl::czstring>
+	auto GetRequiredVulkanExtensions() noexcept -> std::span<gsl::czstring>
 	{
 		auto extensionCount = std::uint32_t{};
 		auto extensions = glfw::glfwGetRequiredInstanceExtensions(&extensionCount);

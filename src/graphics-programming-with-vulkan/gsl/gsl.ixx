@@ -1,6 +1,7 @@
 module;
 
-#include <gsl/gsl>
+#include <gsl/pointers>
+#include <gsl/zstring>
 
 export module vulkangfx:gsl;
 
@@ -9,7 +10,6 @@ export namespace gsl
 {
 	using 
 		gsl::not_null,
-		gsl::span,
 		gsl::czstring
 		;
 }

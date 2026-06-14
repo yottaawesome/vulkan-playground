@@ -126,6 +126,9 @@
     <ClCompile Include="vma\vma.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ktx\texture.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

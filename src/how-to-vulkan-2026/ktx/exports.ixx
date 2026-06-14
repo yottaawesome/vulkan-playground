@@ -31,6 +31,8 @@ export using
 	::ktxTexture1,
 	::ktxTextureCreateFlagBits,
 	::ktx_error_code_e,
+	::ktx_size_t,
+	::ktx_uint8_t,
 	::ktxTexture_GetVkFormat,
 	::ktxTexture_CreateFromNamedFile
 ;

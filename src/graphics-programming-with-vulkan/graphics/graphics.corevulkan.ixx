@@ -1436,7 +1436,7 @@ export namespace Graphics
 	private: // Static initialisation support functions
 		static auto GetRequiredExtensions() -> std::vector<const char*>
 		{
-			auto rawRequiredExtensions = gsl::span<gsl::czstring>{ glfw::GetRequiredVulkanExtensions() };
+			auto rawRequiredExtensions = glfw::GetRequiredVulkanExtensions();
 			auto vector = std::vector<const char*>{ rawRequiredExtensions.begin(), rawRequiredExtensions.end() };
 			vector.push_back(vkr::Extensions::EXTDebugUtils);
 			return vector;

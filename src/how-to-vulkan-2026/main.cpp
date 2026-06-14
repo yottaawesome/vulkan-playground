@@ -494,8 +494,96 @@ try
 	auto textures = std::array<Texture, 3>{};
 	for (auto i = 0; i < textures.size(); i++)
 	{
-		auto texture = static_cast<ktxTexture*>(nullptr);
-		auto filename = std::format("assets/suzanne{}.ktx", i);
+		// Load the texture. We only need it until we've copied it to the GPU.
+		auto ktxTexture = ktx::LoadedTexture{ std::format("assets/suzanne{}.ktx", i) };
+		// Create a VMA image
+		auto texImgCI = VkImageCreateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.imageType = VkImageType::VK_IMAGE_TYPE_2D,
+			.format = ktxTexture.GetFormat(),
+			.extent = {
+				.width = ktxTexture.GetWidth(),
+				.height = ktxTexture.GetHeight(),
+				.depth = 1
+			},
+			.mipLevels = ktxTexture.GetNumLevels(),
+			.arrayLayers = 1,
+			.samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
+			.usage = VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSFER_DST_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT,
+			.initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED
+		};
+		auto texImageAllocCI = VmaAllocationCreateInfo{
+			.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+		};
+		auto result = vk::Result{
+			vmaCreateImage(
+				allocator.Get(), 
+				&texImgCI, 
+				&texImageAllocCI, 
+				&textures[i].image, 
+				&textures[i].allocation, 
+				nullptr
+			)};
+		if (not result)
+			throw vk::Error{ result, "Failed to create image" };
+
+		auto texVewCI = VkImageViewCreateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures[i].image,
+			.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
+			.format = ktxTexture.GetFormat(),
+			.subresourceRange = {
+				.aspectMask = VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT,
+				.levelCount = ktxTexture.GetNumLevels(),
+				.layerCount = 1
+			}
+		};
+		result = vkCreateImageView(device.Get(), &texVewCI, nullptr, &textures[i].view);
+		if (not result)
+			throw vk::Error{ result, "Failed to create image view" };
+
+		// Staging buffer sized to the full KTX payload (all mip levels packed together).
+		auto imgSrcBuffer = VkBuffer{};
+		auto imgSrcAllocation = VmaAllocation{};
+		auto imgSrcBufferCI = VkBufferCreateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			.size = (std::uint32_t)ktxTexture.GetDataSize(),
+			.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+		};
+		auto imgSrcAllocCI = VmaAllocationCreateInfo{
+			.flags = VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT,
+			.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO
+		};
+		auto imgSrcAllocInfo = VmaAllocationInfo{};
+		result = vmaCreateBuffer(allocator.Get(), &imgSrcBufferCI, &imgSrcAllocCI, &imgSrcBuffer, &imgSrcAllocation, &imgSrcAllocInfo);
+		if (not result)
+			throw vk::Error{ result, "Failed to create buffer" };
+		// Copy the entire KTX blob (all mips) into the mapped staging buffer.
+		std::memcpy(imgSrcAllocInfo.pMappedData, ktxTexture.GetData(), ktxTexture.GetDataSize());
+
+		// Allocate a fence + one-time command buffer to drive the upload synchronously.
+		auto fenceOneTimeCI = VkFenceCreateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+		};
+		auto fenceOneTime = VkFence{};
+		result = vkCreateFence(device.Get(), &fenceOneTimeCI, nullptr, &fenceOneTime);
+		if (not result)
+			throw vk::Error{ result, "Failed to create fence" };
+		auto cbOneTime = VkCommandBuffer{};
+		auto cbOneTimeAI = VkCommandBufferAllocateInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.commandPool = commandPool.Get(),
+			.commandBufferCount = 1
+		};
+		result = vkAllocateCommandBuffers(device.Get(), &cbOneTimeAI, &cbOneTime);
+		if (not result)
+			throw vk::Error{ result, "Failed to allocate command buffers" };
+		auto cbOneTimeBI = VkCommandBufferBeginInfo{
+			.sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = VkCommandBufferUsageFlagBits::VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+		};
+		vkBeginCommandBuffer(cbOneTime, &cbOneTimeBI);
 	}
 
 
